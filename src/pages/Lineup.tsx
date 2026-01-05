@@ -26,6 +26,7 @@ export default function Lineup() {
 
   const [entry, setEntry] = useState<Entry | null>(null)
   const [entryLoading, setEntryLoading] = useState(true)
+  const [allWeeks, setAllWeeks] = useState<{ id: number; name: string }[]>([])
   const [selectingSlot, setSelectingSlot] = useState<LineupSlot | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
@@ -74,6 +75,18 @@ export default function Lineup() {
 
     fetchEntry()
   }, [entryId, user, navigate])
+
+  // Fetch all weeks for tab names
+  useEffect(() => {
+    async function fetchWeeks() {
+      const { data } = await supabase
+        .from('weeks')
+        .select('id, name')
+        .order('id')
+      if (data) setAllWeeks(data)
+    }
+    fetchWeeks()
+  }, [])
 
   const handleSelectPlayer = async (player: PlayerWithTeam) => {
     if (!selectingSlot) return
@@ -230,18 +243,18 @@ export default function Lineup() {
       )}
 
       {/* Week selector */}
-      <div className="mb-6 flex gap-2">
-        {[1, 2, 3, 4].map((w) => (
+      <div className="mb-6 flex flex-wrap gap-2">
+        {allWeeks.map((w) => (
           <Link
-            key={w}
-            to={`/entry/${entryId}/lineup?week=${w}`}
+            key={w.id}
+            to={`/entry/${entryId}/lineup?week=${w.id}`}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              w === weekId
+              w.id === weekId
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
             }`}
           >
-            Week {w}
+            {w.name}
           </Link>
         ))}
       </div>
