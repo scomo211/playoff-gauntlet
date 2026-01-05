@@ -5,6 +5,15 @@ import Layout from '../components/Layout'
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
+const POSITION_COLORS: Record<Position, string> = {
+  QB: 'bg-red-500/10 text-red-400 border-red-500/20',
+  RB: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  WR: 'bg-green-500/10 text-green-400 border-green-500/20',
+  TE: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+  K: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  DEF: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+}
+
 export default function Players() {
   const [players, setPlayers] = useState<(Player & { team: Team })[]>([])
   const [teams, setTeams] = useState<Team[]>([])
@@ -60,8 +69,8 @@ export default function Players() {
   return (
     <Layout>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Players</h1>
-        <p className="mt-1 text-gray-600">
+        <h1 className="text-2xl font-bold text-white">Players</h1>
+        <p className="mt-1 text-slate-400">
           Browse available players from teams still in the playoffs
         </p>
       </div>
@@ -69,7 +78,7 @@ export default function Players() {
       {/* Filters */}
       <div className="mb-6 flex flex-wrap gap-4">
         <div>
-          <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="search" className="block text-sm font-medium text-slate-400 mb-1.5">
             Search
           </label>
           <input
@@ -78,19 +87,19 @@ export default function Players() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search players..."
-            className="w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-64 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
           />
         </div>
 
         <div>
-          <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="position" className="block text-sm font-medium text-slate-400 mb-1.5">
             Position
           </label>
           <select
             id="position"
             value={selectedPosition}
             onChange={(e) => setSelectedPosition(e.target.value as Position | 'ALL')}
-            className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
           >
             <option value="ALL">All Positions</option>
             {POSITIONS.map(pos => (
@@ -100,14 +109,14 @@ export default function Players() {
         </div>
 
         <div>
-          <label htmlFor="team" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="team" className="block text-sm font-medium text-slate-400 mb-1.5">
             Team
           </label>
           <select
             id="team"
             value={selectedTeam}
             onChange={(e) => setSelectedTeam(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
           >
             <option value="ALL">All Teams</option>
             {teams.map(team => (
@@ -120,55 +129,50 @@ export default function Players() {
       </div>
 
       {/* Players Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="card-solid overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-field-500"></div>
           </div>
         ) : filteredPlayers.length > 0 ? (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Player
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Position
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Team
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPlayers.map(player => (
-                <tr key={player.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{player.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      player.position === 'QB' ? 'bg-red-100 text-red-800' :
-                      player.position === 'RB' ? 'bg-blue-100 text-blue-800' :
-                      player.position === 'WR' ? 'bg-green-100 text-green-800' :
-                      player.position === 'TE' ? 'bg-yellow-100 text-yellow-800' :
-                      player.position === 'K' ? 'bg-purple-100 text-purple-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {player.position}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">
-                      {player.team?.city} {player.team?.name}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-800">
+              <thead className="bg-slate-800/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Player
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Position
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Team
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {filteredPlayers.map(player => (
+                  <tr key={player.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-white">{player.name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium border ${POSITION_COLORS[player.position]}`}>
+                        {player.position}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-400">
+                        {player.team?.city} {player.team?.name}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-slate-500">
             {players.length === 0
               ? 'No players loaded yet. Player data will be imported before the playoffs begin.'
               : 'No players match your filters.'}
@@ -176,7 +180,7 @@ export default function Players() {
         )}
       </div>
 
-      <div className="mt-4 text-sm text-gray-500">
+      <div className="mt-4 text-sm text-slate-500">
         Showing {filteredPlayers.length} of {players.length} players
       </div>
     </Layout>

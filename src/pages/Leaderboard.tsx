@@ -71,105 +71,107 @@ export default function Leaderboard() {
   return (
     <Layout>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Leaderboard</h1>
-        <p className="mt-1 text-gray-600">
+        <h1 className="text-2xl font-bold text-white">Leaderboard</h1>
+        <p className="mt-1 text-slate-400">
           {entries.length} entries competing for top {payoutSpots} payout spots
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="card-solid overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-field-500"></div>
           </div>
         ) : entries.length > 0 ? (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rank
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Entry
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Owner
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wk 1
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wk 2
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wk 3
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wk 4
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {entries.map((entry, index) => {
-                const rank = index + 1
-                const inTheMoney = rank <= payoutSpots
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-800">
+              <thead className="bg-slate-800/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Rank
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Entry
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Owner
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Wk 1
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Wk 2
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Wk 3
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Wk 4
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {entries.map((entry, index) => {
+                  const rank = index + 1
+                  const inTheMoney = rank <= payoutSpots
 
-                return (
-                  <tr
-                    key={entry.id}
-                    className={inTheMoney ? 'bg-green-50' : ''}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className={`text-sm font-medium ${inTheMoney ? 'text-green-700' : 'text-gray-900'}`}>
-                          {rank}
-                        </span>
-                        {inTheMoney && (
-                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                            $
+                  return (
+                    <tr
+                      key={entry.id}
+                      className={inTheMoney ? 'bg-field-500/5' : 'hover:bg-slate-800/30'}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-semibold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
+                            {rank}
                           </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{entry.entry_name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">{entry.display_name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">--</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">--</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">--</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">--</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className={`text-sm font-semibold ${inTheMoney ? 'text-green-700' : 'text-gray-900'}`}>
-                        {entry.total_points.toFixed(1)}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                          {inTheMoney && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
+                              $
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-white">{entry.entry_name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-slate-400">{entry.display_name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className={`text-sm font-bold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
+                          {entry.total_points.toFixed(1)}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-slate-500">
             No entries yet. Be the first to join!
           </div>
         )}
       </div>
 
-      <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
+      <div className="mt-6 card p-4">
         <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5 text-gold-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <div className="text-sm text-green-800">
+          <div className="text-sm text-slate-300">
             <p className="font-medium">In the Money</p>
-            <p className="mt-1">
-              Green highlighted rows are currently in payout position. Top {payoutSpots} entries win prizes.
+            <p className="mt-1 text-slate-400">
+              Highlighted rows are currently in payout position. Top {payoutSpots} entries win prizes.
             </p>
           </div>
         </div>

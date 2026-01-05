@@ -25,34 +25,41 @@ export default function Dashboard() {
   const entriesLocked = settings?.entries_locked ?? false
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b border-gray-200">
+    <div className="min-h-screen bg-slate-950">
+      <nav className="bg-slate-900 border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-14">
             <div className="flex items-center gap-8">
-              <h1 className="text-xl font-bold text-gray-900">Playoff Gauntlet</h1>
-              <div className="hidden sm:flex items-center gap-6">
-                <Link to="/dashboard" className="text-sm font-medium text-blue-600">
+              <Link to="/dashboard" className="flex items-center gap-2.5">
+                <svg className="w-7 h-7 text-field-400" viewBox="0 0 32 32" fill="none">
+                  <ellipse cx="16" cy="16" rx="14" ry="9" fill="currentColor" stroke="currentColor" strokeWidth="1"/>
+                  <path d="M16 9v14" stroke="#1a1f2e" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M13 11l3 2 3-2M13 15l3 2 3-2M13 19l3 2 3-2" stroke="#1a1f2e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-base font-bold text-white tracking-tight">Playoff Gauntlet</span>
+              </Link>
+              <div className="hidden sm:flex items-center gap-1">
+                <Link to="/dashboard" className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-slate-800">
                   Dashboard
                 </Link>
-                <Link to="/leaderboard" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition">
+                <Link to="/leaderboard" className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition">
                   Leaderboard
                 </Link>
-                <Link to="/players" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition">
+                <Link to="/players" className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition">
                   Players
                 </Link>
-                <Link to="/rules" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition">
+                <Link to="/rules" className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition">
                   Rules
                 </Link>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block text-sm text-slate-400">
                 {user?.user_metadata?.display_name || user?.email}
-              </span>
+              </div>
               <button
                 onClick={handleSignOut}
-                className="text-sm text-gray-600 hover:text-gray-900 transition"
+                className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
               >
                 Sign out
               </button>
@@ -64,25 +71,25 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Banner */}
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-sm text-gray-500">Your Entries</div>
-            <div className="text-2xl font-bold text-gray-900">{entries.length}</div>
+          <div className="card-solid p-4">
+            <div className="text-sm text-slate-500">Your Entries</div>
+            <div className="text-2xl font-bold text-white">{entries.length}</div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-sm text-gray-500">Total Entries</div>
-            <div className="text-2xl font-bold text-gray-900">{totalEntries}</div>
+          <div className="card-solid p-4">
+            <div className="text-sm text-slate-500">Total Entries</div>
+            <div className="text-2xl font-bold text-white">{totalEntries}</div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-sm text-gray-500">Payout Spots</div>
-            <div className="text-2xl font-bold text-green-600">Top {payoutSpots}</div>
+          <div className="card-solid p-4">
+            <div className="text-sm text-slate-500">Payout Spots</div>
+            <div className="text-2xl font-bold text-field-400">Top {payoutSpots}</div>
           </div>
         </div>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Your Entries</h2>
-            <p className="mt-1 text-gray-600">
+            <h2 className="text-2xl font-bold text-white">Your Entries</h2>
+            <p className="mt-1 text-slate-400">
               {entriesLocked
                 ? 'Entries are locked for the season'
                 : 'Create and manage your playoff fantasy entries'}
@@ -91,7 +98,7 @@ export default function Dashboard() {
           {!entriesLocked && (
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition"
+              className="btn-primary"
             >
               <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -104,7 +111,7 @@ export default function Dashboard() {
         {/* Entries Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-field-500"></div>
           </div>
         ) : entries.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -118,21 +125,21 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-              <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="card-solid p-12 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-field-500/10 border border-field-500/20 flex items-center justify-center">
+              <svg className="w-8 h-8 text-field-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No entries yet</h3>
-            <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+            <h3 className="text-lg font-semibold text-white mb-2">No entries yet</h3>
+            <p className="text-slate-400 mb-6 max-w-sm mx-auto">
               Create your first entry to start competing in the playoff fantasy challenge.
               Entry fee is $25 per entry.
             </p>
             {!entriesLocked && (
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition"
+                className="btn-primary px-6 py-3"
               >
                 Create Your First Entry
               </button>
@@ -142,14 +149,14 @@ export default function Dashboard() {
 
         {/* Entry Fee Notice */}
         {!entriesLocked && entries.length > 0 && (
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="mt-8 card p-4">
             <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-field-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <div className="text-sm text-blue-800">
+              <div className="text-sm text-slate-300">
                 <p className="font-medium">Entry Fee: $25 per entry</p>
-                <p className="mt-1">
+                <p className="mt-1 text-slate-400">
                   You can create unlimited entries until Wild Card Weekend kicks off.
                   Payment is handled externally (Venmo, cash, etc.)
                 </p>

@@ -27,23 +27,28 @@ export default function Layout({ children }: LayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b border-gray-200">
+    <div className="min-h-screen bg-slate-950">
+      <nav className="bg-slate-900 border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-14">
             <div className="flex items-center gap-8">
-              <Link to="/dashboard" className="text-xl font-bold text-gray-900">
-                Playoff Gauntlet
+              <Link to="/dashboard" className="flex items-center gap-2.5">
+                <svg className="w-7 h-7 text-field-400" viewBox="0 0 32 32" fill="none">
+                  <ellipse cx="16" cy="16" rx="14" ry="9" fill="currentColor" stroke="currentColor" strokeWidth="1"/>
+                  <path d="M16 9v14" stroke="#1a1f2e" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M13 11l3 2 3-2M13 15l3 2 3-2M13 19l3 2 3-2" stroke="#1a1f2e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-base font-bold text-white tracking-tight">Playoff Gauntlet</span>
               </Link>
-              <div className="hidden sm:flex items-center gap-6">
+              <div className="hidden sm:flex items-center gap-1">
                 {navLinks.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`text-sm font-medium transition ${
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                       isActive(link.path)
-                        ? 'text-blue-600'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'text-white bg-slate-800'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                     }`}
                   >
                     {link.label}
@@ -51,21 +56,21 @@ export default function Layout({ children }: LayoutProps) {
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {isAdmin && (
                 <Link
                   to="/admin"
-                  className="text-sm font-medium text-red-600 hover:text-red-700 transition"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-gold-400 hover:bg-gold-500/10 transition"
                 >
                   Admin
                 </Link>
               )}
-              <span className="text-sm text-gray-600">
+              <div className="hidden sm:block text-sm text-slate-400">
                 {user?.user_metadata?.display_name || user?.email}
-              </span>
+              </div>
               <button
                 onClick={handleSignOut}
-                className="text-sm text-gray-600 hover:text-gray-900 transition"
+                className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
               >
                 Sign out
               </button>
@@ -74,7 +79,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Mobile navigation */}
-        <div className="sm:hidden border-t border-gray-200">
+        <div className="sm:hidden border-t border-slate-800">
           <div className="flex justify-around py-2">
             {navLinks.map((link) => (
               <Link
@@ -82,8 +87,8 @@ export default function Layout({ children }: LayoutProps) {
                 to={link.path}
                 className={`px-3 py-2 text-sm font-medium transition ${
                   isActive(link.path)
-                    ? 'text-blue-600'
-                    : 'text-gray-600'
+                    ? 'text-white'
+                    : 'text-slate-500'
                 }`}
               >
                 {link.label}

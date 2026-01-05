@@ -1,7 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+@layer base {
+  body {
+    @apply bg-slate-950 text-white antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  ::selection {
+    @apply bg-field-500/30 text-white;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 font-semibold text-sm
+           bg-field-600 text-white rounded-lg
+           hover:bg-field-500 active:bg-field-700
+           transition-all duration-150 ease-out
+           focus:outline-none focus:ring-2 focus:ring-field-500 focus:ring-offset-2 focus:ring-offset-slate-900;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 font-semibold text-sm
+           bg-slate-800 text-white border border-slate-700 rounded-lg
+           hover:bg-slate-700 hover:border-slate-600
+           transition-all duration-150 ease-out
+           focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900;
+  }
+
+  .card {
+    @apply bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl;
+  }
+
+  .card-solid {
+    @apply bg-slate-900 border border-slate-800 rounded-xl;
+  }
 }
