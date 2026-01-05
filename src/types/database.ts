@@ -21,6 +21,7 @@ export interface Week {
   name: string
   roster_size: number
   lockout_time: string
+  opens_at: string | null
   is_current: boolean
   is_complete: boolean
 }

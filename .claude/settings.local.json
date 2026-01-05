@@ -3,7 +3,25 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh repo create:*)",
+      "Bash(brew install:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git remote:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(ssh-add:*)",
+      "Bash(cat:*)",
+      "Bash(pbcopy)",
+      "Bash(ssh:*)",
+      "Bash(chmod:*)",
+      "Bash(npx vercel:*)",
+      "WebFetch(domain:playoff-gauntlet.vercel.app)",
+      "Bash(curl:*)",
+      "Bash(dig:*)",
+      "Bash(git commit:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:playoffgauntlet.com)"
     ]
   }
 }
