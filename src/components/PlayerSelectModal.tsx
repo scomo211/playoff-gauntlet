@@ -11,6 +11,7 @@ interface PlayerSelectModalProps {
   players: PlayerWithTeam[]
   currentLineupPlayerIds: string[]
   isPlayerUsed: (playerId: string) => boolean
+  weekId?: number
 }
 
 export default function PlayerSelectModal({
@@ -21,25 +22,34 @@ export default function PlayerSelectModal({
   players,
   currentLineupPlayerIds,
   isPlayerUsed,
+  weekId = 1,
 }: PlayerSelectModalProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
+
+  // Check if team is playing this week (seed 1 has bye in Wild Card)
+  const isTeamPlayingThisWeek = (team: PlayerWithTeam['team']) => {
+    if (!team || !team.is_alive) return false
+    // Wild Card week: seed 1 teams have bye
+    if (weekId === 1 && team.playoff_seed === 1) return false
+    return true
+  }
 
   // Get unique teams from available players
   const teams = useMemo(() => {
     const teamSet = new Map<string, { id: string; name: string; city: string }>()
     players.forEach(p => {
-      if (p.team && p.team.is_alive) {
+      if (p.team && isTeamPlayingThisWeek(p.team)) {
         teamSet.set(p.team.id, { id: p.team.id, name: p.team.name, city: p.team.city })
       }
     })
     return Array.from(teamSet.values()).sort((a, b) => a.city.localeCompare(b.city))
-  }, [players])
+  }, [players, weekId])
 
   // Filter players
   const filteredPlayers = useMemo(() => {
     return players
-      .filter(p => p.position === position && p.team?.is_alive)
+      .filter(p => p.position === position && isTeamPlayingThisWeek(p.team))
       .filter(p => {
         if (searchQuery) {
           return p.name.toLowerCase().includes(searchQuery.toLowerCase())

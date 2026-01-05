@@ -11,6 +11,7 @@ export interface Team {
   name: string
   city: string
   conference: 'AFC' | 'NFC'
+  playoff_seed: number | null
   is_alive: boolean
   eliminated_week: number | null
   created_at: string

@@ -21,7 +21,10 @@
       "Bash(dig:*)",
       "Bash(git commit:*)",
       "Bash(grep:*)",
-      "WebFetch(domain:playoffgauntlet.com)"
+      "WebFetch(domain:playoffgauntlet.com)",
+      "WebSearch",
+      "WebFetch(domain:docs.sleeper.com)",
+      "WebFetch(domain:www.espn.com)"
     ]
   }
 }

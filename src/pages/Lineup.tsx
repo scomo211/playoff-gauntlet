@@ -415,6 +415,7 @@ export default function Lineup() {
           players={players}
           currentLineupPlayerIds={currentLineupPlayerIds}
           isPlayerUsed={isPlayerUsed}
+          weekId={weekId}
         />
       )}
     </Layout>
