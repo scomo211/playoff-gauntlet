@@ -34,12 +34,14 @@ export default function Lineup() {
   const {
     lineup,
     week,
+    previousWeek,
     loading: lineupLoading,
     saving,
     error: lineupError,
     lineupSlots,
     usedPlayerIds,
     isLocked,
+    lockReason,
     isPlayerUsed,
     addPlayer,
     removePlayer,
@@ -179,8 +181,17 @@ export default function Lineup() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <div className="text-sm text-red-800">
-              <p className="font-medium">Week is locked</p>
-              <p>Lineup changes are no longer allowed.</p>
+              {lockReason === 'previous_week' ? (
+                <>
+                  <p className="font-medium">Week not yet open</p>
+                  <p>{previousWeek?.name} must be completed before you can set this lineup.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium">Week is locked</p>
+                  <p>Lineup changes are no longer allowed.</p>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -15,6 +15,7 @@ export function useLineup(entryId: string, weekId: number) {
   const [lineupPlayers, setLineupPlayers] = useState<Map<string, LineupPlayer & { player: PlayerWithTeam }>>(new Map())
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
   const [week, setWeek] = useState<Week | null>(null)
+  const [previousWeek, setPreviousWeek] = useState<Week | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +36,18 @@ export function useLineup(entryId: string, weekId: number) {
 
       if (weekError) throw weekError
       setWeek(weekData)
+
+      // Fetch previous week info (for weeks 2-4)
+      if (weekId > 1) {
+        const { data: prevWeekData } = await supabase
+          .from('weeks')
+          .select('*')
+          .eq('id', weekId - 1)
+          .single()
+        setPreviousWeek(prevWeekData)
+      } else {
+        setPreviousWeek(null)
+      }
 
       // Fetch or create lineup
       let { data: lineupData, error: lineupError } = await supabase
@@ -246,7 +259,24 @@ export function useLineup(entryId: string, weekId: number) {
   }
 
   // Check if week is locked
-  const isLocked = week ? new Date(week.lockout_time) < new Date() : false
+  // Week is locked if:
+  // 1. Current time is past the lockout time, OR
+  // 2. For weeks 2-4: previous week is not yet complete
+  const { isLocked, lockReason } = (() => {
+    if (!week) return { isLocked: false, lockReason: null }
+
+    // Past lockout time = locked
+    if (new Date(week.lockout_time) < new Date()) {
+      return { isLocked: true, lockReason: 'deadline' as const }
+    }
+
+    // For weeks 2-4, check if previous week is complete
+    if (weekId > 1 && previousWeek && !previousWeek.is_complete) {
+      return { isLocked: true, lockReason: 'previous_week' as const }
+    }
+
+    return { isLocked: false, lockReason: null }
+  })()
 
   // Check if a player is used (either in this lineup or previous weeks)
   const isPlayerUsed = (playerId: string): boolean => {
@@ -273,12 +303,14 @@ export function useLineup(entryId: string, weekId: number) {
   return {
     lineup,
     week,
+    previousWeek,
     loading,
     saving,
     error,
     lineupSlots: getLineupSlots(),
     usedPlayerIds,
     isLocked,
+    lockReason,
     isPlayerUsed,
     isPlayerInLineup,
     addPlayer,
