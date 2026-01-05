@@ -9,6 +9,7 @@ import Lineup from './pages/Lineup'
 import Leaderboard from './pages/Leaderboard'
 import Players from './pages/Players'
 import Rules from './pages/Rules'
+import ConfirmEmail from './pages/ConfirmEmail'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminEntries from './pages/admin/AdminEntries'
@@ -64,6 +65,7 @@ function App() {
           </PublicRoute>
         }
       />
+      <Route path="/confirm-email" element={<ConfirmEmail />} />
       <Route
         path="/dashboard"
         element={
