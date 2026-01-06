@@ -13,10 +13,14 @@ export const signupSchema = z
     displayName: z
       .string()
       .trim()
-      .min(1, 'Display name is required'),
+      .min(1, 'Name is required'),
     email: z
       .string()
       .email('Please enter a valid email address'),
+    phone: z
+      .string()
+      .trim()
+      .min(10, 'Please enter a valid phone number'),
     password: z
       .string()
       .min(6, 'Password must be at least 6 characters'),

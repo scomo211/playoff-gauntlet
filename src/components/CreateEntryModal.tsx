@@ -5,10 +5,11 @@ import { entryNameSchema, validateField } from '../lib/validation'
 interface CreateEntryModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (entryName: string) => Promise<{ error: string | null }>
+  onSubmit: (entryName: string) => Promise<{ error: string | null; entryId?: string }>
+  onSuccess?: (entryId: string) => void
 }
 
-export default function CreateEntryModal({ isOpen, onClose, onSubmit }: CreateEntryModalProps) {
+export default function CreateEntryModal({ isOpen, onClose, onSubmit, onSuccess }: CreateEntryModalProps) {
   const [entryName, setEntryName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -24,7 +25,7 @@ export default function CreateEntryModal({ isOpen, onClose, onSubmit }: CreateEn
     }
 
     setLoading(true)
-    const { error } = await onSubmit(entryName.trim())
+    const { error, entryId } = await onSubmit(entryName.trim())
     setLoading(false)
 
     if (error) {
@@ -32,6 +33,9 @@ export default function CreateEntryModal({ isOpen, onClose, onSubmit }: CreateEn
     } else {
       setEntryName('')
       onClose()
+      if (entryId && onSuccess) {
+        onSuccess(entryId)
+      }
     }
   }
 

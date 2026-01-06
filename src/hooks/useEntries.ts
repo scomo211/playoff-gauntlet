@@ -53,21 +53,23 @@ export function useEntries() {
     fetchEntries()
   }, [fetchEntries])
 
-  const createEntry = async (entryName: string): Promise<{ error: string | null }> => {
+  const createEntry = async (entryName: string): Promise<{ error: string | null; entryId?: string }> => {
     if (!user) return { error: 'Not authenticated' }
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('entries')
         .insert({
           user_id: user.id,
           entry_name: entryName.trim(),
         })
+        .select('id')
+        .single()
 
       if (error) throw error
 
       await fetchEntries()
-      return { error: null }
+      return { error: null, entryId: data.id }
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Failed to create entry' }
     }

@@ -23,11 +23,7 @@ export default function ConfirmEmail() {
       <div className="relative max-w-md w-full space-y-8">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <svg className="w-12 h-12 text-field-400" viewBox="0 0 32 32" fill="none">
-              <ellipse cx="16" cy="16" rx="14" ry="9" fill="currentColor" stroke="currentColor" strokeWidth="1"/>
-              <path d="M16 9v14" stroke="#0d1117" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M13 11l3 2 3-2M13 15l3 2 3-2M13 19l3 2 3-2" stroke="#0d1117" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <img src="/favicon.png" alt="Playoff Gauntlet" className="w-12 h-12" />
           </Link>
         </div>
 

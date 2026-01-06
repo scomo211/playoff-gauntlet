@@ -16,9 +16,10 @@ interface EntryCardProps {
   entry: EntryWithLineups
   onDelete: (entry: Entry) => void
   entriesLocked: boolean
+  currentWeek?: number
 }
 
-export default function EntryCard({ entry, onDelete, entriesLocked }: EntryCardProps) {
+export default function EntryCard({ entry, onDelete, entriesLocked, currentWeek }: EntryCardProps) {
   // Helper to get lineup info for a week
   const getLineupForWeek = (weekId: number): LineupInfo | undefined => {
     return entry.lineups?.find(l => l.week_id === weekId)
@@ -37,7 +38,7 @@ export default function EntryCard({ entry, onDelete, entriesLocked }: EntryCardP
             </p>
           </div>
           <div className="ml-4 flex-shrink-0">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold bg-field-500/10 text-field-400 border border-field-500/20">
+            <span className="inline-flex items-center px-2.5 py-1 rounded text-sm font-semibold bg-field-500/10 text-field-400 border border-field-500/20">
               {entry.total_points?.toFixed(1) || '0.0'} pts
             </span>
           </div>
@@ -47,21 +48,27 @@ export default function EntryCard({ entry, onDelete, entriesLocked }: EntryCardP
           {[1, 2, 3, 4].map((week) => {
             const lineup = getLineupForWeek(week)
             const isSubmitted = lineup?.is_submitted
+            const isCurrent = week === currentWeek
+            const isPending = isCurrent && !isSubmitted
 
             return (
               <div
                 key={week}
-                className={`rounded-lg py-2 ${
+                className={`rounded py-2 ${
                   isSubmitted
                     ? 'bg-green-500/10 border border-green-500/20'
-                    : 'bg-slate-800/50'
+                    : isPending
+                      ? 'bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/30'
+                      : 'bg-slate-800/50'
                 }`}
               >
-                <div className={`text-xs ${isSubmitted ? 'text-green-400' : 'text-slate-500'}`}>
+                <div className={`text-xs ${
+                  isSubmitted ? 'text-green-400' : isPending ? 'text-yellow-400' : 'text-slate-500'
+                }`}>
                   Wk {week}
                 </div>
                 <div className={`text-sm font-medium flex items-center justify-center gap-1 ${
-                  isSubmitted ? 'text-green-400' : 'text-slate-300'
+                  isSubmitted ? 'text-green-400' : isPending ? 'text-yellow-400' : 'text-slate-300'
                 }`}>
                   {isSubmitted ? (
                     <>
@@ -70,8 +77,10 @@ export default function EntryCard({ entry, onDelete, entriesLocked }: EntryCardP
                       </svg>
                       <span>{lineup?.total_points?.toFixed(1) || '0.0'}</span>
                     </>
-                  ) : lineup ? (
-                    <span className="text-yellow-400">...</span>
+                  ) : isPending ? (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   ) : (
                     '--'
                   )}
@@ -84,7 +93,7 @@ export default function EntryCard({ entry, onDelete, entriesLocked }: EntryCardP
 
       <div className="bg-slate-800/30 px-5 py-3 flex items-center justify-between border-t border-slate-800">
         <Link
-          to={`/entry/${entry.id}`}
+          to="/entries"
           className="text-sm font-medium text-slate-400 hover:text-white transition"
         >
           View Details

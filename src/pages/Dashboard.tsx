@@ -31,6 +31,20 @@ export default function Dashboard() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null)
   const [payoutSpots, setPayoutSpots] = useState(4)
+  const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
+
+  // Fetch current week
+  useEffect(() => {
+    async function fetchCurrentWeek() {
+      const { data } = await supabase
+        .from('weeks')
+        .select('id')
+        .eq('is_current', true)
+        .single()
+      if (data) setCurrentWeek(data.id)
+    }
+    fetchCurrentWeek()
+  }, [])
 
   useEffect(() => {
     async function fetchLeaderboard() {
@@ -101,16 +115,15 @@ export default function Dashboard() {
           <div className="flex justify-between h-14">
             <div className="flex items-center gap-8">
               <Link to="/dashboard" className="flex items-center gap-2.5">
-                <svg className="w-7 h-7 text-field-400" viewBox="0 0 32 32" fill="none">
-                  <ellipse cx="16" cy="16" rx="14" ry="9" fill="currentColor" stroke="currentColor" strokeWidth="1"/>
-                  <path d="M16 9v14" stroke="#1a1f2e" strokeWidth="1.5" strokeLinecap="round"/>
-                  <path d="M13 11l3 2 3-2M13 15l3 2 3-2M13 19l3 2 3-2" stroke="#1a1f2e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <img src="/favicon.png" alt="Playoff Gauntlet" className="w-7 h-7" />
                 <span className="text-base font-bold text-white tracking-tight">Playoff Gauntlet</span>
               </Link>
               <div className="hidden sm:flex items-center gap-1">
                 <Link to="/dashboard" className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-slate-800">
                   Dashboard
+                </Link>
+                <Link to="/entries" className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition">
+                  My Entries
                 </Link>
                 <Link to="/players" className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition">
                   Players
@@ -139,10 +152,6 @@ export default function Dashboard() {
         {/* Stats Banner */}
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="card-solid p-4">
-            <div className="text-sm text-slate-500">Your Entries</div>
-            <div className="text-2xl font-bold text-white">{entries.length}</div>
-          </div>
-          <div className="card-solid p-4">
             <div className="text-sm text-slate-500">Total Entries</div>
             <div className="text-2xl font-bold text-white">{totalEntries}</div>
           </div>
@@ -150,205 +159,222 @@ export default function Dashboard() {
             <div className="text-sm text-slate-500">Prize Pool</div>
             <div className="text-2xl font-bold text-field-400">${(totalEntries * 25).toLocaleString()}</div>
           </div>
+          <div className="card-solid p-4">
+            <div className="text-sm text-slate-500">Payout Spots</div>
+            <div className="text-2xl font-bold text-gold-400">Top {payoutSpots}</div>
+          </div>
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Your Entries</h2>
-            <p className="mt-1 text-slate-400">
-              {entriesLocked
-                ? 'Entries are locked for the season'
-                : 'Create and manage your playoff fantasy entries'}
-            </p>
-          </div>
-          {!entriesLocked && (
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="btn-primary"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Entry
-            </button>
-          )}
-        </div>
-
-        {/* Entries Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-field-500"></div>
-          </div>
-        ) : entries.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {entries.map((entry) => (
-              <EntryCard
-                key={entry.id}
-                entry={entry}
-                onDelete={setDeleteModalEntry}
-                entriesLocked={entriesLocked}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="card-solid p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-field-500/10 border border-field-500/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-field-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+        {/* Two Column Layout: Leaderboard (2/3) | Your Entries (1/3) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Leaderboard Section - Left 2/3 */}
+          <div className="lg:col-span-2">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-white">Leaderboard</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                {leaderboardEntries.length} entries competing for top {payoutSpots} payout spots
+              </p>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">No entries yet</h3>
-            <p className="text-slate-400 mb-6 max-w-sm mx-auto">
-              Create your first entry to start competing in the playoff fantasy challenge.
-              Entry fee is $25 per entry.
-            </p>
-            {!entriesLocked && (
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="btn-primary px-6 py-3"
-              >
-                Create Your First Entry
-              </button>
-            )}
-          </div>
-        )}
 
-        {/* Entry Fee Notice */}
-        {!entriesLocked && entries.length > 0 && (
-          <div className="mt-8 card p-4">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-field-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="text-sm text-slate-300">
-                <p className="font-medium">Entry Fee: $25 per entry</p>
-                <p className="mt-1 text-slate-400">
-                  You can create unlimited entries until Wild Card Weekend kicks off.
-                  Payment is handled externally (Venmo, cash, etc.)
-                </p>
+            <div className="card-solid overflow-hidden">
+              {leaderboardLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-field-500"></div>
+                </div>
+              ) : leaderboardError ? (
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <p className="text-red-400 mb-2">Failed to load leaderboard</p>
+                  <p className="text-sm text-slate-500">{leaderboardError}</p>
+                </div>
+              ) : leaderboardEntries.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-800">
+                    <thead className="bg-slate-800/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Rank
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Entry
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Owner
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Wk 1
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Wk 2
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Wk 3
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Wk 4
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Total
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {leaderboardEntries.map((entry, index) => {
+                        const rank = index + 1
+                        const inTheMoney = rank <= payoutSpots
+
+                        return (
+                          <tr
+                            key={entry.id}
+                            className={inTheMoney ? 'bg-field-500/5' : 'hover:bg-slate-800/30'}
+                          >
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-semibold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
+                                  {rank}
+                                </span>
+                                {inTheMoney && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
+                                    $
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm font-medium text-white">{entry.entry_name}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-400">{entry.display_name}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-right">
+                              <span className={`text-sm font-bold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
+                                {entry.total_points.toFixed(1)}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-slate-500">
+                  No entries yet. Be the first to join!
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 card p-3">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gold-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm text-slate-400">
+                  Highlighted rows are in payout position (Top {payoutSpots})
+                </span>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Leaderboard Section */}
-        <div className="mt-12">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-white">Leaderboard</h2>
-            <p className="mt-1 text-slate-400">
-              {leaderboardEntries.length} entries competing for top {payoutSpots} payout spots
-            </p>
-          </div>
+          {/* Your Entries Section - Right 1/3 */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Your Entries</h2>
+              {!entriesLocked && (
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="btn-primary text-sm px-3 py-1.5"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  New
+                </button>
+              )}
+            </div>
 
-          <div className="card-solid overflow-hidden">
-            {leaderboardLoading ? (
+            {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-field-500"></div>
               </div>
-            ) : leaderboardError ? (
-              <div className="text-center py-12">
-                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <p className="text-red-400 mb-2">Failed to load leaderboard</p>
-                <p className="text-sm text-slate-500">{leaderboardError}</p>
-              </div>
-            ) : leaderboardEntries.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-800">
-                  <thead className="bg-slate-800/50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Rank
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Entry
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Owner
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Wk 1
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Wk 2
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Wk 3
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Wk 4
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800">
-                    {leaderboardEntries.map((entry, index) => {
-                      const rank = index + 1
-                      const inTheMoney = rank <= payoutSpots
-
-                      return (
-                        <tr
-                          key={entry.id}
-                          className={inTheMoney ? 'bg-field-500/5' : 'hover:bg-slate-800/30'}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm font-semibold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
-                                {rank}
-                              </span>
-                              {inTheMoney && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
-                                  $
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-white">{entry.entry_name}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-slate-400">{entry.display_name}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">--</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">--</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">--</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">--</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <span className={`text-sm font-bold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
-                              {entry.total_points.toFixed(1)}
-                            </span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+            ) : entries.length > 0 ? (
+              <div className="space-y-4">
+                {entries.map((entry) => (
+                  <EntryCard
+                    key={entry.id}
+                    entry={entry}
+                    onDelete={setDeleteModalEntry}
+                    entriesLocked={entriesLocked}
+                    currentWeek={currentWeek}
+                  />
+                ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-slate-500">
-                No entries yet. Be the first to join!
+              <div className="card-solid p-6 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-field-500/10 border border-field-500/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-field-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-white mb-2">No entries yet</h3>
+                <p className="text-sm text-slate-400 mb-4">
+                  Create your first entry to compete. $25 per entry.
+                </p>
+                {!entriesLocked && (
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="btn-primary text-sm"
+                  >
+                    Create Entry
+                  </button>
+                )}
               </div>
             )}
-          </div>
 
-          <div className="mt-6 card p-4">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-gold-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="text-sm text-slate-300">
-                <p className="font-medium">In the Money</p>
-                <p className="mt-1 text-slate-400">
-                  Highlighted rows are currently in payout position. Top {payoutSpots} entries win prizes.
+            {entries.length > 0 && (
+              <div className="mt-4 card-solid p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-400">
+                      {entries.length} {entries.length === 1 ? 'entry' : 'entries'} × $25
+                    </p>
+                    <p className="text-lg font-bold text-white">
+                      Total: ${entries.length * 25}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const amount = entries.length * 25
+                      const note = encodeURIComponent(`Playoff Gauntlet - ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`)
+                      const venmoUrl = `https://venmo.com/ScottyMoran?txn=pay&amount=${amount}&note=${note}`
+                      window.open(venmoUrl, '_blank')
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 font-semibold text-sm bg-gold-500 text-slate-900 rounded-lg hover:bg-gold-400 transition"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.5 3c.9 1.5 1.3 3 1.3 5 0 5.5-4.7 12.7-8.5 17h-6l-2.3-15.5 5.3-.5.9 7.5c1.7-2.7 3.8-7 3.8-9.9 0-1.9-.3-3.2-.9-4.3l6.4.7z"/>
+                    </svg>
+                    Pay with Venmo
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!entriesLocked && entries.length > 0 && (
+              <div className="mt-3 text-center">
+                <p className="text-xs text-slate-500">
+                  Unlimited entries until kickoff
                 </p>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>
@@ -358,6 +384,10 @@ export default function Dashboard() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={createEntry}
+        onSuccess={(entryId) => {
+          const weekParam = currentWeek ? `?week=${currentWeek}` : ''
+          navigate(`/entry/${entryId}/lineup${weekParam}`)
+        }}
       />
 
       <DeleteEntryModal

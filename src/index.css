@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-slate-950 text-white antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
@@ -33,10 +37,10 @@
   }
 
   .card {
-    @apply bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl;
+    @apply bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-lg;
   }
 
   .card-solid {
-    @apply bg-slate-900 border border-slate-800 rounded-xl;
+    @apply bg-slate-900 border border-slate-800 rounded-lg;
   }
 }
