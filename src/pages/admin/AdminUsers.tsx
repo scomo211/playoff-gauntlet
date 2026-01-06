@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminUsers } from '../../hooks/useAdmin'
 import { formatDate } from '../../lib/formatTime'
@@ -74,10 +75,14 @@ export default function AdminUsers() {
               {filteredUsers.map(user => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900">{user.display_name}</div>
+                    <Link to={`/admin/user/${user.id}`} className="font-medium text-blue-600 hover:text-blue-700">
+                      {user.display_name}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">{user.email}</div>
+                    <Link to={`/admin/user/${user.id}`} className="text-sm text-gray-600 hover:text-blue-600">
+                      {user.email}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className="text-sm font-medium text-gray-900">{user.entry_count}</span>

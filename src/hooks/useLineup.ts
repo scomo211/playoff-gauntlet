@@ -283,6 +283,45 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
     }
   }
 
+  // Unsubmit lineup (admin only - removes used players tracking)
+  const unsubmitLineup = async (): Promise<{ error: string | null }> => {
+    if (!lineup) return { error: 'Lineup not loaded' }
+
+    try {
+      setSaving(true)
+
+      // Mark lineup as not submitted
+      const { error: updateError } = await supabase
+        .from('lineups')
+        .update({
+          is_submitted: false,
+          submitted_at: null,
+        })
+        .eq('id', lineup.id)
+
+      if (updateError) throw updateError
+
+      // Remove all players from used_players for this week
+      const playerIds = Array.from(lineupPlayers.values()).map(lp => lp.player_id)
+      if (playerIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('used_players')
+          .delete()
+          .eq('entry_id', entryId)
+          .eq('week_used', weekId)
+
+        if (deleteError) throw deleteError
+      }
+
+      await fetchLineup()
+      return { error: null }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Failed to unsubmit lineup' }
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // Get lineup slots with player data
   const getLineupSlots = (): LineupSlot[] => {
     const slots = POSITION_SLOTS[weekId] || POSITION_SLOTS[1]
@@ -366,6 +405,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
     addPlayer,
     removePlayer,
     submitLineup,
+    unsubmitLineup,
     refetch: fetchLineup,
   }
 }

@@ -32,30 +32,30 @@ export default function PlayerSelectModal({
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
 
-  // Check if team is playing this week (seed 1 has bye in Wild Card)
-  const isTeamPlayingThisWeek = (team: PlayerWithTeam['team']) => {
+  // Check if team has a bye this week
+  const isTeamOnBye = (team: PlayerWithTeam['team']) => {
     if (!team || !team.is_alive) return false
     // Wild Card week: seed 1 teams have bye
-    if (weekId === 1 && team.playoff_seed === 1) return false
-    return true
+    if (weekId === 1 && team.playoff_seed === 1) return true
+    return false
   }
 
-  // Get unique teams from available players
+  // Get unique teams from available players (including bye teams)
   const teams = useMemo(() => {
     const teamSet = new Map<string, { id: string; name: string; city: string }>()
     players.forEach(p => {
-      if (p.team && isTeamPlayingThisWeek(p.team)) {
+      if (p.team && p.team.is_alive) {
         teamSet.set(p.team.id, { id: p.team.id, name: p.team.name, city: p.team.city })
       }
     })
     return Array.from(teamSet.values()).sort((a, b) => a.city.localeCompare(b.city))
-  }, [players, weekId])
+  }, [players])
 
-  // Filter players and remove duplicates
+  // Filter players and remove duplicates (include bye team players)
   const filteredPlayers = useMemo(() => {
     const seen = new Set<string>()
     return players
-      .filter(p => p.position === position && isTeamPlayingThisWeek(p.team))
+      .filter(p => p.position === position && p.team?.is_alive)
       .filter(p => {
         // Remove duplicates by player ID
         if (seen.has(p.id)) return false
@@ -75,11 +75,15 @@ export default function PlayerSelectModal({
         return true
       })
       .sort((a, b) => {
-        // Sort: available first, then used
+        // Sort: available first, then used/bye
+        const aOnBye = isTeamOnBye(a.team)
+        const bOnBye = isTeamOnBye(b.team)
         const aUsed = isPlayerUsed(a.id) || currentLineupPlayerIds.includes(a.id)
         const bUsed = isPlayerUsed(b.id) || currentLineupPlayerIds.includes(b.id)
-        if (aUsed && !bUsed) return 1
-        if (!aUsed && bUsed) return -1
+        const aUnavailable = aUsed || aOnBye
+        const bUnavailable = bUsed || bOnBye
+        if (aUnavailable && !bUnavailable) return 1
+        if (!aUnavailable && bUnavailable) return -1
         // Sort by projected points (highest first) if available
         if (getProjection && a.team_id && b.team_id) {
           const aProj = getProjection(a.name, a.team_id) ?? 0
@@ -88,7 +92,7 @@ export default function PlayerSelectModal({
         }
         return a.name.localeCompare(b.name)
       })
-  }, [players, position, searchQuery, teamFilter, isPlayerUsed, currentLineupPlayerIds, getProjection])
+  }, [players, position, searchQuery, teamFilter, isPlayerUsed, currentLineupPlayerIds, getProjection, weekId])
 
   const handleSelect = (player: PlayerWithTeam) => {
     onSelect(player)
@@ -143,7 +147,8 @@ export default function PlayerSelectModal({
             filteredPlayers.map(player => {
               const isUsed = isPlayerUsed(player.id)
               const isInCurrentLineup = currentLineupPlayerIds.includes(player.id)
-              const isDisabled = isUsed || isInCurrentLineup
+              const onBye = isTeamOnBye(player.team)
+              const isDisabled = isUsed || isInCurrentLineup || onBye
 
               return (
                 <button
@@ -161,7 +166,7 @@ export default function PlayerSelectModal({
                       src={getPlayerHeadshotUrl(player.id)}
                       alt={player.name}
                       className={`w-10 h-10 rounded-full object-cover ${
-                        isDisabled ? 'opacity-50' : ''
+                        isDisabled ? 'opacity-50 grayscale' : ''
                       }`}
                       style={{ backgroundColor: '#334155' }}
                       onError={(e) => {
@@ -178,7 +183,7 @@ export default function PlayerSelectModal({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {getProjection && player.team_id && (() => {
+                    {getProjection && player.team_id && !onBye && (() => {
                       const proj = getProjection(player.name, player.team_id)
                       return proj !== null ? (
                         <span className={`text-sm font-semibold ${isDisabled ? 'text-slate-500' : 'text-emerald-400'}`}>
@@ -186,6 +191,11 @@ export default function PlayerSelectModal({
                         </span>
                       ) : null
                     })()}
+                    {onBye && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-slate-700 text-slate-400 font-medium">
+                        BYE
+                      </span>
+                    )}
                     {isUsed && (
                       <span className="text-xs px-2 py-1 rounded-full bg-red-900/50 text-red-400">
                         Used
@@ -213,7 +223,7 @@ export default function PlayerSelectModal({
         </div>
 
         <div className="text-sm text-slate-400">
-          {filteredPlayers.filter(p => !isPlayerUsed(p.id) && !currentLineupPlayerIds.includes(p.id)).length} available
+          {filteredPlayers.filter(p => !isPlayerUsed(p.id) && !currentLineupPlayerIds.includes(p.id) && !isTeamOnBye(p.team)).length} available
           {' / '}
           {filteredPlayers.length} total
         </div>

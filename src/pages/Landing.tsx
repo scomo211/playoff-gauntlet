@@ -16,11 +16,7 @@ export default function Landing() {
           {/* Nav */}
           <nav className="flex items-center justify-between py-6">
             <div className="flex items-center gap-2.5">
-              <svg className="w-8 h-8 text-field-400" viewBox="0 0 32 32" fill="none">
-                <ellipse cx="16" cy="16" rx="14" ry="9" fill="currentColor" stroke="currentColor" strokeWidth="1"/>
-                <path d="M16 9v14" stroke="#0d1117" strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M13 11l3 2 3-2M13 15l3 2 3-2M13 19l3 2 3-2" stroke="#0d1117" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <img src="/favicon.png" alt="Playoff Gauntlet" className="w-8 h-8" />
               <span className="text-lg font-bold text-white tracking-tight">Playoff Gauntlet</span>
             </div>
             <div className="flex items-center gap-3">
@@ -43,7 +39,7 @@ export default function Landing() {
           <div className="pt-20 pb-32 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-field-500/10 border border-field-500/20 mb-8">
               <span className="w-1.5 h-1.5 rounded-full bg-field-400 animate-pulse" />
-              <span className="text-sm font-medium text-field-400">2025 NFL Playoffs</span>
+              <span className="text-sm font-medium text-field-400">2026 NFL Playoffs</span>
             </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight">
@@ -54,7 +50,7 @@ export default function Landing() {
             </h1>
 
             <p className="mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-slate-400 leading-relaxed">
-              The ultimate playoff fantasy challenge. Use each NFL player only once across all 4 weeks. Strategy meets skill.
+              Didn't make the fantasy playoffs? Perfect. Welcome to the Gauntlet.
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
@@ -67,12 +63,12 @@ export default function Landing() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </Link>
-              <Link
-                to="/rules"
+              <a
+                href="#rules"
                 className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold rounded-xl text-white border border-slate-700 hover:bg-slate-800 transition-all"
               >
                 View Rules
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -135,6 +131,318 @@ export default function Landing() {
               Accumulate points across all 4 weeks. Top scorers after the Super Bowl take the prize.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Rules Section */}
+      <div id="rules" className="border-t border-slate-800 bg-slate-900/30 scroll-mt-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-12">
+            <h2 className="text-sm font-semibold text-field-400 uppercase tracking-wider">Rules & Scoring</h2>
+            <p className="mt-2 text-3xl font-bold text-white">Everything you need to know</p>
+          </div>
+
+          {/* Overview */}
+          <section className="mb-10">
+            <h3 className="text-lg font-semibold text-white mb-4">Overview</h3>
+            <div className="card-solid p-6">
+              <p className="text-slate-300 mb-4">
+                Playoff Gauntlet is a playoff fantasy football game where <strong className="text-white">each NFL player can only be used once</strong> across all 4 playoff weeks. The winner is whoever accumulates the most points by the end of the Super Bowl.
+              </p>
+              <ul className="list-disc list-inside text-slate-300 space-y-2">
+                <li><strong className="text-white">Player Pool:</strong> All NFL players from teams still alive in the playoffs</li>
+                <li><strong className="text-white">Key Mechanic:</strong> Once you use a player in your lineup, they're locked and cannot be used again</li>
+                <li><strong className="text-white">Strategy:</strong> Balance scoring now vs. saving players for later rounds</li>
+                <li><strong className="text-white">Entry Fee:</strong> $25 per entry (unlimited entries allowed)</li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Roster Requirements */}
+          <section className="mb-10">
+            <h3 className="text-lg font-semibold text-white mb-4">Roster Requirements</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="card-solid p-6">
+                <h4 className="font-semibold text-white mb-3">Weeks 1-3</h4>
+                <p className="text-sm text-slate-500 mb-3">Wild Card, Divisional, Conference Championships</p>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">QB</td>
+                      <td className="py-2 text-right font-medium text-slate-300">2</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">RB</td>
+                      <td className="py-2 text-right font-medium text-slate-300">3</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">WR</td>
+                      <td className="py-2 text-right font-medium text-slate-300">4</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">TE</td>
+                      <td className="py-2 text-right font-medium text-slate-300">2</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">K</td>
+                      <td className="py-2 text-right font-medium text-slate-300">2</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">DEF</td>
+                      <td className="py-2 text-right font-medium text-slate-300">2</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-semibold text-white">Total</td>
+                      <td className="py-2 text-right font-bold text-field-400">15</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="card-solid p-6">
+                <h4 className="font-semibold text-white mb-3">Week 4</h4>
+                <p className="text-sm text-slate-500 mb-3">Super Bowl</p>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">QB</td>
+                      <td className="py-2 text-right font-medium text-slate-300">1</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">RB</td>
+                      <td className="py-2 text-right font-medium text-slate-300">2</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">WR</td>
+                      <td className="py-2 text-right font-medium text-slate-300">2</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">TE</td>
+                      <td className="py-2 text-right font-medium text-slate-300">1</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">K</td>
+                      <td className="py-2 text-right font-medium text-slate-300">1</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">DEF</td>
+                      <td className="py-2 text-right font-medium text-slate-300">1</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-semibold text-white">Total</td>
+                      <td className="py-2 text-right font-bold text-field-400">8</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          {/* Scoring */}
+          <section className="mb-10">
+            <h3 className="text-lg font-semibold text-white mb-4">Scoring System</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Passing */}
+              <div className="card-solid p-6">
+                <h4 className="font-semibold text-white mb-3">Passing</h4>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Passing Yards</td>
+                      <td className="py-2 text-right font-medium text-slate-300">0.04/yard</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Passing TD</td>
+                      <td className="py-2 text-right font-medium text-field-400">+6</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Interception</td>
+                      <td className="py-2 text-right font-medium text-red-400">-2</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 text-slate-400">2PT Conversion</td>
+                      <td className="py-2 text-right font-medium text-field-400">+2</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Rushing */}
+              <div className="card-solid p-6">
+                <h4 className="font-semibold text-white mb-3">Rushing</h4>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Rushing Yards</td>
+                      <td className="py-2 text-right font-medium text-slate-300">0.1/yard</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Rushing TD</td>
+                      <td className="py-2 text-right font-medium text-field-400">+6</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 text-slate-400">2PT Conversion</td>
+                      <td className="py-2 text-right font-medium text-field-400">+2</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Receiving */}
+              <div className="card-solid p-6">
+                <h4 className="font-semibold text-white mb-3">Receiving (PPR)</h4>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Reception</td>
+                      <td className="py-2 text-right font-medium text-field-400">+0.5</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Receiving Yards</td>
+                      <td className="py-2 text-right font-medium text-slate-300">0.1/yard</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Receiving TD</td>
+                      <td className="py-2 text-right font-medium text-field-400">+6</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 text-slate-400">2PT Conversion</td>
+                      <td className="py-2 text-right font-medium text-field-400">+2</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Kicking */}
+              <div className="card-solid p-6">
+                <h4 className="font-semibold text-white mb-3">Kicking</h4>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Field Goal</td>
+                      <td className="py-2 text-right font-medium text-slate-300">0.1/yard</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Extra Point Made</td>
+                      <td className="py-2 text-right font-medium text-field-400">+1</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 text-slate-400">Extra Point Missed</td>
+                      <td className="py-2 text-right font-medium text-red-400">-1</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Defense */}
+              <div className="card-solid p-6">
+                <h4 className="font-semibold text-white mb-3">Team Defense</h4>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Fumble Recovery</td>
+                      <td className="py-2 text-right font-medium text-field-400">+2</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Interception</td>
+                      <td className="py-2 text-right font-medium text-field-400">+2</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">Sack</td>
+                      <td className="py-2 text-right font-medium text-field-400">+1</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 text-slate-400">Safety</td>
+                      <td className="py-2 text-right font-medium text-field-400">+2</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Points Allowed */}
+              <div className="card-solid p-6">
+                <h4 className="font-semibold text-white mb-3">Points Allowed (DEF)</h4>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">0-6 pts</td>
+                      <td className="py-2 text-right font-medium text-field-400">+10</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">7-13 pts</td>
+                      <td className="py-2 text-right font-medium text-field-400">+7</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">14-20 pts</td>
+                      <td className="py-2 text-right font-medium text-field-400">+4</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">21-27 pts</td>
+                      <td className="py-2 text-right font-medium text-field-400">+1</td>
+                    </tr>
+                    <tr className="border-b border-slate-800">
+                      <td className="py-2 text-slate-400">28-34 pts</td>
+                      <td className="py-2 text-right font-medium text-slate-400">0</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 text-slate-400">35+ pts</td>
+                      <td className="py-2 text-right font-medium text-red-400">-1 to -3</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Misc scoring */}
+            <div className="mt-6 card-solid p-6">
+              <h4 className="font-semibold text-white mb-3">Miscellaneous</h4>
+              <div className="grid md:grid-cols-3 gap-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Fumble Lost</span>
+                  <span className="font-medium text-red-400">-2</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Punt Return TD</span>
+                  <span className="font-medium text-field-400">+6</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Kick Return TD</span>
+                  <span className="font-medium text-field-400">+6</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Payouts */}
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-4">Payouts</h3>
+            <div className="card-solid p-6">
+              <p className="text-slate-300 mb-4">
+                Payout spots scale based on total entries:
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                  <div className="text-sm text-slate-500">1-49 entries</div>
+                  <div className="font-semibold text-white">Top 4</div>
+                </div>
+                <div className="text-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                  <div className="text-sm text-slate-500">50-59 entries</div>
+                  <div className="font-semibold text-white">Top 5</div>
+                </div>
+                <div className="text-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                  <div className="text-sm text-slate-500">60-69 entries</div>
+                  <div className="font-semibold text-white">Top 6</div>
+                </div>
+                <div className="text-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                  <div className="text-sm text-slate-500">100+ entries</div>
+                  <div className="font-semibold text-white">Top 10</div>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-slate-500">
+                <strong className="text-slate-300">Tiebreaker:</strong> Most points scored during Super Bowl week. If still tied, co-champions split the position.
+              </p>
+            </div>
+          </section>
         </div>
       </div>
 

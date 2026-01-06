@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { Player, Team, Position } from '../types/database'
 import { createPlayerKey } from '../lib/projections'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
+import { useAuth } from '../contexts/AuthContext'
 import Layout from '../components/Layout'
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
@@ -31,10 +32,14 @@ const POSITION_COLORS: Record<Position, string> = {
 }
 
 export default function Players() {
+  const { user } = useAuth()
   const [players, setPlayers] = useState<(Player & { team: Team })[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [playerStats, setPlayerStats] = useState<Map<string, number>>(new Map())
   const [projections, setProjections] = useState<Map<string, number>>(new Map())
+  const [usedPlayerCounts, setUsedPlayerCounts] = useState<Map<string, number>>(new Map())
+  const [totalEntries, setTotalEntries] = useState<number>(0)
+  const [currentWeekId, setCurrentWeekId] = useState<number>(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPosition, setSelectedPosition] = useState<Position | 'ALL'>('ALL')
@@ -54,8 +59,9 @@ export default function Players() {
           .single()
 
         const weekId = weekData?.id || 1
+        setCurrentWeekId(weekId)
 
-        // Fetch teams
+        // Fetch teams (all alive teams, including those on bye)
         const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
           .select('*')
@@ -118,6 +124,54 @@ export default function Players() {
     fetchData()
   }, [])
 
+  // Fetch used players for the current user's entries
+  useEffect(() => {
+    async function fetchUsedPlayers() {
+      if (!user) {
+        setUsedPlayerCounts(new Map())
+        setTotalEntries(0)
+        return
+      }
+
+      try {
+        // Get user's entry IDs
+        const { data: entriesData } = await supabase
+          .from('entries')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+
+        if (!entriesData || entriesData.length === 0) {
+          setUsedPlayerCounts(new Map())
+          setTotalEntries(0)
+          return
+        }
+
+        setTotalEntries(entriesData.length)
+        const entryIds = entriesData.map(e => e.id)
+
+        // Get all used players for these entries (with entry_id to count)
+        const { data: usedData } = await supabase
+          .from('used_players')
+          .select('player_id, entry_id')
+          .in('entry_id', entryIds)
+
+        if (usedData) {
+          // Count how many entries have used each player
+          const counts = new Map<string, number>()
+          usedData.forEach(u => {
+            counts.set(u.player_id, (counts.get(u.player_id) || 0) + 1)
+          })
+          setUsedPlayerCounts(counts)
+        }
+      } catch (err) {
+        console.error('Failed to fetch used players:', err)
+      }
+    }
+
+    fetchUsedPlayers()
+  }, [user])
+
   // Helper to get projection for a player
   const getProjection = (player: Player & { team: Team }): number => {
     if (!player.team_id) return 0
@@ -130,6 +184,23 @@ export default function Players() {
     return playerStats.get(player.id) || 0
   }
 
+  // Helper to check if team is on bye this week
+  const isTeamOnBye = (team: Team | undefined): boolean => {
+    if (!team || !team.is_alive) return false
+    // Wild Card week: seed 1 teams have bye
+    if (currentWeekId === 1 && team.playoff_seed === 1) return true
+    return false
+  }
+
+  // Helper to check if player is used and get count
+  const isPlayerUsed = (playerId: string): boolean => {
+    return usedPlayerCounts.has(playerId)
+  }
+
+  const getUsedCount = (playerId: string): number => {
+    return usedPlayerCounts.get(playerId) || 0
+  }
+
   // Handle column sort
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -140,7 +211,7 @@ export default function Players() {
     }
   }
 
-  // Filter and sort players
+  // Filter and sort players (include bye team players)
   const filteredPlayers = useMemo(() => {
     let result = players.filter(player => {
       if (selectedPosition !== 'ALL' && player.position !== selectedPosition) return false
@@ -150,8 +221,18 @@ export default function Players() {
       return true
     })
 
-    // Sort
+    // Sort: unavailable players (bye/used) at the end
     result.sort((a, b) => {
+      // First sort by availability status
+      const aOnBye = isTeamOnBye(a.team)
+      const bOnBye = isTeamOnBye(b.team)
+      const aUsed = isPlayerUsed(a.id)
+      const bUsed = isPlayerUsed(b.id)
+      const aUnavailable = aOnBye || aUsed
+      const bUnavailable = bOnBye || bUsed
+      if (aUnavailable && !bUnavailable) return 1
+      if (!aUnavailable && bUnavailable) return -1
+
       let comparison = 0
       switch (sortField) {
         case 'name':
@@ -168,7 +249,7 @@ export default function Players() {
     })
 
     return result
-  }, [players, selectedPosition, selectedTeam, searchQuery, sortField, sortDirection, projections, playerStats])
+  }, [players, selectedPosition, selectedTeam, searchQuery, sortField, sortDirection, projections, playerStats, currentWeekId, usedPlayerCounts])
 
   return (
     <Layout>
@@ -298,40 +379,59 @@ export default function Players() {
                 {filteredPlayers.map(player => {
                   const totalPts = getTotalPoints(player)
                   const projPts = getProjection(player)
+                  const onBye = isTeamOnBye(player.team)
+                  const used = isPlayerUsed(player.id)
+                  const unavailable = onBye || used
                   return (
-                    <tr key={player.id} className="hover:bg-slate-800/30 transition-colors">
+                    <tr key={player.id} className={`transition-colors ${unavailable ? 'opacity-50' : 'hover:bg-slate-800/30'}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <img
                             src={getPlayerHeadshotUrl(player.id)}
                             alt={player.name}
-                            className="w-10 h-10 rounded-full bg-slate-700 object-cover"
+                            className={`w-10 h-10 rounded-full bg-slate-700 object-cover ${unavailable ? 'grayscale' : ''}`}
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
                             }}
                           />
-                          <div className="text-sm font-medium text-white">{player.name}</div>
+                          <div className={`text-sm font-medium ${unavailable ? 'text-slate-500' : 'text-white'}`}>{player.name}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium border ${POSITION_COLORS[player.position]}`}>
-                          {player.position}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium border ${unavailable ? 'bg-slate-800 text-slate-500 border-slate-700' : POSITION_COLORS[player.position]}`}>
+                            {player.position}
+                          </span>
+                          {used && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-900/50 text-red-400">
+                              {totalEntries > 1 ? `USED (${getUsedCount(player.id)})` : 'USED'}
+                            </span>
+                          )}
+                          {onBye && !used && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-400">
+                              BYE
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-400">
+                        <div className={`text-sm ${unavailable ? 'text-slate-600' : 'text-slate-400'}`}>
                           {player.team?.city} {player.team?.name}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <span className={`text-sm font-medium ${totalPts > 0 ? 'text-white' : 'text-slate-500'}`}>
+                        <span className={`text-sm font-medium ${unavailable ? 'text-slate-600' : totalPts > 0 ? 'text-white' : 'text-slate-500'}`}>
                           {totalPts.toFixed(1)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <span className={`text-sm font-medium ${projPts > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
-                          {projPts > 0 ? projPts.toFixed(1) : '—'}
-                        </span>
+                        {onBye ? (
+                          <span className="text-sm font-medium text-slate-600">—</span>
+                        ) : (
+                          <span className={`text-sm font-medium ${unavailable ? 'text-slate-600' : projPts > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                            {projPts > 0 ? projPts.toFixed(1) : '—'}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   )

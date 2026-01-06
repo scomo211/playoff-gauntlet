@@ -5,6 +5,7 @@ import { signupSchema, validateForm } from '../lib/validation'
 
 export default function Signup() {
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -20,6 +21,7 @@ export default function Signup() {
     const validation = validateForm(signupSchema, {
       displayName,
       email,
+      phone,
       password,
       confirmPassword,
     })
@@ -32,7 +34,7 @@ export default function Signup() {
 
     setLoading(true)
 
-    const { error } = await signUp(email, password, validation.data.displayName)
+    const { error } = await signUp(email, password, validation.data.displayName, validation.data.phone)
 
     if (error) {
       setError(error.message)
@@ -49,11 +51,7 @@ export default function Signup() {
       <div className="relative max-w-md w-full space-y-8">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <svg className="w-12 h-12 text-field-400" viewBox="0 0 32 32" fill="none">
-              <ellipse cx="16" cy="16" rx="14" ry="9" fill="currentColor" stroke="currentColor" strokeWidth="1"/>
-              <path d="M16 9v14" stroke="#0d1117" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M13 11l3 2 3-2M13 15l3 2 3-2M13 19l3 2 3-2" stroke="#0d1117" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <img src="/favicon.png" alt="Playoff Gauntlet" className="w-12 h-12" />
           </Link>
           <h1 className="text-3xl font-bold text-white tracking-tight">
             Create your account
@@ -73,7 +71,7 @@ export default function Signup() {
 
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-slate-300 mb-1.5">
-                Display Name
+                Your Name
               </label>
               <input
                 id="displayName"
@@ -83,7 +81,7 @@ export default function Signup() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
-                placeholder="Your name"
+                placeholder="Bruce Wayne"
               />
             </div>
 
@@ -101,6 +99,23 @@ export default function Signup() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
                 placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
+                placeholder="(555) 123-4567"
               />
             </div>
 

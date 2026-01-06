@@ -4,16 +4,19 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
-import EntryDetail from './pages/EntryDetail'
+import Entries from './pages/Entries'
 import Lineup from './pages/Lineup'
 import Players from './pages/Players'
 import Rules from './pages/Rules'
 import ConfirmEmail from './pages/ConfirmEmail'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
+import AdminUserDetail from './pages/admin/AdminUserDetail'
 import AdminEntries from './pages/admin/AdminEntries'
+import AdminLineupEdit from './pages/admin/AdminLineupEdit'
 import AdminTeams from './pages/admin/AdminTeams'
 import AdminSettings from './pages/admin/AdminSettings'
+import AdminPlayerStats from './pages/admin/AdminPlayerStats'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -74,10 +77,10 @@ function App() {
         }
       />
       <Route
-        path="/entry/:id"
+        path="/entries"
         element={
           <ProtectedRoute>
-            <EntryDetail />
+            <Entries />
           </ProtectedRoute>
         }
       />
@@ -123,6 +126,14 @@ function App() {
         }
       />
       <Route
+        path="/admin/user/:userId"
+        element={
+          <ProtectedRoute>
+            <AdminUserDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/entries"
         element={
           <ProtectedRoute>
@@ -131,10 +142,26 @@ function App() {
         }
       />
       <Route
+        path="/admin/entry/:entryId/lineup"
+        element={
+          <ProtectedRoute>
+            <AdminLineupEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/teams"
         element={
           <ProtectedRoute>
             <AdminTeams />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/player-stats"
+        element={
+          <ProtectedRoute>
+            <AdminPlayerStats />
           </ProtectedRoute>
         }
       />
