@@ -12,6 +12,10 @@ interface LeaderboardEntry {
   id: string
   entry_name: string
   display_name: string
+  week1_points: number
+  week2_points: number
+  week3_points: number
+  week4_points: number
   total_points: number
 }
 
@@ -32,6 +36,7 @@ export default function Dashboard() {
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null)
   const [payoutSpots, setPayoutSpots] = useState(4)
   const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   // Fetch current week
   useEffect(() => {
@@ -46,6 +51,7 @@ export default function Dashboard() {
     fetchCurrentWeek()
   }, [])
 
+  // Fetch leaderboard with polling
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
@@ -56,7 +62,7 @@ export default function Dashboard() {
             id,
             entry_name,
             profile:profiles(display_name),
-            lineups(total_points)
+            lineups(week_id, total_points)
           `)
           .eq('is_active', true)
 
@@ -67,16 +73,27 @@ export default function Dashboard() {
           const displayName = Array.isArray(profile)
             ? profile[0]?.display_name
             : profile?.display_name
+
+          // Get points per week
+          const lineups = entry.lineups as { week_id: number; total_points: number }[] || []
+          const getWeekPoints = (weekId: number) =>
+            lineups.find(l => l.week_id === weekId)?.total_points || 0
+
           return {
             id: entry.id,
             entry_name: entry.entry_name,
             display_name: displayName || 'Unknown',
-            total_points: entry.lineups?.reduce((sum: number, l: { total_points: number }) => sum + (l.total_points || 0), 0) || 0
+            week1_points: getWeekPoints(1),
+            week2_points: getWeekPoints(2),
+            week3_points: getWeekPoints(3),
+            week4_points: getWeekPoints(4),
+            total_points: lineups.reduce((sum, l) => sum + (l.total_points || 0), 0)
           }
         })
 
         formatted.sort((a, b) => b.total_points - a.total_points)
         setLeaderboardEntries(formatted)
+        setLastUpdated(new Date())
 
         const count = formatted.length
         if (count >= 100) setPayoutSpots(10)
@@ -96,6 +113,10 @@ export default function Dashboard() {
     }
 
     fetchLeaderboard()
+
+    // Poll every 30 seconds for live updates during games
+    const interval = setInterval(fetchLeaderboard, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -169,11 +190,21 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Leaderboard Section - Left 2/3 */}
           <div className="lg:col-span-2">
-            <div className="mb-4">
-              <h2 className="text-xl font-bold text-white">Leaderboard</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                {leaderboardEntries.length} entries competing for top {payoutSpots} payout spots
-              </p>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white">Leaderboard</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  {leaderboardEntries.length} entries competing for top {payoutSpots} payout spots
+                </p>
+              </div>
+              {lastUpdated && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                  <span>
+                    Updated {lastUpdated.toLocaleTimeString()}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="card-solid overflow-hidden">
@@ -250,10 +281,18 @@ export default function Dashboard() {
                             <td className="px-4 py-3 whitespace-nowrap">
                               <div className="text-sm text-slate-400">{entry.display_name}</div>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">--</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">--</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">--</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">--</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                              {entry.week1_points > 0 ? entry.week1_points.toFixed(1) : '--'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                              {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                              {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                              {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
+                            </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right">
                               <span className={`text-sm font-bold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
                                 {entry.total_points.toFixed(1)}
