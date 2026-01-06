@@ -150,14 +150,6 @@ async function supabaseRequest(path: string, options: RequestInit = {}) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Allow manual testing via GET, cron via POST with auth
-  if (req.method === 'POST') {
-    const authHeader = req.headers.authorization
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
-  }
-
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     return res.status(500).json({ error: 'Missing environment variables' })
   }
