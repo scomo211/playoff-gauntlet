@@ -1,14 +1,55 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
-import { useAdminUsers } from '../../hooks/useAdmin'
+import { useAdminUsers, AdminUser } from '../../hooks/useAdmin'
+
+type SortField = 'display_name' | 'email' | 'entry_count' | 'payment_received' | 'is_admin' | 'unsubmitted_lineups'
+type SortDirection = 'asc' | 'desc'
 
 export default function AdminUsers() {
   const { users, loading, toggleAdmin, togglePayment } = useAdminUsers()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'unpaid'>('all')
+  const [sortField, setSortField] = useState<SortField>('display_name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
-  const filteredUsers = users.filter(user => {
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortField(field)
+      setSortDirection('desc')
+    }
+  }
+
+  const sortUsers = (usersToSort: AdminUser[]) => {
+    return [...usersToSort].sort((a, b) => {
+      let aVal: string | number | boolean = a[sortField]
+      let bVal: string | number | boolean = b[sortField]
+
+      // Handle string comparison
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        aVal = aVal.toLowerCase()
+        bVal = bVal.toLowerCase()
+        if (sortDirection === 'asc') {
+          return aVal.localeCompare(bVal)
+        }
+        return bVal.localeCompare(aVal)
+      }
+
+      // Handle boolean (convert to number for sorting)
+      if (typeof aVal === 'boolean') aVal = aVal ? 1 : 0
+      if (typeof bVal === 'boolean') bVal = bVal ? 1 : 0
+
+      // Handle number comparison
+      if (sortDirection === 'asc') {
+        return (aVal as number) - (bVal as number)
+      }
+      return (bVal as number) - (aVal as number)
+    })
+  }
+
+  const filteredUsers = sortUsers(users.filter(user => {
     const matchesSearch =
       user.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -19,13 +60,32 @@ export default function AdminUsers() {
       (filterPaid === 'unpaid' && !user.payment_received)
 
     return matchesSearch && matchesFilter
-  })
+  }))
 
   const handleToggleAdmin = async (userId: string, currentStatus: boolean) => {
     if (!confirm(`Are you sure you want to ${currentStatus ? 'remove' : 'grant'} admin access?`)) {
       return
     }
     await toggleAdmin(userId, !currentStatus)
+  }
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return (
+        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      )
+    }
+    return sortDirection === 'desc' ? (
+      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    ) : (
+      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    )
   }
 
   return (
@@ -66,23 +126,59 @@ export default function AdminUsers() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
+                <th
+                  onClick={() => handleSort('display_name')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                >
+                  <div className="flex items-center gap-1">
+                    User
+                    <SortIcon field="display_name" />
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
+                <th
+                  onClick={() => handleSort('email')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                >
+                  <div className="flex items-center gap-1">
+                    Email
+                    <SortIcon field="email" />
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Entries
+                <th
+                  onClick={() => handleSort('entry_count')}
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Entries
+                    <SortIcon field="entry_count" />
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment
+                <th
+                  onClick={() => handleSort('payment_received')}
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Payment
+                    <SortIcon field="payment_received" />
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
+                <th
+                  onClick={() => handleSort('is_admin')}
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Role
+                    <SortIcon field="is_admin" />
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Unsubmitted
+                <th
+                  onClick={() => handleSort('unsubmitted_lineups')}
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Unsubmitted
+                    <SortIcon field="unsubmitted_lineups" />
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
