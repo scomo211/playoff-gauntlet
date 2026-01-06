@@ -107,9 +107,10 @@ function calculatePoints(stats: SleeperPlayerStats['stats'], position: string): 
   return Math.round(points * 100) / 100
 }
 
-async function fetchSleeperStats(week: number): Promise<SleeperPlayerStats[]> {
-  // Sleeper uses 2024 season for 2024-2025 playoffs
-  const url = `https://api.sleeper.com/stats/nfl/2024/${week}?season_type=post`
+async function fetchSleeperStats(week: number, testMode: boolean = false): Promise<SleeperPlayerStats[]> {
+  // Use 2023 data for testing, 2024 for production
+  const season = testMode ? '2023' : '2024'
+  const url = `https://api.sleeper.com/stats/nfl/${season}/${week}?season_type=post`
 
   const response = await fetch(url)
   if (!response.ok) {
@@ -154,15 +155,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Missing environment variables' })
   }
 
+  // Test mode uses 2023 playoff data for testing before games start
+  const testMode = req.query.test === 'true'
+
   try {
     // Get current week
     const weeks = await supabaseRequest('/weeks?is_current=eq.true&select=id')
     const currentWeek = weeks?.[0]?.id || 1
 
-    console.log(`Updating scores for week ${currentWeek}`)
+    console.log(`Updating scores for week ${currentWeek}${testMode ? ' (TEST MODE - using 2023 data)' : ''}`)
 
     // Fetch stats from Sleeper
-    const sleeperStats = await fetchSleeperStats(currentWeek)
+    const sleeperStats = await fetchSleeperStats(currentWeek, testMode)
     console.log(`Fetched ${sleeperStats.length} player stats from Sleeper`)
 
     // Get all players in our database with their positions
@@ -264,6 +268,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       timestamp: new Date().toISOString(),
+      testMode,
+      season: testMode ? '2023' : '2024',
       week: currentWeek,
       playersUpdated: playerStats.length,
       lineupsUpdated: updatedLineups,
