@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminUsers } from '../../hooks/useAdmin'
-import { formatDate } from '../../lib/formatTime'
 
 export default function AdminUsers() {
   const { users, loading, toggleAdmin, togglePayment } = useAdminUsers()
@@ -82,8 +81,8 @@ export default function AdminUsers() {
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Joined
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Unsubmitted
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -129,10 +128,14 @@ export default function AdminUsers() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">
-                      {formatDate(user.created_at)}
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    {user.unsubmitted_lineups > 0 ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        {user.unsubmitted_lineups}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-green-600">0</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <button

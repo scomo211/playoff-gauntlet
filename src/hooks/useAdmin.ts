@@ -116,8 +116,8 @@ export interface AdminUser {
   display_name: string
   is_admin: boolean
   payment_received: boolean
-  created_at: string
   entry_count: number
+  unsubmitted_lineups: number
 }
 
 export function useAdminUsers() {
@@ -127,25 +127,48 @@ export function useAdminUsers() {
   const fetchUsers = async () => {
     try {
       setLoading(true)
+
+      // Get current week
+      const { data: weekData } = await supabase
+        .from('weeks')
+        .select('id')
+        .eq('is_current', true)
+        .single()
+
+      const currentWeekId = weekData?.id || 1
+
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           *,
-          entries(id, is_active)
+          entries(id, is_active, lineups(week_id, is_submitted))
         `)
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      const formatted = data.map(user => ({
-        id: user.id,
-        email: user.email,
-        display_name: user.display_name,
-        is_admin: user.is_admin,
-        payment_received: user.payment_received || false,
-        created_at: user.created_at,
-        entry_count: user.entries?.filter((e: { is_active: boolean }) => e.is_active).length || 0,
-      }))
+      const formatted = data.map(user => {
+        const activeEntries = user.entries?.filter((e: { is_active: boolean }) => e.is_active) || []
+
+        // Count unsubmitted lineups for current week
+        let unsubmittedCount = 0
+        activeEntries.forEach((entry: { lineups?: { week_id: number; is_submitted: boolean }[] }) => {
+          const currentWeekLineup = entry.lineups?.find(l => l.week_id === currentWeekId)
+          if (!currentWeekLineup || !currentWeekLineup.is_submitted) {
+            unsubmittedCount++
+          }
+        })
+
+        return {
+          id: user.id,
+          email: user.email,
+          display_name: user.display_name,
+          is_admin: user.is_admin,
+          payment_received: user.payment_received || false,
+          entry_count: activeEntries.length,
+          unsubmitted_lineups: unsubmittedCount,
+        }
+      })
 
       setUsers(formatted)
     } catch (err) {
