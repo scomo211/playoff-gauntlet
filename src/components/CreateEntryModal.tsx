@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react'
 import Modal from './Modal'
+import { entryNameSchema, validateField } from '../lib/validation'
 
 interface CreateEntryModalProps {
   isOpen: boolean
@@ -16,23 +17,14 @@ export default function CreateEntryModal({ isOpen, onClose, onSubmit }: CreateEn
     e.preventDefault()
     setError(null)
 
-    if (!entryName.trim()) {
-      setError('Entry name is required')
-      return
-    }
-
-    if (entryName.trim().length < 2) {
-      setError('Entry name must be at least 2 characters')
-      return
-    }
-
-    if (entryName.trim().length > 30) {
-      setError('Entry name must be 30 characters or less')
+    const validationError = validateField(entryNameSchema, entryName)
+    if (validationError) {
+      setError(validationError)
       return
     }
 
     setLoading(true)
-    const { error } = await onSubmit(entryName)
+    const { error } = await onSubmit(entryName.trim())
     setLoading(false)
 
     if (error) {

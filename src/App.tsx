@@ -6,7 +6,6 @@ import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import EntryDetail from './pages/EntryDetail'
 import Lineup from './pages/Lineup'
-import Leaderboard from './pages/Leaderboard'
 import Players from './pages/Players'
 import Rules from './pages/Rules'
 import ConfirmEmail from './pages/ConfirmEmail'
@@ -87,14 +86,6 @@ function App() {
         element={
           <ProtectedRoute>
             <Lineup />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/leaderboard"
-        element={
-          <ProtectedRoute>
-            <Leaderboard />
           </ProtectedRoute>
         }
       />

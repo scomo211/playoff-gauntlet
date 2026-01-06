@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminUsers } from '../../hooks/useAdmin'
+import { formatDate } from '../../lib/formatTime'
 
 export default function AdminUsers() {
   const { users, loading, toggleAdmin } = useAdminUsers()
@@ -103,7 +104,7 @@ export default function AdminUsers() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-600">
-                      {new Date(user.created_at).toLocaleDateString()}
+                      {formatDate(user.created_at)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">

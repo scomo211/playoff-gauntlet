@@ -1,13 +1,29 @@
 import { Link } from 'react-router-dom'
 import { Entry } from '../types/database'
+import { formatDate } from '../lib/formatTime'
+
+interface LineupInfo {
+  week_id: number
+  total_points: number
+  is_submitted: boolean
+}
+
+interface EntryWithLineups extends Entry {
+  lineups?: LineupInfo[]
+}
 
 interface EntryCardProps {
-  entry: Entry
+  entry: EntryWithLineups
   onDelete: (entry: Entry) => void
   entriesLocked: boolean
 }
 
 export default function EntryCard({ entry, onDelete, entriesLocked }: EntryCardProps) {
+  // Helper to get lineup info for a week
+  const getLineupForWeek = (weekId: number): LineupInfo | undefined => {
+    return entry.lineups?.find(l => l.week_id === weekId)
+  }
+
   return (
     <div className="card-solid overflow-hidden hover:border-slate-700 transition-colors">
       <div className="p-5">
@@ -17,7 +33,7 @@ export default function EntryCard({ entry, onDelete, entriesLocked }: EntryCardP
               {entry.entry_name}
             </h3>
             <p className="mt-1 text-sm text-slate-500">
-              Created {new Date(entry.created_at).toLocaleDateString()}
+              Created {formatDate(entry.created_at)}
             </p>
           </div>
           <div className="ml-4 flex-shrink-0">
@@ -28,12 +44,41 @@ export default function EntryCard({ entry, onDelete, entriesLocked }: EntryCardP
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-          {[1, 2, 3, 4].map((week) => (
-            <div key={week} className="bg-slate-800/50 rounded-lg py-2">
-              <div className="text-xs text-slate-500">Wk {week}</div>
-              <div className="text-sm font-medium text-slate-300">--</div>
-            </div>
-          ))}
+          {[1, 2, 3, 4].map((week) => {
+            const lineup = getLineupForWeek(week)
+            const isSubmitted = lineup?.is_submitted
+
+            return (
+              <div
+                key={week}
+                className={`rounded-lg py-2 ${
+                  isSubmitted
+                    ? 'bg-green-500/10 border border-green-500/20'
+                    : 'bg-slate-800/50'
+                }`}
+              >
+                <div className={`text-xs ${isSubmitted ? 'text-green-400' : 'text-slate-500'}`}>
+                  Wk {week}
+                </div>
+                <div className={`text-sm font-medium flex items-center justify-center gap-1 ${
+                  isSubmitted ? 'text-green-400' : 'text-slate-300'
+                }`}>
+                  {isSubmitted ? (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{lineup?.total_points?.toFixed(1) || '0.0'}</span>
+                    </>
+                  ) : lineup ? (
+                    <span className="text-yellow-400">...</span>
+                  ) : (
+                    '--'
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 

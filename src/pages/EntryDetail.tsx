@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { Entry, Lineup, Week } from '../types/database'
+import { formatDate, formatShortDateTime } from '../lib/formatTime'
 import Layout from '../components/Layout'
 
 export default function EntryDetail() {
@@ -111,7 +112,7 @@ export default function EntryDetail() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{entry.entry_name}</h1>
             <p className="mt-1 text-gray-600">
-              Created {new Date(entry.created_at).toLocaleDateString()}
+              Created {formatDate(entry.created_at)}
             </p>
           </div>
           <div className="text-right">
@@ -130,15 +131,27 @@ export default function EntryDetail() {
             const lineup = lineups.find(l => l.week_id === week.id)
             const isLocked = new Date(week.lockout_time) < new Date()
             const isCurrent = week.is_current
+            const isSubmitted = lineup?.is_submitted
+
+            // Determine card styling based on state
+            const getCardStyle = () => {
+              if (isSubmitted) return 'border-green-300 ring-2 ring-green-100'
+              if (isCurrent) return 'border-blue-300 ring-2 ring-blue-100'
+              return 'border-gray-200'
+            }
+
+            const getHeaderStyle = () => {
+              if (isSubmitted) return 'bg-green-50 border-green-200'
+              if (isCurrent) return 'bg-blue-50 border-blue-200'
+              return 'bg-gray-50 border-gray-100'
+            }
 
             return (
               <div
                 key={week.id}
-                className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
-                  isCurrent ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-200'
-                }`}
+                className={`bg-white rounded-xl shadow-sm border overflow-hidden ${getCardStyle()}`}
               >
-                <div className={`px-5 py-4 border-b ${isCurrent ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
+                <div className={`px-5 py-4 border-b ${getHeaderStyle()}`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold text-gray-900">
@@ -148,7 +161,15 @@ export default function EntryDetail() {
                         {week.roster_size} players required
                       </p>
                     </div>
-                    {isCurrent && (
+                    {isSubmitted && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Submitted
+                      </span>
+                    )}
+                    {!isSubmitted && isCurrent && (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         Current Week
                       </span>
@@ -165,8 +186,13 @@ export default function EntryDetail() {
                   {lineup ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          {lineup.is_submitted ? 'Lineup submitted' : 'Lineup in progress'}
+                        <span className={`text-sm flex items-center gap-1.5 ${isSubmitted ? 'text-green-600' : 'text-gray-600'}`}>
+                          {isSubmitted && (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
+                          {isSubmitted ? 'Lineup submitted' : 'Lineup in progress'}
                         </span>
                         <span className="text-lg font-semibold text-gray-900">
                           {lineup.total_points?.toFixed(1) || '0.0'} pts
@@ -178,7 +204,9 @@ export default function EntryDetail() {
                           className={`flex-1 text-center px-4 py-2 text-sm font-medium rounded-lg transition ${
                             isLocked
                               ? 'bg-gray-100 text-gray-600'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                              : isSubmitted
+                                ? 'bg-green-600 text-white hover:bg-green-700'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
                           }`}
                         >
                           {isLocked ? 'View Lineup' : 'Edit Lineup'}
@@ -207,7 +235,7 @@ export default function EntryDetail() {
                       {isLocked ? (
                         <span className="text-red-600">Locked</span>
                       ) : (
-                        <>Locks: {new Date(week.lockout_time).toLocaleString()}</>
+                        <>Locks: {formatShortDateTime(week.lockout_time)}</>
                       )}
                     </p>
                   </div>

@@ -5,6 +5,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { Entry, Position } from '../types/database'
 import { useLineup, LineupSlot } from '../hooks/useLineup'
 import { usePlayers, PlayerWithTeam } from '../hooks/usePlayers'
+import { useProjections } from '../hooks/useProjections'
+import { useIsAdmin } from '../hooks/useAdmin'
+import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
+import { formatDateTime, formatDeadline } from '../lib/formatTime'
 import Layout from '../components/Layout'
 import PlayerSelectModal from '../components/PlayerSelectModal'
 
@@ -32,6 +36,8 @@ export default function Lineup() {
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
   const { players, loading: playersLoading } = usePlayers()
+  const { getProjection, loading: projectionsLoading } = useProjections(weekId)
+  const { isAdmin } = useIsAdmin()
   const {
     lineup,
     week,
@@ -46,7 +52,7 @@ export default function Lineup() {
     addPlayer,
     removePlayer,
     submitLineup,
-  } = useLineup(entryId || '', weekId)
+  } = useLineup(entryId || '', weekId, isAdmin)
 
   // Fetch entry details
   useEffect(() => {
@@ -91,7 +97,7 @@ export default function Lineup() {
   const handleSelectPlayer = async (player: PlayerWithTeam) => {
     if (!selectingSlot) return
 
-    const { error } = await addPlayer(selectingSlot.slot, player)
+    const { error } = await addPlayer(selectingSlot.slot, player, lineup?.is_submitted || false)
     if (error) {
       console.error('Failed to add player:', error)
     }
@@ -99,9 +105,9 @@ export default function Lineup() {
   }
 
   const handleRemovePlayer = async (slot: LineupSlot) => {
-    if (isLocked || lineup?.is_submitted) return
+    if (isLocked) return
 
-    const { error } = await removePlayer(slot.slot)
+    const { error } = await removePlayer(slot.slot, lineup?.is_submitted || false)
     if (error) {
       console.error('Failed to remove player:', error)
     }
@@ -196,7 +202,7 @@ export default function Lineup() {
               {lockReason === 'not_yet_open' ? (
                 <>
                   <p className="font-medium">Week not yet open</p>
-                  <p>Rosters open {week?.opens_at ? new Date(week.opens_at).toLocaleString() : 'soon'}.</p>
+                  <p>Rosters open {week?.opens_at ? formatDateTime(week.opens_at) : 'soon'}.</p>
                 </>
               ) : (
                 <>
@@ -217,7 +223,7 @@ export default function Lineup() {
             </svg>
             <div className="text-sm text-green-800">
               <p className="font-medium">Lineup submitted</p>
-              <p>Submitted {lineup.submitted_at ? new Date(lineup.submitted_at).toLocaleString() : ''}</p>
+              <p>Submitted {lineup.submitted_at ? formatDateTime(lineup.submitted_at) : ''}</p>
             </div>
           </div>
         </div>
@@ -231,8 +237,8 @@ export default function Lineup() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div className="text-sm text-blue-800">
-                <p className="font-medium">Deadline</p>
-                <p>{new Date(week.lockout_time).toLocaleString()}</p>
+                <p className="font-medium">Deadline to submit your roster</p>
+                <p>{formatDeadline(week.lockout_time)}</p>
               </div>
             </div>
             <div className="text-sm text-blue-800">
@@ -262,8 +268,56 @@ export default function Lineup() {
       {/* Lineup Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Your Lineup</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900">Your Lineup</h2>
+
+            {/* Submit Button - shown when not locked and not submitted */}
+            {!isLocked && !lineup?.is_submitted && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600">
+                  {isComplete ? (
+                    <span className="text-green-600 font-medium">{filledSlots}/{totalSlots} slots</span>
+                  ) : (
+                    <span className="text-yellow-600">{filledSlots}/{totalSlots} slots</span>
+                  )}
+                </span>
+                <button
+                  onClick={handleSubmit}
+                  disabled={saving || !isComplete || submitSuccess}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Submitting...' : 'Submit Lineup'}
+                </button>
+              </div>
+            )}
+
+            {/* Submitted status badge */}
+            {!isLocked && lineup?.is_submitted && (
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">Submitted</span>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Submit feedback messages */}
+        {!isLocked && !lineup?.is_submitted && (submitError || submitSuccess) && (
+          <div className="px-6 py-3 border-b border-gray-200">
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+                {submitError}
+              </div>
+            )}
+            {submitSuccess && (
+              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
+                Lineup submitted successfully!
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="divide-y divide-gray-100">
           {lineupSlots.map((slot) => (
@@ -282,11 +336,14 @@ export default function Lineup() {
 
                 {slot.player ? (
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600"
-                    >
-                      {slot.player.team_id}
-                    </div>
+                    <img
+                      src={getPlayerHeadshotUrl(slot.player.id)}
+                      alt={slot.player.name}
+                      className="w-10 h-10 rounded-full bg-gray-200 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                      }}
+                    />
                     <div>
                       <div className="font-medium text-gray-900">{slot.player.name}</div>
                       <div className="text-sm text-gray-500">
@@ -306,7 +363,7 @@ export default function Lineup() {
                   </span>
                 )}
 
-                {!isLocked && !lineup?.is_submitted && (
+                {!isLocked && (
                   <div className="flex items-center gap-2">
                     {slot.player && (
                       <button
@@ -334,46 +391,6 @@ export default function Lineup() {
           ))}
         </div>
 
-        {/* Submit Section */}
-        {!isLocked && !lineup?.is_submitted && (
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-            {submitError && (
-              <div className="mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-                {submitError}
-              </div>
-            )}
-
-            {submitSuccess && (
-              <div className="mb-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
-                Lineup submitted successfully! Your players are now locked.
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                {isComplete ? (
-                  <span className="text-green-600 font-medium">Lineup complete!</span>
-                ) : (
-                  <span className="text-yellow-600">
-                    Fill {totalSlots - filledSlots} more slot(s) to submit
-                  </span>
-                )}
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                disabled={saving || !isComplete || submitSuccess}
-                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Submitting...' : 'Submit Lineup'}
-              </button>
-            </div>
-
-            <p className="mt-3 text-xs text-gray-500">
-              Once submitted, these players cannot be used in future weeks.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Used Players */}
@@ -393,8 +410,16 @@ export default function Lineup() {
                 return (
                   <span
                     key={playerId}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm"
                   >
+                    <img
+                      src={getPlayerHeadshotUrl(player.id)}
+                      alt={player.name}
+                      className="w-6 h-6 rounded-full bg-gray-200 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                      }}
+                    />
                     <span className="font-medium">{player.name}</span>
                     <span className="text-gray-400">({player.position})</span>
                   </span>
@@ -416,6 +441,8 @@ export default function Lineup() {
           currentLineupPlayerIds={currentLineupPlayerIds}
           isPlayerUsed={isPlayerUsed}
           weekId={weekId}
+          getProjection={getProjection}
+          projectionsLoading={projectionsLoading}
         />
       )}
     </Layout>

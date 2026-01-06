@@ -21,7 +21,6 @@ export default function Layout({ children }: LayoutProps) {
 
   const navLinks = [
     { path: '/dashboard', label: 'Dashboard' },
-    { path: '/leaderboard', label: 'Leaderboard' },
     { path: '/players', label: 'Players' },
     { path: '/rules', label: 'Rules' },
   ]

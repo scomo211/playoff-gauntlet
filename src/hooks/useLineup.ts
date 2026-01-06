@@ -10,7 +10,7 @@ export interface LineupSlot {
   points: number
 }
 
-export function useLineup(entryId: string, weekId: number) {
+export function useLineup(entryId: string, weekId: number, isAdmin: boolean = false) {
   const [lineup, setLineup] = useState<Lineup | null>(null)
   const [lineupPlayers, setLineupPlayers] = useState<Map<string, LineupPlayer & { player: PlayerWithTeam }>>(new Map())
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
@@ -107,7 +107,7 @@ export function useLineup(entryId: string, weekId: number) {
   }, [fetchLineup])
 
   // Add player to lineup slot
-  const addPlayer = async (slot: string, player: PlayerWithTeam): Promise<{ error: string | null }> => {
+  const addPlayer = async (slot: string, player: PlayerWithTeam, isSubmitted: boolean = false): Promise<{ error: string | null }> => {
     if (!lineup) return { error: 'Lineup not loaded' }
 
     try {
@@ -115,6 +115,7 @@ export function useLineup(entryId: string, weekId: number) {
 
       // Check if slot already has a player
       const existingSlot = lineupPlayers.get(slot)
+      const oldPlayerId = existingSlot?.player_id
 
       if (existingSlot) {
         // Update existing slot
@@ -124,6 +125,25 @@ export function useLineup(entryId: string, weekId: number) {
           .eq('id', existingSlot.id)
 
         if (error) throw error
+
+        // If lineup was already submitted, update used_players
+        if (isSubmitted && oldPlayerId) {
+          // Remove old player from used_players
+          await supabase
+            .from('used_players')
+            .delete()
+            .eq('entry_id', entryId)
+            .eq('player_id', oldPlayerId)
+
+          // Add new player to used_players
+          await supabase
+            .from('used_players')
+            .upsert({
+              entry_id: entryId,
+              player_id: player.id,
+              week_used: weekId,
+            }, { onConflict: 'entry_id,player_id' })
+        }
       } else {
         // Insert new slot
         const { error } = await supabase
@@ -135,6 +155,17 @@ export function useLineup(entryId: string, weekId: number) {
           })
 
         if (error) throw error
+
+        // If lineup was already submitted, add to used_players
+        if (isSubmitted) {
+          await supabase
+            .from('used_players')
+            .upsert({
+              entry_id: entryId,
+              player_id: player.id,
+              week_used: weekId,
+            }, { onConflict: 'entry_id,player_id' })
+        }
       }
 
       await fetchLineup()
@@ -147,7 +178,7 @@ export function useLineup(entryId: string, weekId: number) {
   }
 
   // Remove player from lineup slot
-  const removePlayer = async (slot: string): Promise<{ error: string | null }> => {
+  const removePlayer = async (slot: string, isSubmitted: boolean = false): Promise<{ error: string | null }> => {
     if (!lineup) return { error: 'Lineup not loaded' }
 
     try {
@@ -156,12 +187,39 @@ export function useLineup(entryId: string, weekId: number) {
       const existingSlot = lineupPlayers.get(slot)
       if (!existingSlot) return { error: null }
 
+      const playerId = existingSlot.player_id
+
       const { error } = await supabase
         .from('lineup_players')
         .delete()
         .eq('id', existingSlot.id)
 
       if (error) throw error
+
+      // If lineup was already submitted, remove from used_players
+      if (isSubmitted && playerId) {
+        await supabase
+          .from('used_players')
+          .delete()
+          .eq('entry_id', entryId)
+          .eq('player_id', playerId)
+
+        // Check if lineup is now incomplete and revert submitted status
+        const slots = POSITION_SLOTS[weekId] || POSITION_SLOTS[1]
+        const requiredSlots = Object.values(slots).flat()
+        const remainingPlayers = lineupPlayers.size - 1 // After removal
+
+        if (remainingPlayers < requiredSlots.length) {
+          // Lineup is now incomplete, revert submitted status
+          await supabase
+            .from('lineups')
+            .update({
+              is_submitted: false,
+              submitted_at: null,
+            })
+            .eq('id', lineup.id)
+        }
+      }
 
       await fetchLineup()
       return { error: null }
@@ -249,7 +307,11 @@ export function useLineup(entryId: string, weekId: number) {
   // Week is locked if:
   // 1. Current time is before the opens_at time (not yet open), OR
   // 2. Current time is past the lockout_time (deadline passed)
+  // EXCEPTION: Admins can always make changes
   const { isLocked, lockReason } = (() => {
+    // Admins bypass lockout restrictions
+    if (isAdmin) return { isLocked: false, lockReason: null }
+
     if (!week) return { isLocked: false, lockReason: null }
 
     const now = new Date()

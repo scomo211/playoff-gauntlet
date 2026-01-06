@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminEntries } from '../../hooks/useAdmin'
+import { formatDate } from '../../lib/formatTime'
 
 export default function AdminEntries() {
   const { entries, loading, togglePayment, deleteEntry } = useAdminEntries()
@@ -120,7 +121,7 @@ export default function AdminEntries() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{entry.entry_name}</div>
                     <div className="text-xs text-gray-500">
-                      {new Date(entry.created_at).toLocaleDateString()}
+                      {formatDate(entry.created_at)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

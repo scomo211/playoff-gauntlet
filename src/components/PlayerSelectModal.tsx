@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import Modal from './Modal'
 import { Position } from '../types/database'
 import { PlayerWithTeam } from '../hooks/usePlayers'
+import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 
 interface PlayerSelectModalProps {
   isOpen: boolean
@@ -12,6 +13,8 @@ interface PlayerSelectModalProps {
   currentLineupPlayerIds: string[]
   isPlayerUsed: (playerId: string) => boolean
   weekId?: number
+  getProjection?: (playerName: string, teamId: string) => number | null
+  projectionsLoading?: boolean
 }
 
 export default function PlayerSelectModal({
@@ -23,6 +26,8 @@ export default function PlayerSelectModal({
   currentLineupPlayerIds,
   isPlayerUsed,
   weekId = 1,
+  getProjection,
+  projectionsLoading = false,
 }: PlayerSelectModalProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
@@ -46,10 +51,17 @@ export default function PlayerSelectModal({
     return Array.from(teamSet.values()).sort((a, b) => a.city.localeCompare(b.city))
   }, [players, weekId])
 
-  // Filter players
+  // Filter players and remove duplicates
   const filteredPlayers = useMemo(() => {
+    const seen = new Set<string>()
     return players
       .filter(p => p.position === position && isTeamPlayingThisWeek(p.team))
+      .filter(p => {
+        // Remove duplicates by player ID
+        if (seen.has(p.id)) return false
+        seen.add(p.id)
+        return true
+      })
       .filter(p => {
         if (searchQuery) {
           return p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -68,9 +80,15 @@ export default function PlayerSelectModal({
         const bUsed = isPlayerUsed(b.id) || currentLineupPlayerIds.includes(b.id)
         if (aUsed && !bUsed) return 1
         if (!aUsed && bUsed) return -1
+        // Sort by projected points (highest first) if available
+        if (getProjection && a.team_id && b.team_id) {
+          const aProj = getProjection(a.name, a.team_id) ?? 0
+          const bProj = getProjection(b.name, b.team_id) ?? 0
+          if (aProj !== bProj) return bProj - aProj
+        }
         return a.name.localeCompare(b.name)
       })
-  }, [players, position, searchQuery, teamFilter, isPlayerUsed, currentLineupPlayerIds])
+  }, [players, position, searchQuery, teamFilter, isPlayerUsed, currentLineupPlayerIds, getProjection])
 
   const handleSelect = (player: PlayerWithTeam) => {
     onSelect(player)
@@ -88,6 +106,13 @@ export default function PlayerSelectModal({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={`Select ${position}`}>
       <div className="space-y-4">
+        {/* Projections loading indicator */}
+        {projectionsLoading && (
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="animate-spin h-4 w-4 border-2 border-emerald-500 border-t-transparent rounded-full"></div>
+            Loading projections...
+          </div>
+        )}
         {/* Search and filters */}
         <div className="flex gap-3">
           <input
@@ -95,13 +120,13 @@ export default function PlayerSelectModal({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search players..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             autoFocus
           />
           <select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           >
             <option value="ALL">All Teams</option>
             {teams.map(team => (
@@ -113,7 +138,7 @@ export default function PlayerSelectModal({
         </div>
 
         {/* Player list */}
-        <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+        <div className="max-h-80 overflow-y-auto border border-slate-700 rounded-lg divide-y divide-slate-700">
           {filteredPlayers.length > 0 ? (
             filteredPlayers.map(player => {
               const isUsed = isPlayerUsed(player.id)
@@ -127,40 +152,52 @@ export default function PlayerSelectModal({
                   disabled={isDisabled}
                   className={`w-full px-4 py-3 text-left flex items-center justify-between transition ${
                     isDisabled
-                      ? 'bg-gray-50 cursor-not-allowed'
-                      : 'hover:bg-blue-50 cursor-pointer'
+                      ? 'bg-slate-800/50 cursor-not-allowed'
+                      : 'bg-slate-800 hover:bg-slate-700 cursor-pointer'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${
-                        isDisabled ? 'bg-gray-200 text-gray-400' : 'bg-blue-100 text-blue-700'
+                    <img
+                      src={getPlayerHeadshotUrl(player.id)}
+                      alt={player.name}
+                      className={`w-10 h-10 rounded-full object-cover ${
+                        isDisabled ? 'opacity-50' : ''
                       }`}
-                    >
-                      {player.team_id}
-                    </div>
+                      style={{ backgroundColor: '#334155' }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                      }}
+                    />
                     <div>
-                      <div className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-gray-900'}`}>
+                      <div className={`font-medium ${isDisabled ? 'text-slate-500' : 'text-white'}`}>
                         {player.name}
                       </div>
-                      <div className={`text-sm ${isDisabled ? 'text-gray-300' : 'text-gray-500'}`}>
+                      <div className={`text-sm ${isDisabled ? 'text-slate-600' : 'text-slate-400'}`}>
                         {player.team?.city} {player.team?.name}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {getProjection && player.team_id && (() => {
+                      const proj = getProjection(player.name, player.team_id)
+                      return proj !== null ? (
+                        <span className={`text-sm font-semibold ${isDisabled ? 'text-slate-500' : 'text-emerald-400'}`}>
+                          {proj.toFixed(1)} pts
+                        </span>
+                      ) : null
+                    })()}
                     {isUsed && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
+                      <span className="text-xs px-2 py-1 rounded-full bg-red-900/50 text-red-400">
                         Used
                       </span>
                     )}
                     {isInCurrentLineup && !isUsed && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
+                      <span className="text-xs px-2 py-1 rounded-full bg-yellow-900/50 text-yellow-400">
                         In Lineup
                       </span>
                     )}
                     {!isDisabled && (
-                      <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
                     )}
@@ -169,13 +206,13 @@ export default function PlayerSelectModal({
               )
             })
           ) : (
-            <div className="px-4 py-8 text-center text-gray-500">
+            <div className="px-4 py-8 text-center text-slate-500">
               No {position} players found
             </div>
           )}
         </div>
 
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-slate-400">
           {filteredPlayers.filter(p => !isPlayerUsed(p.id) && !currentLineupPlayerIds.includes(p.id)).length} available
           {' / '}
           {filteredPlayers.length} total

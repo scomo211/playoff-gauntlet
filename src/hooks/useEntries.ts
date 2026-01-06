@@ -24,7 +24,8 @@ export function useEntries() {
           *,
           lineups (
             week_id,
-            total_points
+            total_points,
+            is_submitted
           )
         `)
         .eq('user_id', user.id)

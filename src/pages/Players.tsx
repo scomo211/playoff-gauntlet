@@ -1,9 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { Player, Team, Position } from '../types/database'
+import { createPlayerKey } from '../lib/projections'
+import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 import Layout from '../components/Layout'
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
+
+type SortField = 'name' | 'totalPoints' | 'projectedPoints'
+type SortDirection = 'asc' | 'desc'
+
+interface PlayerStats {
+  player_id: string
+  total_points: number
+}
+
+interface Projection {
+  player_name: string
+  team_id: string
+  fantasy_points: number
+}
 
 const POSITION_COLORS: Record<Position, string> = {
   QB: 'bg-red-500/10 text-red-400 border-red-500/20',
@@ -17,14 +33,28 @@ const POSITION_COLORS: Record<Position, string> = {
 export default function Players() {
   const [players, setPlayers] = useState<(Player & { team: Team })[]>([])
   const [teams, setTeams] = useState<Team[]>([])
+  const [playerStats, setPlayerStats] = useState<Map<string, number>>(new Map())
+  const [projections, setProjections] = useState<Map<string, number>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedPosition, setSelectedPosition] = useState<Position | 'ALL'>('ALL')
   const [selectedTeam, setSelectedTeam] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortField, setSortField] = useState<SortField>('projectedPoints')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
   useEffect(() => {
     async function fetchData() {
       try {
+        // Fetch current week
+        const { data: weekData } = await supabase
+          .from('weeks')
+          .select('id')
+          .eq('is_current', true)
+          .single()
+
+        const weekId = weekData?.id || 1
+
         // Fetch teams
         const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
@@ -48,8 +78,38 @@ export default function Players() {
         if (playersError) throw playersError
         setPlayers(playersData as (Player & { team: Team })[])
 
+        // Fetch player stats (total points from all weeks)
+        const { data: statsData } = await supabase
+          .from('player_weekly_stats')
+          .select('player_id, total_points')
+
+        if (statsData) {
+          const statsMap = new Map<string, number>()
+          statsData.forEach((stat: PlayerStats) => {
+            const current = statsMap.get(stat.player_id) || 0
+            statsMap.set(stat.player_id, current + stat.total_points)
+          })
+          setPlayerStats(statsMap)
+        }
+
+        // Fetch projections for current week
+        const { data: projData } = await supabase
+          .from('projections')
+          .select('player_name, team_id, fantasy_points')
+          .eq('week_id', weekId)
+
+        if (projData) {
+          const projMap = new Map<string, number>()
+          projData.forEach((proj: Projection) => {
+            const key = `${proj.player_name}|${proj.team_id.toUpperCase()}`
+            projMap.set(key, proj.fantasy_points)
+          })
+          setProjections(projMap)
+        }
+
       } catch (err) {
         console.error('Failed to fetch players:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load players')
       } finally {
         setLoading(false)
       }
@@ -58,13 +118,57 @@ export default function Players() {
     fetchData()
   }, [])
 
-  const filteredPlayers = players.filter(player => {
-    if (selectedPosition !== 'ALL' && player.position !== selectedPosition) return false
-    if (selectedTeam !== 'ALL' && player.team_id !== selectedTeam) return false
-    if (searchQuery && !player.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
-    if (!player.team?.is_alive) return false
-    return true
-  })
+  // Helper to get projection for a player
+  const getProjection = (player: Player & { team: Team }): number => {
+    if (!player.team_id) return 0
+    const key = createPlayerKey(player.name, player.team_id)
+    return projections.get(key) || 0
+  }
+
+  // Helper to get total points for a player
+  const getTotalPoints = (player: Player): number => {
+    return playerStats.get(player.id) || 0
+  }
+
+  // Handle column sort
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('desc')
+    }
+  }
+
+  // Filter and sort players
+  const filteredPlayers = useMemo(() => {
+    let result = players.filter(player => {
+      if (selectedPosition !== 'ALL' && player.position !== selectedPosition) return false
+      if (selectedTeam !== 'ALL' && player.team_id !== selectedTeam) return false
+      if (searchQuery && !player.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
+      if (!player.team?.is_alive) return false
+      return true
+    })
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0
+      switch (sortField) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name)
+          break
+        case 'totalPoints':
+          comparison = getTotalPoints(a) - getTotalPoints(b)
+          break
+        case 'projectedPoints':
+          comparison = getProjection(a) - getProjection(b)
+          break
+      }
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+
+    return result
+  }, [players, selectedPosition, selectedTeam, searchQuery, sortField, sortDirection, projections, playerStats])
 
   return (
     <Layout>
@@ -134,13 +238,31 @@ export default function Players() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-field-500"></div>
           </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <p className="text-red-400 mb-2">Failed to load players</p>
+            <p className="text-sm text-slate-500">{error}</p>
+          </div>
         ) : filteredPlayers.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-800">
               <thead className="bg-slate-800/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Player
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Player
+                      {sortField === 'name' && (
+                        <span className="text-emerald-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                     Position
@@ -148,26 +270,72 @@ export default function Players() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                     Team
                   </th>
+                  <th
+                    className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('totalPoints')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      Total Pts
+                      {sortField === 'totalPoints' && (
+                        <span className="text-emerald-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('projectedPoints')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      Proj Pts
+                      {sortField === 'projectedPoints' && (
+                        <span className="text-emerald-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {filteredPlayers.map(player => (
-                  <tr key={player.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-white">{player.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium border ${POSITION_COLORS[player.position]}`}>
-                        {player.position}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-400">
-                        {player.team?.city} {player.team?.name}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filteredPlayers.map(player => {
+                  const totalPts = getTotalPoints(player)
+                  const projPts = getProjection(player)
+                  return (
+                    <tr key={player.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={getPlayerHeadshotUrl(player.id)}
+                            alt={player.name}
+                            className="w-10 h-10 rounded-full bg-slate-700 object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                            }}
+                          />
+                          <div className="text-sm font-medium text-white">{player.name}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium border ${POSITION_COLORS[player.position]}`}>
+                          {player.position}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-slate-400">
+                          {player.team?.city} {player.team?.name}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className={`text-sm font-medium ${totalPts > 0 ? 'text-white' : 'text-slate-500'}`}>
+                          {totalPts.toFixed(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className={`text-sm font-medium ${projPts > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                          {projPts > 0 ? projPts.toFixed(1) : '—'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

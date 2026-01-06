@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { signupSchema, validateForm } from '../lib/validation'
 
 export default function Signup() {
   const [email, setEmail] = useState('')
@@ -16,24 +17,22 @@ export default function Signup() {
     e.preventDefault()
     setError(null)
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
+    const validation = validateForm(signupSchema, {
+      displayName,
+      email,
+      password,
+      confirmPassword,
+    })
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
-    }
-
-    if (!displayName.trim()) {
-      setError('Display name is required')
+    if (!validation.success) {
+      const firstError = Object.values(validation.errors)[0]
+      setError(firstError)
       return
     }
 
     setLoading(true)
 
-    const { error } = await signUp(email, password, displayName.trim())
+    const { error } = await signUp(email, password, validation.data.displayName)
 
     if (error) {
       setError(error.message)
