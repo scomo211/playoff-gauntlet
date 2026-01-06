@@ -10,6 +10,7 @@ interface UserProfile {
   display_name: string
   phone: string | null
   is_admin: boolean
+  payment_received: boolean
   created_at: string
 }
 
@@ -75,11 +76,13 @@ export default function AdminUserDetail() {
     fetchUserData()
   }, [userId])
 
-  const handleTogglePayment = async (entryId: string, currentStatus: boolean) => {
+  const handleToggleUserPayment = async () => {
+    if (!user) return
+
     const { error } = await supabase
-      .from('entries')
-      .update({ payment_received: !currentStatus })
-      .eq('id', entryId)
+      .from('profiles')
+      .update({ payment_received: !user.payment_received })
+      .eq('id', user.id)
 
     if (!error) fetchUserData()
   }
@@ -175,13 +178,25 @@ export default function AdminUserDetail() {
               <p className="text-gray-500 text-sm mt-1">{user.phone}</p>
             )}
           </div>
-          <div className="text-right">
-            {user.is_admin && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                Admin
-              </span>
-            )}
-            <p className="text-sm text-gray-500 mt-2">
+          <div className="text-right space-y-2">
+            <div className="flex items-center gap-2 justify-end">
+              {user.is_admin && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                  Admin
+                </span>
+              )}
+              <button
+                onClick={handleToggleUserPayment}
+                className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  user.payment_received
+                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                }`}
+              >
+                {user.payment_received ? 'Paid' : 'Unpaid'}
+              </button>
+            </div>
+            <p className="text-sm text-gray-500">
               Joined {formatDate(user.created_at)}
             </p>
           </div>
@@ -189,7 +204,7 @@ export default function AdminUserDetail() {
       </div>
 
       {/* Entries Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="text-sm text-gray-500">Total Entries</div>
           <div className="text-2xl font-bold text-gray-900">{entries.length}</div>
@@ -201,15 +216,9 @@ export default function AdminUserDetail() {
           </div>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">Paid</div>
-          <div className="text-2xl font-bold text-green-600">
-            {entries.filter(e => e.payment_received).length}/{entries.length}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="text-sm text-gray-500">Amount Owed</div>
-          <div className="text-2xl font-bold text-red-600">
-            ${entries.filter(e => !e.payment_received && e.is_active).length * 25}
+          <div className="text-2xl font-bold text-gray-900">
+            ${user.payment_received ? 0 : entries.filter(e => e.is_active).length * 25}
           </div>
         </div>
       </div>
@@ -233,9 +242,6 @@ export default function AdminUserDetail() {
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Lineups
@@ -265,18 +271,6 @@ export default function AdminUserDetail() {
                       }`}
                     >
                       {entry.is_active ? 'Active' : 'Inactive'}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => handleTogglePayment(entry.id, entry.payment_received)}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition ${
-                        entry.payment_received
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
-                      }`}
-                    >
-                      {entry.payment_received ? 'Paid' : 'Unpaid'}
                     </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">

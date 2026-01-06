@@ -21,6 +21,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navLinks = [
     { path: '/dashboard', label: 'Dashboard' },
+    { path: '/entries', label: 'My Entries' },
     { path: '/players', label: 'Players' },
     { path: '/rules', label: 'Rules' },
   ]
@@ -32,11 +33,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex justify-between h-14">
             <div className="flex items-center gap-8">
               <Link to="/dashboard" className="flex items-center gap-2.5">
-                <svg className="w-7 h-7 text-field-400" viewBox="0 0 32 32" fill="none">
-                  <ellipse cx="16" cy="16" rx="14" ry="9" fill="currentColor" stroke="currentColor" strokeWidth="1"/>
-                  <path d="M16 9v14" stroke="#1a1f2e" strokeWidth="1.5" strokeLinecap="round"/>
-                  <path d="M13 11l3 2 3-2M13 15l3 2 3-2M13 19l3 2 3-2" stroke="#1a1f2e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <img src="/favicon.png" alt="Playoff Gauntlet" className="w-7 h-7" />
                 <span className="text-base font-bold text-white tracking-tight">Playoff Gauntlet</span>
               </Link>
               <div className="hidden sm:flex items-center gap-1">

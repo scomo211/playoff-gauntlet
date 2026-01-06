@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
-import { useAdminStats, useAdminEntries } from '../../hooks/useAdmin'
+import { useAdminStats, useAdminUsers, useAdminEntries } from '../../hooks/useAdmin'
 
 export default function AdminDashboard() {
   const { stats, loading: statsLoading } = useAdminStats()
+  const { users } = useAdminUsers()
   const { entries } = useAdminEntries()
 
   // Get entries missing lineups for current week
@@ -12,8 +13,8 @@ export default function AdminDashboard() {
     return e.lineups_submitted < stats.currentWeek
   })
 
-  // Get unpaid entries
-  const unpaidEntries = entries.filter(e => !e.payment_received)
+  // Get unpaid users
+  const unpaidUsers = users.filter(u => !u.payment_received && u.entry_count > 0)
 
   // Calculate payout spots
   const getPayoutSpots = (count: number) => {
@@ -61,7 +62,7 @@ export default function AdminDashboard() {
             ${totalPot.toLocaleString()}
           </div>
           <div className="text-sm text-gray-500 mt-1">
-            ${stats?.entriesPaid ? stats.entriesPaid * 25 : 0} collected
+            {stats?.usersPaid || 0}/{stats?.totalUsers || 0} users paid
           </div>
         </div>
 
@@ -81,7 +82,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Payment Status</h2>
-            <Link to="/admin/entries" className="text-sm text-blue-600 hover:text-blue-700">
+            <Link to="/admin/users" className="text-sm text-blue-600 hover:text-blue-700">
               View all
             </Link>
           </div>
@@ -90,21 +91,21 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Paid</span>
               <span className="font-semibold text-green-600">
-                {stats?.entriesPaid || 0} entries
+                {stats?.usersPaid || 0} users
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Unpaid</span>
               <span className="font-semibold text-red-600">
-                {stats?.entriesUnpaid || 0} entries
+                {stats?.usersUnpaid || 0} users
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-green-600 h-2 rounded-full"
                 style={{
-                  width: stats?.totalEntries
-                    ? `${(stats.entriesPaid / stats.totalEntries) * 100}%`
+                  width: stats?.totalUsers
+                    ? `${(stats.usersPaid / stats.totalUsers) * 100}%`
                     : '0%'
                 }}
               />
@@ -145,29 +146,34 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Unpaid Entries */}
-      {unpaidEntries.length > 0 && (
+      {/* Unpaid Users */}
+      {unpaidUsers.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">
-              Unpaid Entries ({unpaidEntries.length})
+              Unpaid Users ({unpaidUsers.length})
             </h2>
           </div>
           <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
-            {unpaidEntries.slice(0, 10).map(entry => (
-              <div key={entry.id} className="px-6 py-3 flex items-center justify-between">
+            {unpaidUsers.slice(0, 10).map(user => (
+              <Link
+                key={user.id}
+                to={`/admin/user/${user.id}`}
+                className="px-6 py-3 flex items-center justify-between hover:bg-gray-50"
+              >
                 <div>
-                  <span className="font-medium text-gray-900">{entry.entry_name}</span>
+                  <span className="font-medium text-gray-900">{user.display_name}</span>
                   <span className="text-gray-500 mx-2">-</span>
-                  <span className="text-gray-600">{entry.display_name}</span>
+                  <span className="text-gray-600">{user.email}</span>
+                  <span className="text-gray-400 text-sm ml-2">({user.entry_count} entries)</span>
                 </div>
-                <span className="text-sm text-red-600">$25 owed</span>
-              </div>
+                <span className="text-sm text-red-600">${user.entry_count * 25} owed</span>
+              </Link>
             ))}
-            {unpaidEntries.length > 10 && (
+            {unpaidUsers.length > 10 && (
               <div className="px-6 py-3 text-center">
-                <Link to="/admin/entries" className="text-blue-600 hover:text-blue-700 text-sm">
-                  View all {unpaidEntries.length} unpaid entries
+                <Link to="/admin/users" className="text-blue-600 hover:text-blue-700 text-sm">
+                  View all {unpaidUsers.length} unpaid users
                 </Link>
               </div>
             )}
@@ -185,7 +191,11 @@ export default function AdminDashboard() {
           </div>
           <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
             {missingLineups.slice(0, 10).map(entry => (
-              <div key={entry.id} className="px-6 py-3 flex items-center justify-between">
+              <Link
+                key={entry.id}
+                to={`/admin/user/${entry.user_id}`}
+                className="px-6 py-3 flex items-center justify-between hover:bg-gray-50"
+              >
                 <div>
                   <span className="font-medium text-gray-900">{entry.entry_name}</span>
                   <span className="text-gray-500 mx-2">-</span>
@@ -193,11 +203,11 @@ export default function AdminDashboard() {
                   <span className="text-gray-400 text-sm ml-2">({entry.email})</span>
                 </div>
                 <span className="text-sm text-yellow-600">No lineup</span>
-              </div>
+              </Link>
             ))}
             {missingLineups.length > 10 && (
               <div className="px-6 py-3 text-center">
-                <Link to="/admin/entries" className="text-blue-600 hover:text-blue-700 text-sm">
+                <Link to="/admin/users" className="text-blue-600 hover:text-blue-700 text-sm">
                   View all {missingLineups.length} missing lineups
                 </Link>
               </div>

@@ -41,8 +41,8 @@ export function useIsAdmin() {
 export interface AdminStats {
   totalUsers: number
   totalEntries: number
-  entriesPaid: number
-  entriesUnpaid: number
+  usersPaid: number
+  usersUnpaid: number
   currentWeek: number
   lineupsSubmitted: number
   lineupsMissing: number
@@ -55,19 +55,21 @@ export function useAdminStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Get total users
-        const { count: userCount } = await supabase
+        // Get users with payment status
+        const { data: usersData } = await supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id, payment_received')
+
+        const totalUsers = usersData?.length || 0
+        const usersPaid = usersData?.filter(u => u.payment_received).length || 0
 
         // Get entries stats
         const { data: entriesData } = await supabase
           .from('entries')
-          .select('id, payment_received')
+          .select('id')
           .eq('is_active', true)
 
         const totalEntries = entriesData?.length || 0
-        const entriesPaid = entriesData?.filter(e => e.payment_received).length || 0
 
         // Get current week
         const { data: weekData } = await supabase
@@ -87,10 +89,10 @@ export function useAdminStats() {
         const lineupsSubmitted = lineupsData?.filter(l => l.is_submitted).length || 0
 
         setStats({
-          totalUsers: userCount || 0,
+          totalUsers,
           totalEntries,
-          entriesPaid,
-          entriesUnpaid: totalEntries - entriesPaid,
+          usersPaid,
+          usersUnpaid: totalUsers - usersPaid,
           currentWeek,
           lineupsSubmitted,
           lineupsMissing: totalEntries - lineupsSubmitted,
@@ -113,9 +115,9 @@ export interface AdminUser {
   email: string
   display_name: string
   is_admin: boolean
+  payment_received: boolean
   created_at: string
   entry_count: number
-  entries_paid: number
 }
 
 export function useAdminUsers() {
@@ -129,7 +131,7 @@ export function useAdminUsers() {
         .from('profiles')
         .select(`
           *,
-          entries(id, payment_received, is_active)
+          entries(id, is_active)
         `)
         .order('created_at', { ascending: false })
 
@@ -140,9 +142,9 @@ export function useAdminUsers() {
         email: user.email,
         display_name: user.display_name,
         is_admin: user.is_admin,
+        payment_received: user.payment_received || false,
         created_at: user.created_at,
         entry_count: user.entries?.filter((e: { is_active: boolean }) => e.is_active).length || 0,
-        entries_paid: user.entries?.filter((e: { is_active: boolean; payment_received: boolean }) => e.is_active && e.payment_received).length || 0,
       }))
 
       setUsers(formatted)
@@ -167,7 +169,17 @@ export function useAdminUsers() {
     return { error: error?.message || null }
   }
 
-  return { users, loading, refetch: fetchUsers, toggleAdmin }
+  const togglePayment = async (userId: string, paid: boolean) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ payment_received: paid })
+      .eq('id', userId)
+
+    if (!error) await fetchUsers()
+    return { error: error?.message || null }
+  }
+
+  return { users, loading, refetch: fetchUsers, toggleAdmin, togglePayment }
 }
 
 export interface AdminEntry {

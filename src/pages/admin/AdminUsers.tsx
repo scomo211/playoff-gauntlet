@@ -5,13 +5,22 @@ import { useAdminUsers } from '../../hooks/useAdmin'
 import { formatDate } from '../../lib/formatTime'
 
 export default function AdminUsers() {
-  const { users, loading, toggleAdmin } = useAdminUsers()
+  const { users, loading, toggleAdmin, togglePayment } = useAdminUsers()
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'unpaid'>('all')
 
-  const filteredUsers = users.filter(user =>
-    user.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredUsers = users.filter(user => {
+    const matchesSearch =
+      user.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesFilter =
+      filterPaid === 'all' ||
+      (filterPaid === 'paid' && user.payment_received) ||
+      (filterPaid === 'unpaid' && !user.payment_received)
+
+    return matchesSearch && matchesFilter
+  })
 
   const handleToggleAdmin = async (userId: string, currentStatus: boolean) => {
     if (!confirm(`Are you sure you want to ${currentStatus ? 'remove' : 'grant'} admin access?`)) {
@@ -27,15 +36,25 @@ export default function AdminUsers() {
         <p className="mt-1 text-gray-600">View and manage all users</p>
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
+      {/* Search and Filter */}
+      <div className="mb-6 flex flex-wrap gap-4">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search users by name or email..."
-          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
+
+        <select
+          value={filterPaid}
+          onChange={(e) => setFilterPaid(e.target.value as typeof filterPaid)}
+          className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="all">All Users</option>
+          <option value="paid">Paid Only</option>
+          <option value="unpaid">Unpaid Only</option>
+        </select>
       </div>
 
       {/* Users Table */}
@@ -58,7 +77,7 @@ export default function AdminUsers() {
                   Entries
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Paid
+                  Payment
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
@@ -88,13 +107,16 @@ export default function AdminUsers() {
                     <span className="text-sm font-medium text-gray-900">{user.entry_count}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className={`text-sm font-medium ${
-                      user.entries_paid === user.entry_count
-                        ? 'text-green-600'
-                        : 'text-yellow-600'
-                    }`}>
-                      {user.entries_paid}/{user.entry_count}
-                    </span>
+                    <button
+                      onClick={() => togglePayment(user.id, !user.payment_received)}
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition ${
+                        user.payment_received
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-red-100 text-red-800 hover:bg-red-200'
+                      }`}
+                    >
+                      {user.payment_received ? 'Paid' : 'Unpaid'}
+                    </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     {user.is_admin ? (
