@@ -85,6 +85,7 @@ export default function Lineup() {
     usedPlayerIds,
     isLocked,
     lockReason,
+    isPastWeek,
     isPlayerUsed,
     addPlayer,
     removePlayer,
@@ -227,13 +228,18 @@ export default function Lineup() {
   // Admins must use the admin panel to edit other users' lineups
   const canEdit = isOwner && !isLocked
 
-  // Can view lineup if: owner OR lineups are locked (after kickoff)
-  // Other users' lineups are hidden until lockout to prevent copying
-  const canViewLineup = isOwner || isLocked
+  // Can view lineup if:
+  // 1. Owner (can always see their own lineups)
+  // 2. Past week (all past weeks are visible to everyone)
+  // 3. Current week is locked (after kickoff)
+  // Other users' current/future week lineups are hidden until lockout
+  const canViewLineup = isOwner || isPastWeek || isLocked
 
   // Get lock message based on reason
   const getLockMessage = () => {
     switch (lockReason) {
+      case 'past_week':
+        return 'Week finalized'
       case 'entries_locked':
         return 'Lineups are locked'
       case 'not_yet_open':

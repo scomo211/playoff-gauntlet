@@ -30,6 +30,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
   const [playerStats, setPlayerStats] = useState<Map<string, PlayerStats>>(new Map())
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
   const [week, setWeek] = useState<Week | null>(null)
+  const [currentWeekId, setCurrentWeekId] = useState<number>(1)
   const [entriesLocked, setEntriesLocked] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -52,14 +53,15 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
       if (weekError) throw weekError
       setWeek(weekData)
 
-      // Fetch league settings to check if entries are locked
+      // Fetch league settings to check if entries are locked and get current week
       const { data: settingsData } = await supabase
         .from('league_settings')
-        .select('entries_locked')
+        .select('entries_locked, current_week_id')
         .eq('id', 1)
         .single()
 
       setEntriesLocked(settingsData?.entries_locked ?? false)
+      setCurrentWeekId(settingsData?.current_week_id ?? 1)
 
       // Fetch or create lineup
       let { data: lineupData, error: lineupError } = await supabase
@@ -410,14 +412,24 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
     return result
   }
 
+  // Check if this is a past week (before current week)
+  // Past weeks are always locked and visible to everyone
+  const isPastWeek = weekId < currentWeekId
+
   // Check if week is locked
   // Week is locked if:
-  // 1. League-wide entries_locked setting is enabled (applies to EVERYONE including admins)
-  // 2. Current time is before the opens_at time (not yet open) - admins can bypass
-  // 3. Current time is past the lockout_time (deadline passed) - admins can bypass
-  // Note: Admins must use the admin panel to edit lineups when entries_locked is true
+  // 1. Past week (weekId < currentWeekId) - PERMANENTLY locked, no one can edit
+  // 2. League-wide entries_locked setting is enabled (applies to EVERYONE including admins)
+  // 3. Current time is before the opens_at time (not yet open) - admins can bypass
+  // 4. Current time is past the lockout_time (deadline passed) - admins can bypass
   const { isLocked, lockReason } = (() => {
-    // Check league-wide lock first - this applies to EVERYONE including admins
+    // Past weeks are permanently locked - NO ONE can edit, not even admins
+    // Points are final once the week has passed
+    if (isPastWeek) {
+      return { isLocked: true, lockReason: 'past_week' as const }
+    }
+
+    // Check league-wide lock - this applies to EVERYONE including admins
     // Admins must use the admin panel to make changes when this is enabled
     if (entriesLocked) {
       return { isLocked: true, lockReason: 'entries_locked' as const }
@@ -474,6 +486,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
     usedPlayerIds,
     isLocked,
     lockReason,
+    isPastWeek,
     isPlayerUsed,
     isPlayerInLineup,
     addPlayer,
