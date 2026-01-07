@@ -21,6 +21,41 @@ const POSITION_COLORS: Record<Position, string> = {
   DEF: 'bg-gray-100 text-gray-800 border-gray-200',
 }
 
+// Format player stats as inline text
+function formatPlayerStats(stats: {
+  pass_cmp: number
+  pass_att: number
+  pass_yards: number
+  pass_td: number
+  rush_att: number
+  rush_yards: number
+  rush_td: number
+  receptions: number
+  rec_yards: number
+  rec_td: number
+} | null): string {
+  if (!stats) return ''
+
+  const parts: string[] = []
+
+  // Passing stats: "14/18, 179 yd, 1 TD"
+  if (stats.pass_att > 0 || stats.pass_yards > 0 || stats.pass_td > 0) {
+    parts.push(`${stats.pass_cmp}/${stats.pass_att}, ${stats.pass_yards} yd, ${stats.pass_td} TD`)
+  }
+
+  // Rushing stats: "3 car, 97 yd, 1 TD"
+  if (stats.rush_att > 0 || stats.rush_yards !== 0 || stats.rush_td > 0) {
+    parts.push(`${stats.rush_att} car, ${stats.rush_yards} yd, ${stats.rush_td} TD`)
+  }
+
+  // Receiving stats: "2 rec, 18 yd, 1 TD"
+  if (stats.receptions > 0 || stats.rec_yards > 0 || stats.rec_td > 0) {
+    parts.push(`${stats.receptions} rec, ${stats.rec_yards} yd, ${stats.rec_td} TD`)
+  }
+
+  return parts.join(' | ')
+}
+
 export default function Lineup() {
   const { id: entryId } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
@@ -322,17 +357,13 @@ export default function Lineup() {
           </div>
         )}
 
-        {/* Stats Header */}
-        <div className="hidden md:grid grid-cols-12 gap-2 px-6 py-2 bg-gray-100 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
-          <div className="col-span-4">Player</div>
-          <div className="text-center">Pass Yds</div>
-          <div className="text-center">Pass TD</div>
-          <div className="text-center">Rush Yds</div>
-          <div className="text-center">Rush TD</div>
-          <div className="text-center">Rec Yds</div>
-          <div className="text-center">Rec TD</div>
-          <div className="text-center">Points</div>
-          <div className="text-right">Action</div>
+        {/* Header Row */}
+        <div className="hidden md:flex items-center justify-between px-6 py-2 bg-gray-100 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+          <div>Player</div>
+          <div className="flex items-center gap-8">
+            <span>Points</span>
+            <span className="w-20">Action</span>
+          </div>
         </div>
 
         <div className="divide-y divide-gray-100">
@@ -367,11 +398,9 @@ export default function Lineup() {
                         <div className="text-sm text-gray-500">
                           {slot.player.team?.city} {slot.player.team?.name}
                         </div>
-                        {slot.stats && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            {slot.stats.pass_yards > 0 && `${slot.stats.pass_yards} pass yds`}
-                            {slot.stats.rush_yards > 0 && ` ${slot.stats.rush_yards} rush yds`}
-                            {slot.stats.rec_yards > 0 && ` ${slot.stats.rec_yards} rec yds`}
+                        {formatPlayerStats(slot.stats) && (
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {formatPlayerStats(slot.stats)}
                           </div>
                         )}
                       </div>
@@ -400,10 +429,10 @@ export default function Lineup() {
                 </div>
               </div>
 
-              {/* Desktop Layout with Stats */}
-              <div className="hidden md:grid grid-cols-12 gap-2 items-center">
+              {/* Desktop Layout with Inline Stats */}
+              <div className="hidden md:flex items-center justify-between">
                 {/* Player Info */}
-                <div className="col-span-4 flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   <span
                     className={`px-2 py-0.5 rounded text-xs font-semibold border ${POSITION_COLORS[slot.position]}`}
                   >
@@ -415,16 +444,21 @@ export default function Lineup() {
                       <img
                         src={getPlayerHeadshotUrl(slot.player.id)}
                         alt={slot.player.name}
-                        className="w-8 h-8 rounded-full bg-gray-200 object-cover"
+                        className="w-10 h-10 rounded-full bg-gray-200 object-cover"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
                         }}
                       />
                       <div>
-                        <div className="font-medium text-gray-900 text-sm">{slot.player.name}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="font-medium text-gray-900">{slot.player.name}</div>
+                        <div className="text-sm text-gray-500">
                           {slot.player.team?.city} {slot.player.team?.name}
                         </div>
+                        {formatPlayerStats(slot.stats) && (
+                          <div className="text-sm text-gray-500 mt-0.5">
+                            {formatPlayerStats(slot.stats)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -432,39 +466,16 @@ export default function Lineup() {
                   )}
                 </div>
 
-                {/* Stats Columns */}
-                <div className="text-center text-sm text-gray-600">
-                  {slot.stats?.pass_yards || '--'}
-                </div>
-                <div className="text-center text-sm text-gray-600">
-                  {slot.stats?.pass_td || '--'}
-                </div>
-                <div className="text-center text-sm text-gray-600">
-                  {slot.stats?.rush_yards || '--'}
-                </div>
-                <div className="text-center text-sm text-gray-600">
-                  {slot.stats?.rush_td || '--'}
-                </div>
-                <div className="text-center text-sm text-gray-600">
-                  {slot.stats?.rec_yards || '--'}
-                </div>
-                <div className="text-center text-sm text-gray-600">
-                  {slot.stats?.rec_td || '--'}
-                </div>
-
-                {/* Points */}
-                <div className="text-center">
+                {/* Points and Actions */}
+                <div className="flex items-center gap-6">
                   {slot.player && (
-                    <span className="text-sm font-semibold text-blue-600">
+                    <span className="text-lg font-semibold text-blue-600 w-16 text-right">
                       {slot.points.toFixed(1)}
                     </span>
                   )}
-                </div>
 
-                {/* Actions */}
-                <div className="text-right">
                   {!isLocked && (
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center gap-2 w-20 justify-end">
                       {slot.player && (
                         <button
                           onClick={() => handleRemovePlayer(slot)}
@@ -480,7 +491,7 @@ export default function Lineup() {
                       <button
                         onClick={() => setSelectingSlot(slot)}
                         disabled={saving}
-                        className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition disabled:opacity-50"
+                        className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition disabled:opacity-50"
                       >
                         {slot.player ? 'Change' : 'Select'}
                       </button>

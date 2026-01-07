@@ -8,11 +8,14 @@ interface SleeperPlayerStats {
   player_id: string
   stats: {
     // Passing
+    pass_att?: number
+    pass_cmp?: number
     pass_yd?: number
     pass_td?: number
     pass_int?: number
     pass_2pt?: number
     // Rushing
+    rush_att?: number
     rush_yd?: number
     rush_td?: number
     rush_2pt?: number
@@ -178,9 +181,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       player_id: string
       week_id: number
       total_points: number
+      pass_cmp: number
+      pass_att: number
       pass_yards: number
       pass_td: number
       interceptions: number
+      rush_att: number
       rush_yards: number
       rush_td: number
       receptions: number
@@ -199,9 +205,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         player_id: stat.player_id,
         week_id: currentWeek,
         total_points: points,
+        pass_cmp: stat.stats.pass_cmp || 0,
+        pass_att: stat.stats.pass_att || 0,
         pass_yards: stat.stats.pass_yd || 0,
         pass_td: stat.stats.pass_td || 0,
         interceptions: stat.stats.pass_int || 0,
+        rush_att: stat.stats.rush_att || 0,
         rush_yards: stat.stats.rush_yd || 0,
         rush_td: stat.stats.rush_td || 0,
         receptions: stat.stats.rec || 0,

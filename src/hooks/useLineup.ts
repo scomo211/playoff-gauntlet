@@ -4,13 +4,16 @@ import { Lineup, LineupPlayer, Week, Position, POSITION_SLOTS } from '../types/d
 import { PlayerWithTeam } from './usePlayers'
 
 export interface PlayerStats {
+  pass_cmp: number
+  pass_att: number
   pass_yards: number
   pass_td: number
+  rush_att: number
   rush_yards: number
   rush_td: number
+  receptions: number
   rec_yards: number
   rec_td: number
-  receptions: number
 }
 
 export interface LineupSlot {
@@ -111,7 +114,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
       if (playerIds.length > 0) {
         const { data: statsData } = await supabase
           .from('player_weekly_stats')
-          .select('player_id, pass_yards, pass_td, rush_yards, rush_td, rec_yards, rec_td, receptions')
+          .select('player_id, pass_cmp, pass_att, pass_yards, pass_td, rush_att, rush_yards, rush_td, receptions, rec_yards, rec_td')
           .eq('week_id', weekId)
           .in('player_id', playerIds)
 
@@ -119,22 +122,28 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
         if (statsData) {
           statsData.forEach((stat: {
             player_id: string
+            pass_cmp: number
+            pass_att: number
             pass_yards: number
             pass_td: number
+            rush_att: number
             rush_yards: number
             rush_td: number
+            receptions: number
             rec_yards: number
             rec_td: number
-            receptions: number
           }) => {
             statsMap.set(stat.player_id, {
+              pass_cmp: stat.pass_cmp || 0,
+              pass_att: stat.pass_att || 0,
               pass_yards: stat.pass_yards || 0,
               pass_td: stat.pass_td || 0,
+              rush_att: stat.rush_att || 0,
               rush_yards: stat.rush_yards || 0,
               rush_td: stat.rush_td || 0,
+              receptions: stat.receptions || 0,
               rec_yards: stat.rec_yards || 0,
               rec_td: stat.rec_td || 0,
-              receptions: stat.receptions || 0,
             })
           })
         }
