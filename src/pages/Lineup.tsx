@@ -227,6 +227,10 @@ export default function Lineup() {
   // Admins must use the admin panel to edit other users' lineups
   const canEdit = isOwner && !isLocked
 
+  // Can view lineup if: owner OR lineups are locked (after kickoff)
+  // Other users' lineups are hidden until lockout to prevent copying
+  const canViewLineup = isOwner || isLocked
+
   // Get lock message based on reason
   const getLockMessage = () => {
     switch (lockReason) {
@@ -329,15 +333,22 @@ export default function Lineup() {
               {!isOwner && <span className="text-slate-500 ml-2">(View Only)</span>}
             </p>
           </div>
-          <div className="bg-gradient-to-br from-field-500/20 to-field-600/10 border border-field-500/30 rounded-xl px-5 py-3 text-center shadow-lg shadow-field-500/10">
-            <div className="text-xs font-medium text-field-300 uppercase tracking-wider mb-1">Total Points</div>
-            <div className="text-3xl font-bold text-white">{totalPoints.toFixed(1)}</div>
-            {weekRank && (
-              <div className="text-xs text-slate-400 mt-1">
-                Rank: {weekRank.rank} of {weekRank.total}
-              </div>
-            )}
-          </div>
+          {canViewLineup ? (
+            <div className="bg-gradient-to-br from-field-500/20 to-field-600/10 border border-field-500/30 rounded-xl px-5 py-3 text-center shadow-lg shadow-field-500/10">
+              <div className="text-xs font-medium text-field-300 uppercase tracking-wider mb-1">Total Points</div>
+              <div className="text-3xl font-bold text-white">{totalPoints.toFixed(1)}</div>
+              {weekRank && (
+                <div className="text-xs text-slate-400 mt-1">
+                  Rank: {weekRank.rank} of {weekRank.total}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl px-5 py-3 text-center">
+              <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Points</div>
+              <div className="text-3xl font-bold text-slate-600">--</div>
+            </div>
+          )}
         </div>
 
         {/* Mobile status row */}
@@ -446,13 +457,28 @@ export default function Lineup() {
           </div>
         )}
 
-        {/* Header Row */}
-        <div className="hidden md:flex items-center justify-between px-6 py-2 bg-slate-800/30 text-xs font-medium text-slate-500 uppercase tracking-wider border-b border-slate-700">
-          <div>Player</div>
-          <div>Points</div>
-        </div>
+        {/* Hidden lineup overlay for other users before lockout */}
+        {!canViewLineup ? (
+          <div className="py-16 px-6 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800 flex items-center justify-center">
+              <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">Lineup Hidden</h3>
+            <p className="text-slate-400 max-w-sm mx-auto">
+              You can see other players' lineups after kickoff for this week.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Header Row */}
+            <div className="hidden md:flex items-center justify-between px-6 py-2 bg-slate-800/30 text-xs font-medium text-slate-500 uppercase tracking-wider border-b border-slate-700">
+              <div>Player</div>
+              <div>Points</div>
+            </div>
 
-        <div className="divide-y divide-slate-800">
+            <div className="divide-y divide-slate-800">
           {lineupSlots.map((slot) => (
             <div
               key={slot.slot}
@@ -609,8 +635,9 @@ export default function Lineup() {
               </div>
             </div>
           ))}
-        </div>
-
+            </div>
+          </>
+        )}
       </div>
 
       {/* Used Players - only show for owner */}
