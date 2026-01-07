@@ -171,7 +171,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Get all players in our database with their positions
     const players = await supabaseRequest('/players?select=id,position')
-    const playerMap = new Map(players.map((p: { id: string; position: string }) => [p.id, p.position]))
+    const playerMap = new Map<string, string>(players.map((p: { id: string; position: string }) => [p.id, p.position]))
 
     // Calculate points for each player and build upsert data
     const playerStats: Array<{
