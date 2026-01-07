@@ -30,6 +30,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
   const [playerStats, setPlayerStats] = useState<Map<string, PlayerStats>>(new Map())
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
   const [week, setWeek] = useState<Week | null>(null)
+  const [entriesLocked, setEntriesLocked] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,6 +51,15 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
 
       if (weekError) throw weekError
       setWeek(weekData)
+
+      // Fetch league settings to check if entries are locked
+      const { data: settingsData } = await supabase
+        .from('league_settings')
+        .select('entries_locked')
+        .eq('id', 1)
+        .single()
+
+      setEntriesLocked(settingsData?.entries_locked ?? false)
 
       // Fetch or create lineup
       let { data: lineupData, error: lineupError } = await supabase
@@ -403,11 +413,17 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
   // Check if week is locked
   // Week is locked if:
   // 1. Current time is before the opens_at time (not yet open), OR
-  // 2. Current time is past the lockout_time (deadline passed)
+  // 2. Current time is past the lockout_time (deadline passed), OR
+  // 3. League-wide entries_locked setting is enabled
   // EXCEPTION: Admins can always make changes
   const { isLocked, lockReason } = (() => {
     // Admins bypass lockout restrictions
     if (isAdmin) return { isLocked: false, lockReason: null }
+
+    // Check league-wide lock first
+    if (entriesLocked) {
+      return { isLocked: true, lockReason: 'entries_locked' as const }
+    }
 
     if (!week) return { isLocked: false, lockReason: null }
 

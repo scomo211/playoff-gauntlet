@@ -84,6 +84,7 @@ export default function Lineup() {
     lineupSlots,
     usedPlayerIds,
     isLocked,
+    lockReason,
     isPlayerUsed,
     addPlayer,
     removePlayer,
@@ -225,6 +226,20 @@ export default function Lineup() {
   // Can edit if: owner (or admin) AND not locked
   const canEdit = (isOwner || isAdmin) && !isLocked
 
+  // Get lock message based on reason
+  const getLockMessage = () => {
+    switch (lockReason) {
+      case 'entries_locked':
+        return 'Lineups are locked'
+      case 'not_yet_open':
+        return 'Week not yet open'
+      case 'deadline':
+        return 'Deadline passed'
+      default:
+        return 'Locked'
+    }
+  }
+
   // Check if a player is the top scorer at their position
   const isTopScorer = (slot: LineupSlot): boolean => {
     if (!slot.player || slot.points === 0) return false
@@ -288,7 +303,7 @@ export default function Lineup() {
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
-                  Locked
+                  {getLockMessage()}
                 </span>
               )}
               {lineup?.is_submitted && !isLocked && (
@@ -331,7 +346,7 @@ export default function Lineup() {
               <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              <span className="text-sm text-red-400">Week is locked</span>
+              <span className="text-sm text-red-400">{getLockMessage()}</span>
             </div>
           )}
           {lineup?.is_submitted && !isLocked && (
