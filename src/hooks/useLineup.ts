@@ -412,15 +412,13 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
 
   // Check if week is locked
   // Week is locked if:
-  // 1. Current time is before the opens_at time (not yet open), OR
-  // 2. Current time is past the lockout_time (deadline passed), OR
-  // 3. League-wide entries_locked setting is enabled
-  // EXCEPTION: Admins can always make changes
+  // 1. League-wide entries_locked setting is enabled (applies to EVERYONE including admins)
+  // 2. Current time is before the opens_at time (not yet open) - admins can bypass
+  // 3. Current time is past the lockout_time (deadline passed) - admins can bypass
+  // Note: Admins must use the admin panel to edit lineups when entries_locked is true
   const { isLocked, lockReason } = (() => {
-    // Admins bypass lockout restrictions
-    if (isAdmin) return { isLocked: false, lockReason: null }
-
-    // Check league-wide lock first
+    // Check league-wide lock first - this applies to EVERYONE including admins
+    // Admins must use the admin panel to make changes when this is enabled
     if (entriesLocked) {
       return { isLocked: true, lockReason: 'entries_locked' as const }
     }
@@ -429,13 +427,15 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
 
     const now = new Date()
 
-    // Not yet open (opens_at is in the future)
+    // Not yet open (opens_at is in the future) - admins can bypass
     if (week.opens_at && new Date(week.opens_at) > now) {
+      if (isAdmin) return { isLocked: false, lockReason: null }
       return { isLocked: true, lockReason: 'not_yet_open' as const }
     }
 
-    // Past lockout time = locked
+    // Past lockout time = locked - admins can bypass
     if (new Date(week.lockout_time) < now) {
+      if (isAdmin) return { isLocked: false, lockReason: null }
       return { isLocked: true, lockReason: 'deadline' as const }
     }
 

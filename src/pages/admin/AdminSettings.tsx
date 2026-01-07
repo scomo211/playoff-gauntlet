@@ -6,10 +6,10 @@ export default function AdminSettings() {
   const { settings, loading, updateSettings, setCurrentWeek } = useAdminLeagueSettings()
   const [saving, setSaving] = useState(false)
 
-  const handleToggleEntriesLocked = async () => {
+  const handleToggleLineupsLocked = async () => {
     if (!settings) return
     const newStatus = !settings.entries_locked
-    if (!confirm(`Are you sure you want to ${newStatus ? 'lock' : 'unlock'} entries?`)) return
+    if (!confirm(`Are you sure you want to ${newStatus ? 'lock' : 'unlock'} all lineups? ${newStatus ? 'No one (including admins) will be able to modify lineups outside of the admin panel.' : ''}`)) return
 
     setSaving(true)
     await updateSettings({ entries_locked: newStatus })
@@ -42,17 +42,19 @@ export default function AdminSettings() {
       </div>
 
       <div className="space-y-6 max-w-2xl">
-        {/* Entry Lock */}
+        {/* Lineup Lock */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Entry Lock</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Lock Lineups</h3>
               <p className="text-sm text-gray-600 mt-1">
-                When locked, users cannot create or delete entries
+                When locked, no one can add, remove, or replace players in any lineup.
+                <br />
+                <span className="text-gray-500">Admins can still edit lineups from the admin panel.</span>
               </p>
             </div>
             <button
-              onClick={handleToggleEntriesLocked}
+              onClick={handleToggleLineupsLocked}
               disabled={saving}
               className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                 settings?.entries_locked ? 'bg-red-600' : 'bg-gray-200'
@@ -71,7 +73,7 @@ export default function AdminSettings() {
                 ? 'bg-red-100 text-red-800'
                 : 'bg-green-100 text-green-800'
             }`}>
-              {settings?.entries_locked ? 'Entries Locked' : 'Entries Open'}
+              {settings?.entries_locked ? 'Lineups Locked' : 'Lineups Open'}
             </span>
           </div>
         </div>
