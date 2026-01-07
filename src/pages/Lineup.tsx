@@ -223,8 +223,9 @@ export default function Lineup() {
   const isComplete = filledSlots === totalSlots
   const totalPoints = lineupSlots.reduce((sum, s) => sum + s.points, 0)
 
-  // Can edit if: owner (or admin) AND not locked
-  const canEdit = (isOwner || isAdmin) && !isLocked
+  // Can edit if: owner AND not locked
+  // Admins must use the admin panel to edit other users' lineups
+  const canEdit = isOwner && !isLocked
 
   // Get lock message based on reason
   const getLockMessage = () => {
