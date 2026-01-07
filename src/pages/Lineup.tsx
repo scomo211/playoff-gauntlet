@@ -269,7 +269,10 @@ export default function Lineup() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Your Lineup</h2>
+            <div>
+              <h2 className="font-semibold text-gray-900">Your Lineup</h2>
+              <p className="text-xs text-gray-500 mt-1">Stats update live during games</p>
+            </div>
 
             {/* Submit Button - shown when not locked and not submitted */}
             {!isLocked && !lineup?.is_submitted && (
@@ -319,64 +322,73 @@ export default function Lineup() {
           </div>
         )}
 
+        {/* Stats Header */}
+        <div className="hidden md:grid grid-cols-12 gap-2 px-6 py-2 bg-gray-100 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+          <div className="col-span-4">Player</div>
+          <div className="text-center">Pass Yds</div>
+          <div className="text-center">Pass TD</div>
+          <div className="text-center">Rush Yds</div>
+          <div className="text-center">Rush TD</div>
+          <div className="text-center">Rec Yds</div>
+          <div className="text-center">Rec TD</div>
+          <div className="text-center">Points</div>
+          <div className="text-right">Action</div>
+        </div>
+
         <div className="divide-y divide-gray-100">
           {lineupSlots.map((slot) => (
             <div
               key={slot.slot}
-              className={`px-6 py-4 flex items-center justify-between ${
+              className={`px-6 py-4 ${
                 !slot.player && !isLocked && !lineup?.is_submitted ? 'bg-yellow-50' : ''
               }`}
             >
-              <div className="flex items-center gap-4">
-                <span
-                  className={`px-3 py-1 rounded-lg text-sm font-semibold border ${POSITION_COLORS[slot.position]}`}
-                >
-                  {slot.slot}
-                </span>
+              {/* Mobile Layout */}
+              <div className="md:hidden flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span
+                    className={`px-3 py-1 rounded-lg text-sm font-semibold border ${POSITION_COLORS[slot.position]}`}
+                  >
+                    {slot.slot}
+                  </span>
 
-                {slot.player ? (
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={getPlayerHeadshotUrl(slot.player.id)}
-                      alt={slot.player.name}
-                      className="w-10 h-10 rounded-full bg-gray-200 object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
-                      }}
-                    />
-                    <div>
-                      <div className="font-medium text-gray-900">{slot.player.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {slot.player.team?.city} {slot.player.team?.name}
+                  {slot.player ? (
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={getPlayerHeadshotUrl(slot.player.id)}
+                        alt={slot.player.name}
+                        className="w-10 h-10 rounded-full bg-gray-200 object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                        }}
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">{slot.player.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {slot.player.team?.city} {slot.player.team?.name}
+                        </div>
+                        {slot.stats && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            {slot.stats.pass_yards > 0 && `${slot.stats.pass_yards} pass yds`}
+                            {slot.stats.rush_yards > 0 && ` ${slot.stats.rush_yards} rush yds`}
+                            {slot.stats.rec_yards > 0 && ` ${slot.stats.rec_yards} rec yds`}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <span className="text-gray-400 italic">Empty slot</span>
-                )}
-              </div>
+                  ) : (
+                    <span className="text-gray-400 italic">Empty slot</span>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-4">
-                {slot.player && (
-                  <span className="text-lg font-semibold text-gray-900">
-                    {slot.points.toFixed(1)}
-                  </span>
-                )}
+                <div className="flex items-center gap-4">
+                  {slot.player && (
+                    <span className="text-lg font-semibold text-gray-900">
+                      {slot.points.toFixed(1)}
+                    </span>
+                  )}
 
-                {!isLocked && (
-                  <div className="flex items-center gap-2">
-                    {slot.player && (
-                      <button
-                        onClick={() => handleRemovePlayer(slot)}
-                        disabled={saving}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                        title="Remove player"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
+                  {!isLocked && (
                     <button
                       onClick={() => setSelectingSlot(slot)}
                       disabled={saving}
@@ -384,8 +396,97 @@ export default function Lineup() {
                     >
                       {slot.player ? 'Change' : 'Select'}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
+
+              {/* Desktop Layout with Stats */}
+              <div className="hidden md:grid grid-cols-12 gap-2 items-center">
+                {/* Player Info */}
+                <div className="col-span-4 flex items-center gap-3">
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-semibold border ${POSITION_COLORS[slot.position]}`}
+                  >
+                    {slot.slot}
+                  </span>
+
+                  {slot.player ? (
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={getPlayerHeadshotUrl(slot.player.id)}
+                        alt={slot.player.name}
+                        className="w-8 h-8 rounded-full bg-gray-200 object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                        }}
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">{slot.player.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {slot.player.team?.city} {slot.player.team?.name}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 italic text-sm">Empty slot</span>
+                  )}
+                </div>
+
+                {/* Stats Columns */}
+                <div className="text-center text-sm text-gray-600">
+                  {slot.stats?.pass_yards || '--'}
+                </div>
+                <div className="text-center text-sm text-gray-600">
+                  {slot.stats?.pass_td || '--'}
+                </div>
+                <div className="text-center text-sm text-gray-600">
+                  {slot.stats?.rush_yards || '--'}
+                </div>
+                <div className="text-center text-sm text-gray-600">
+                  {slot.stats?.rush_td || '--'}
+                </div>
+                <div className="text-center text-sm text-gray-600">
+                  {slot.stats?.rec_yards || '--'}
+                </div>
+                <div className="text-center text-sm text-gray-600">
+                  {slot.stats?.rec_td || '--'}
+                </div>
+
+                {/* Points */}
+                <div className="text-center">
+                  {slot.player && (
+                    <span className="text-sm font-semibold text-blue-600">
+                      {slot.points.toFixed(1)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="text-right">
+                  {!isLocked && (
+                    <div className="flex items-center justify-end gap-2">
+                      {slot.player && (
+                        <button
+                          onClick={() => handleRemovePlayer(slot)}
+                          disabled={saving}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition disabled:opacity-50"
+                          title="Remove player"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSelectingSlot(slot)}
+                        disabled={saving}
+                        className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition disabled:opacity-50"
+                      >
+                        {slot.player ? 'Change' : 'Select'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

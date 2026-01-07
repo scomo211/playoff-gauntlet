@@ -38,7 +38,19 @@
       "Bash(__NEW_LINE__ echo \"Insert complete\")",
       "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/weeks?id=eq.1\" -H \"apikey: $APIKEY\")",
       "Bash(find:*)",
-      "Bash(npm run test:run:*)"
+      "Bash(npm run test:run:*)",
+      "Bash(npm run dev:*)",
+      "Bash(__NEW_LINE__ echo \"=== Lineups for Week 1 ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Verify unsubmit worked ===\")",
+      "Bash(__NEW_LINE__ echo -e \"\\\\n\\\\n=== Test the query the API uses ===\")",
+      "Bash(echo \"=== Profiles table structure ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/profiles?select=*&limit=1\" -H \"apikey: $APIKEY\" -I)",
+      "Bash(__NEW_LINE__ curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/profiles?select=*&limit=1\" -H \"apikey: $APIKEY\")",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/profiles?select=*&limit=1\" -H \"apikey: $APIKEY\")",
+      "Bash(git rm:*)",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/players?select=id,name,position,team_id&limit=5\" -H \"apikey: $APIKEY\")",
+      "Bash(git restore:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

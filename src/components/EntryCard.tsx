@@ -27,7 +27,7 @@ export default function EntryCard({ entry, onDelete, entriesLocked, currentWeek 
 
   return (
     <div className="card-solid overflow-hidden hover:border-slate-700 transition-colors">
-      <div className="p-5">
+      <Link to={`/entry/${entry.id}/lineup?week=${currentWeek || 1}`} className="block p-5 hover:bg-slate-800/30 transition">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-white truncate">
@@ -89,7 +89,7 @@ export default function EntryCard({ entry, onDelete, entriesLocked, currentWeek 
             )
           })}
         </div>
-      </div>
+      </Link>
 
       <div className="bg-slate-800/30 px-5 py-3 flex items-center justify-between border-t border-slate-800">
         <Link

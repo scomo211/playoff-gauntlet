@@ -3,16 +3,28 @@ import { supabase } from '../lib/supabase'
 import { Lineup, LineupPlayer, Week, Position, POSITION_SLOTS } from '../types/database'
 import { PlayerWithTeam } from './usePlayers'
 
+export interface PlayerStats {
+  pass_yards: number
+  pass_td: number
+  rush_yards: number
+  rush_td: number
+  rec_yards: number
+  rec_td: number
+  receptions: number
+}
+
 export interface LineupSlot {
   slot: string
   position: Position
   player: PlayerWithTeam | null
   points: number
+  stats: PlayerStats | null
 }
 
 export function useLineup(entryId: string, weekId: number, isAdmin: boolean = false) {
   const [lineup, setLineup] = useState<Lineup | null>(null)
   const [lineupPlayers, setLineupPlayers] = useState<Map<string, LineupPlayer & { player: PlayerWithTeam }>>(new Map())
+  const [playerStats, setPlayerStats] = useState<Map<string, PlayerStats>>(new Map())
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
   const [week, setWeek] = useState<Week | null>(null)
   const [loading, setLoading] = useState(true)
@@ -93,6 +105,41 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
 
       const usedIds = new Set(usedData.map(up => up.player_id))
       setUsedPlayerIds(usedIds)
+
+      // Fetch player weekly stats for the lineup players
+      const playerIds = playersData.map((lp: { player_id: string }) => lp.player_id)
+      if (playerIds.length > 0) {
+        const { data: statsData } = await supabase
+          .from('player_weekly_stats')
+          .select('player_id, pass_yards, pass_td, rush_yards, rush_td, rec_yards, rec_td, receptions')
+          .eq('week_id', weekId)
+          .in('player_id', playerIds)
+
+        const statsMap = new Map<string, PlayerStats>()
+        if (statsData) {
+          statsData.forEach((stat: {
+            player_id: string
+            pass_yards: number
+            pass_td: number
+            rush_yards: number
+            rush_td: number
+            rec_yards: number
+            rec_td: number
+            receptions: number
+          }) => {
+            statsMap.set(stat.player_id, {
+              pass_yards: stat.pass_yards || 0,
+              pass_td: stat.pass_td || 0,
+              rush_yards: stat.rush_yards || 0,
+              rush_td: stat.rush_td || 0,
+              rec_yards: stat.rec_yards || 0,
+              rec_td: stat.rec_td || 0,
+              receptions: stat.receptions || 0,
+            })
+          })
+        }
+        setPlayerStats(statsMap)
+      }
 
       setError(null)
     } catch (err) {
@@ -330,11 +377,13 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
     for (const [position, positionSlots] of Object.entries(slots)) {
       for (const slot of positionSlots) {
         const lineupPlayer = lineupPlayers.get(slot)
+        const playerId = lineupPlayer?.player_id
         result.push({
           slot,
           position: position as Position,
           player: lineupPlayer?.player || null,
           points: lineupPlayer?.points_scored || 0,
+          stats: playerId ? playerStats.get(playerId) || null : null,
         })
       }
     }
