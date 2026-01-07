@@ -121,6 +121,9 @@ export default function Dashboard() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [deleteModalEntry, setDeleteModalEntry] = useState<Entry | null>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const entriesPerPage = 25
 
   const handleSignOut = async () => {
     await signOut()
@@ -128,6 +131,14 @@ export default function Dashboard() {
   }
 
   const entriesLocked = settings?.entries_locked ?? false
+
+  // Pagination logic
+  const totalPages = Math.ceil(leaderboardEntries.length / entriesPerPage)
+  const showPagination = leaderboardEntries.length >= entriesPerPage
+  const paginatedEntries = showPagination
+    ? leaderboardEntries.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage)
+    : leaderboardEntries
+  const startIndex = (currentPage - 1) * entriesPerPage
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -160,29 +171,93 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={handleSignOut}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                className="hidden sm:block px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
               >
                 Sign out
+              </button>
+              {/* Mobile hamburger menu */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="sm:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+              >
+                {isMobileMenuOpen ? (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>
         </div>
+        {/* Mobile menu dropdown */}
+        {isMobileMenuOpen && (
+          <div className="sm:hidden border-t border-slate-800 bg-slate-900">
+            <div className="px-4 py-3 space-y-1">
+              <Link
+                to="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-white bg-slate-800"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/entries"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50"
+              >
+                My Entries
+              </Link>
+              <Link
+                to="/players"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50"
+              >
+                Players
+              </Link>
+              <Link
+                to="/rules"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50"
+              >
+                Rules
+              </Link>
+              <div className="border-t border-slate-800 pt-2 mt-2">
+                <div className="px-3 py-1 text-xs text-slate-500">
+                  {user?.user_metadata?.display_name || user?.email}
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false)
+                    handleSignOut()
+                  }}
+                  className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Banner */}
-        <div className="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="card-solid p-4">
-            <div className="text-sm text-slate-500">Total Entries</div>
-            <div className="text-2xl font-bold text-white">{totalEntries}</div>
+        <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="card-solid p-2 sm:p-4 text-center sm:text-left">
+            <div className="text-xs sm:text-sm text-slate-500">Entries</div>
+            <div className="text-lg sm:text-2xl font-bold text-white">{totalEntries}</div>
           </div>
-          <div className="card-solid p-4">
-            <div className="text-sm text-slate-500">Prize Pool</div>
-            <div className="text-2xl font-bold text-field-400">${(totalEntries * 25).toLocaleString()}</div>
+          <div className="card-solid p-2 sm:p-4 text-center sm:text-left">
+            <div className="text-xs sm:text-sm text-slate-500">Prize Pool</div>
+            <div className="text-lg sm:text-2xl font-bold text-field-400">${(totalEntries * 25).toLocaleString()}</div>
           </div>
-          <div className="card-solid p-4">
-            <div className="text-sm text-slate-500">Payout Spots</div>
-            <div className="text-2xl font-bold text-gold-400">Top {payoutSpots}</div>
+          <div className="card-solid p-2 sm:p-4 text-center sm:text-left">
+            <div className="text-xs sm:text-sm text-slate-500">Payouts</div>
+            <div className="text-lg sm:text-2xl font-bold text-gold-400">Top {payoutSpots}</div>
           </div>
         </div>
 
@@ -227,43 +302,44 @@ export default function Dashboard() {
                   <table className="min-w-full divide-y divide-slate-800">
                     <thead className="bg-slate-800/50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Rank
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Entry
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Owner
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 1
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 2
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 3
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 4
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="pl-2 pr-5 sm:px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Total
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {leaderboardEntries.map((entry, index) => {
-                        const rank = index + 1
+                      {paginatedEntries.map((entry, index) => {
+                        const rank = startIndex + index + 1
                         const inTheMoney = rank <= payoutSpots
 
                         return (
                           <tr
                             key={entry.id}
-                            className={inTheMoney ? 'bg-field-500/5' : 'hover:bg-slate-800/30'}
+                            onClick={() => navigate(`/entry/${entry.id}/lineup?week=${currentWeek || 1}`)}
+                            className={`cursor-pointer transition ${inTheMoney ? 'bg-field-500/5 hover:bg-field-500/10' : 'hover:bg-slate-800/50'}`}
                           >
-                            <td className="px-4 py-3 whitespace-nowrap">
+                            <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                               <div className="flex items-center gap-2">
                                 <span className={`text-sm font-semibold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
                                   {rank}
@@ -275,25 +351,25 @@ export default function Dashboard() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="text-sm font-medium text-white">{entry.entry_name}</div>
+                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm font-medium text-white truncate max-w-[80px] sm:max-w-none" title={entry.entry_name}>{entry.entry_name}</div>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="text-sm text-slate-400">{entry.display_name}</div>
+                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-400 truncate max-w-[80px] sm:max-w-none" title={entry.display_name}>{entry.display_name}</div>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week1_points > 0 ? entry.week1_points.toFixed(1) : '--'}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-right">
+                            <td className="pl-2 pr-5 sm:px-4 py-3 whitespace-nowrap text-right">
                               <span className={`text-sm font-bold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
                                 {entry.total_points.toFixed(1)}
                               </span>
@@ -307,6 +383,46 @@ export default function Dashboard() {
               ) : (
                 <div className="text-center py-12 text-slate-500">
                   No entries yet. Be the first to join!
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {showPagination && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-800 bg-slate-800/30">
+                  <div className="text-sm text-slate-400">
+                    Showing {startIndex + 1}-{Math.min(startIndex + entriesPerPage, leaderboardEntries.length)} of {leaderboardEntries.length}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed bg-slate-700 text-white hover:bg-slate-600 disabled:hover:bg-slate-700"
+                    >
+                      Prev
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-8 h-8 text-sm font-medium rounded-lg transition ${
+                            page === currentPage
+                              ? 'bg-field-500 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed bg-slate-700 text-white hover:bg-slate-600 disabled:hover:bg-slate-700"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

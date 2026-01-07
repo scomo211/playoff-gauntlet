@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { Entry, Position } from '../types/database'
@@ -8,7 +8,7 @@ import { usePlayers, PlayerWithTeam } from '../hooks/usePlayers'
 import { useProjections } from '../hooks/useProjections'
 import { useIsAdmin } from '../hooks/useAdmin'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
-import { formatDateTime, formatDeadline } from '../lib/formatTime'
+import { formatDeadline } from '../lib/formatTime'
 import Layout from '../components/Layout'
 import PlayerSelectModal from '../components/PlayerSelectModal'
 
@@ -61,14 +61,16 @@ export default function Lineup() {
   const [searchParams] = useSearchParams()
   const weekId = parseInt(searchParams.get('week') || '1', 10)
   const { user } = useAuth()
-  const navigate = useNavigate()
 
   const [entry, setEntry] = useState<Entry | null>(null)
   const [entryLoading, setEntryLoading] = useState(true)
+  const [isOwner, setIsOwner] = useState(false)
   const [allWeeks, setAllWeeks] = useState<{ id: number; name: string }[]>([])
   const [selectingSlot, setSelectingSlot] = useState<LineupSlot | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [topScorersByPosition, setTopScorersByPosition] = useState<Map<Position, { playerId: string; points: number }>>(new Map())
+  const [weekRank, setWeekRank] = useState<{ rank: number; total: number } | null>(null)
 
   const { players, loading: playersLoading } = usePlayers()
   const { getProjection, loading: projectionsLoading } = useProjections(weekId)
@@ -82,7 +84,6 @@ export default function Lineup() {
     lineupSlots,
     usedPlayerIds,
     isLocked,
-    lockReason,
     isPlayerUsed,
     addPlayer,
     removePlayer,
@@ -92,7 +93,7 @@ export default function Lineup() {
   // Fetch entry details
   useEffect(() => {
     async function fetchEntry() {
-      if (!entryId || !user) return
+      if (!entryId) return
 
       try {
         const { data, error } = await supabase
@@ -102,11 +103,8 @@ export default function Lineup() {
           .single()
 
         if (error) throw error
-        if (data.user_id !== user.id) {
-          navigate('/dashboard')
-          return
-        }
         setEntry(data)
+        setIsOwner(user?.id === data.user_id)
       } catch (err) {
         console.error('Failed to fetch entry:', err)
       } finally {
@@ -115,7 +113,7 @@ export default function Lineup() {
     }
 
     fetchEntry()
-  }, [entryId, user, navigate])
+  }, [entryId, user])
 
   // Fetch all weeks for tab names
   useEffect(() => {
@@ -128,6 +126,64 @@ export default function Lineup() {
     }
     fetchWeeks()
   }, [])
+
+  // Fetch top scorers by position for the week
+  useEffect(() => {
+    async function fetchTopScorers() {
+      if (!weekId || players.length === 0) return
+
+      // Get all player stats for this week
+      const { data: statsData } = await supabase
+        .from('player_weekly_stats')
+        .select('player_id, total_points')
+        .eq('week_id', weekId)
+        .gt('total_points', 0)
+
+      if (!statsData) return
+
+      // Group by position and find max
+      const topByPosition = new Map<Position, { playerId: string; points: number }>()
+
+      for (const stat of statsData) {
+        const player = players.find(p => p.id === stat.player_id)
+        if (!player) continue
+
+        const position = player.position as Position
+        const current = topByPosition.get(position)
+
+        if (!current || stat.total_points > current.points) {
+          topByPosition.set(position, { playerId: stat.player_id, points: stat.total_points })
+        }
+      }
+
+      setTopScorersByPosition(topByPosition)
+    }
+
+    fetchTopScorers()
+  }, [weekId, players])
+
+  // Fetch rank among all entries for this week
+  useEffect(() => {
+    async function fetchRank() {
+      if (!weekId || !lineup) return
+
+      // Get all lineups for this week with their total points
+      const { data: allLineups } = await supabase
+        .from('lineups')
+        .select('id, total_points')
+        .eq('week_id', weekId)
+
+      if (!allLineups) return
+
+      // Sort by points descending and find rank
+      const sorted = allLineups.sort((a, b) => (b.total_points || 0) - (a.total_points || 0))
+      const rank = sorted.findIndex(l => l.id === lineup.id) + 1
+
+      setWeekRank({ rank, total: sorted.length })
+    }
+
+    fetchRank()
+  }, [weekId, lineup])
 
   const handleSelectPlayer = async (player: PlayerWithTeam) => {
     if (!selectingSlot) return
@@ -166,6 +222,16 @@ export default function Lineup() {
   const isComplete = filledSlots === totalSlots
   const totalPoints = lineupSlots.reduce((sum, s) => sum + s.points, 0)
 
+  // Can edit if: owner (or admin) AND not locked
+  const canEdit = (isOwner || isAdmin) && !isLocked
+
+  // Check if a player is the top scorer at their position
+  const isTopScorer = (slot: LineupSlot): boolean => {
+    if (!slot.player || slot.points === 0) return false
+    const topScorer = topScorersByPosition.get(slot.position)
+    return topScorer?.playerId === slot.player.id
+  }
+
   // Get current lineup player IDs
   const currentLineupPlayerIds = lineupSlots
     .filter(s => s.player !== null)
@@ -201,87 +267,94 @@ export default function Lineup() {
       {/* Header */}
       <div className="mb-6">
         <Link
-          to={`/entry/${entryId}`}
-          className="text-sm text-gray-600 hover:text-gray-900 inline-flex items-center gap-1 mb-4"
+          to={isOwner ? '/entries' : '/dashboard'}
+          className="text-sm text-slate-400 hover:text-white inline-flex items-center gap-1 mb-4"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Back to {entry.entry_name}
+          {isOwner ? 'Back to My Entries' : 'Back to Dashboard'}
         </Link>
 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Week {weekId}: {week?.name}
-            </h1>
-            <p className="mt-1 text-gray-600">
-              {entry.entry_name}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-gray-500">Points</div>
-            <div className="text-2xl font-bold text-blue-600">{totalPoints.toFixed(1)}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Status Banner */}
-      {isLocked && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <div className="text-sm text-red-800">
-              {lockReason === 'not_yet_open' ? (
-                <>
-                  <p className="font-medium">Week not yet open</p>
-                  <p>Rosters open {week?.opens_at ? formatDateTime(week.opens_at) : 'soon'}.</p>
-                </>
-              ) : (
-                <>
-                  <p className="font-medium">Week is locked</p>
-                  <p>Lineup changes are no longer allowed.</p>
-                </>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-white">
+                Week {weekId}: {week?.name}
+              </h1>
+              {/* Compact status badges - desktop only */}
+              {isLocked && (
+                <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Locked
+                </span>
+              )}
+              {lineup?.is_submitted && !isLocked && (
+                <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Submitted
+                </span>
+              )}
+              {!isLocked && !lineup?.is_submitted && week && (
+                <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {formatDeadline(week.lockout_time)}
+                </span>
               )}
             </div>
+            <p className="mt-1 text-slate-400">
+              {entry.entry_name}
+              {!isOwner && <span className="text-slate-500 ml-2">(View Only)</span>}
+            </p>
           </div>
-        </div>
-      )}
-
-      {lineup?.is_submitted && !isLocked && (
-        <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="text-sm text-green-800">
-              <p className="font-medium">Lineup submitted</p>
-              <p>Submitted {lineup.submitted_at ? formatDateTime(lineup.submitted_at) : ''}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!isLocked && !lineup?.is_submitted && week && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="text-sm text-blue-800">
-                <p className="font-medium">Deadline to submit your roster</p>
-                <p>{formatDeadline(week.lockout_time)}</p>
+          <div className="bg-gradient-to-br from-field-500/20 to-field-600/10 border border-field-500/30 rounded-xl px-5 py-3 text-center shadow-lg shadow-field-500/10">
+            <div className="text-xs font-medium text-field-300 uppercase tracking-wider mb-1">Total Points</div>
+            <div className="text-3xl font-bold text-white">{totalPoints.toFixed(1)}</div>
+            {weekRank && (
+              <div className="text-xs text-slate-400 mt-1">
+                Rank: {weekRank.rank} of {weekRank.total}
               </div>
-            </div>
-            <div className="text-sm text-blue-800">
-              {filledSlots}/{totalSlots} slots filled
-            </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Mobile status row */}
+        <div className="md:hidden mt-3">
+          {isLocked && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+              <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span className="text-sm text-red-400">Week is locked</span>
+            </div>
+          )}
+          {lineup?.is_submitted && !isLocked && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
+              <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm text-green-400">Lineup submitted</span>
+            </div>
+          )}
+          {!isLocked && !lineup?.is_submitted && week && (
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm text-yellow-400">{formatDeadline(week.lockout_time)}</span>
+              </div>
+              <span className="text-sm text-yellow-400">{filledSlots}/{totalSlots} slots</span>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Week selector */}
       <div className="mb-6 flex flex-wrap gap-2">
@@ -291,8 +364,8 @@ export default function Lineup() {
             to={`/entry/${entryId}/lineup?week=${w.id}`}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
               w.id === weekId
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                ? 'bg-field-500 text-white'
+                : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white'
             }`}
           >
             {w.name}
@@ -301,28 +374,28 @@ export default function Lineup() {
       </div>
 
       {/* Lineup Grid */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+      <div className="card-solid overflow-hidden">
+        <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-gray-900">Your Lineup</h2>
-              <p className="text-xs text-gray-500 mt-1">Stats update live during games</p>
+              <h2 className="font-semibold text-white">{isOwner ? 'Your Lineup' : 'Lineup'}</h2>
+              <p className="text-xs text-slate-500 mt-1">Stats update live during games</p>
             </div>
 
             {/* Submit Button - shown when not locked and not submitted */}
-            {!isLocked && !lineup?.is_submitted && (
+            {canEdit && !lineup?.is_submitted && (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-slate-400">
                   {isComplete ? (
-                    <span className="text-green-600 font-medium">{filledSlots}/{totalSlots} slots</span>
+                    <span className="text-green-400 font-medium">{filledSlots}/{totalSlots} slots</span>
                   ) : (
-                    <span className="text-yellow-600">{filledSlots}/{totalSlots} slots</span>
+                    <span className="text-yellow-400">{filledSlots}/{totalSlots} slots</span>
                   )}
                 </span>
                 <button
                   onClick={handleSubmit}
                   disabled={saving || !isComplete || submitSuccess}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary"
                 >
                   {saving ? 'Submitting...' : 'Submit Lineup'}
                 </button>
@@ -330,8 +403,8 @@ export default function Lineup() {
             )}
 
             {/* Submitted status badge */}
-            {!isLocked && lineup?.is_submitted && (
-              <div className="flex items-center gap-2 text-sm text-green-600">
+            {(canEdit || !isOwner) && lineup?.is_submitted && (
+              <div className="flex items-center gap-2 text-sm text-green-400">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -342,15 +415,15 @@ export default function Lineup() {
         </div>
 
         {/* Submit feedback messages */}
-        {!isLocked && !lineup?.is_submitted && (submitError || submitSuccess) && (
-          <div className="px-6 py-3 border-b border-gray-200">
+        {canEdit && !lineup?.is_submitted && (submitError || submitSuccess) && (
+          <div className="px-6 py-3 border-b border-slate-700">
             {submitError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-sm text-red-400">
                 {submitError}
               </div>
             )}
             {submitSuccess && (
-              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3 text-sm text-green-400">
                 Lineup submitted successfully!
               </div>
             )}
@@ -358,27 +431,25 @@ export default function Lineup() {
         )}
 
         {/* Header Row */}
-        <div className="hidden md:flex items-center justify-between px-6 py-2 bg-gray-100 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+        <div className="hidden md:flex items-center justify-between px-6 py-2 bg-slate-800/30 text-xs font-medium text-slate-500 uppercase tracking-wider border-b border-slate-700">
           <div>Player</div>
-          <div className="flex items-center gap-8">
-            <span>Points</span>
-            <span className="w-20">Action</span>
-          </div>
+          <div>Points</div>
         </div>
 
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-slate-800">
           {lineupSlots.map((slot) => (
             <div
               key={slot.slot}
               className={`px-6 py-4 ${
-                !slot.player && !isLocked && !lineup?.is_submitted ? 'bg-yellow-50' : ''
+                !slot.player && canEdit && !lineup?.is_submitted ? 'bg-yellow-500/5' : ''
               }`}
             >
               {/* Mobile Layout */}
               <div className="md:hidden flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <span
-                    className={`px-3 py-1 rounded-lg text-sm font-semibold border ${POSITION_COLORS[slot.position]}`}
+                    onClick={canEdit ? () => setSelectingSlot(slot) : undefined}
+                    className={`px-3 py-1 rounded-lg text-sm font-semibold border ${POSITION_COLORS[slot.position]} ${canEdit ? 'cursor-pointer hover:ring-2 hover:ring-field-400/50' : ''}`}
                   >
                     {slot.slot}
                   </span>
@@ -388,42 +459,52 @@ export default function Lineup() {
                       <img
                         src={getPlayerHeadshotUrl(slot.player.id)}
                         alt={slot.player.name}
-                        className="w-10 h-10 rounded-full bg-gray-200 object-cover"
+                        className="w-10 h-10 rounded-full bg-slate-700 object-cover"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
                         }}
                       />
                       <div>
-                        <div className="font-medium text-gray-900">{slot.player.name}</div>
-                        <div className="text-sm text-gray-500">
+                        <div className="font-medium text-white">{slot.player.name}</div>
+                        <div className="text-sm text-slate-400">
                           {slot.player.team?.city} {slot.player.team?.name}
                         </div>
                         {formatPlayerStats(slot.stats) && (
-                          <div className="text-xs text-gray-500 mt-0.5">
+                          <div className="text-xs text-slate-500 mt-0.5">
                             {formatPlayerStats(slot.stats)}
                           </div>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <span className="text-gray-400 italic">Empty slot</span>
+                    <span className="text-slate-500 italic">Empty slot</span>
                   )}
                 </div>
 
                 <div className="flex items-center gap-4">
                   {slot.player && (
-                    <span className="text-lg font-semibold text-gray-900">
+                    <span className={`text-lg font-semibold flex items-center gap-1 ${isTopScorer(slot) ? 'text-yellow-400' : 'text-field-400'}`}>
+                      {isTopScorer(slot) && <span>👑</span>}
                       {slot.points.toFixed(1)}
                     </span>
                   )}
 
-                  {!isLocked && (
+                  {canEdit && (
                     <button
                       onClick={() => setSelectingSlot(slot)}
                       disabled={saving}
-                      className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition disabled:opacity-50"
+                      className="p-1.5 text-slate-500 hover:text-field-400 hover:bg-field-500/10 rounded transition disabled:opacity-50"
+                      title={slot.player ? 'Change player' : 'Select player'}
                     >
-                      {slot.player ? 'Change' : 'Select'}
+                      {slot.player ? (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      )}
                     </button>
                   )}
                 </div>
@@ -434,7 +515,8 @@ export default function Lineup() {
                 {/* Player Info */}
                 <div className="flex items-center gap-3">
                   <span
-                    className={`px-2 py-0.5 rounded text-xs font-semibold border ${POSITION_COLORS[slot.position]}`}
+                    onClick={canEdit ? () => setSelectingSlot(slot) : undefined}
+                    className={`px-2 py-0.5 rounded text-xs font-semibold border ${POSITION_COLORS[slot.position]} ${canEdit ? 'cursor-pointer hover:ring-2 hover:ring-field-400/50' : ''}`}
                   >
                     {slot.slot}
                   </span>
@@ -444,43 +526,44 @@ export default function Lineup() {
                       <img
                         src={getPlayerHeadshotUrl(slot.player.id)}
                         alt={slot.player.name}
-                        className="w-10 h-10 rounded-full bg-gray-200 object-cover"
+                        className="w-10 h-10 rounded-full bg-slate-700 object-cover"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
                         }}
                       />
                       <div>
-                        <div className="font-medium text-gray-900">{slot.player.name}</div>
-                        <div className="text-sm text-gray-500">
+                        <div className="font-medium text-white">{slot.player.name}</div>
+                        <div className="text-sm text-slate-400">
                           {slot.player.team?.city} {slot.player.team?.name}
                         </div>
                         {formatPlayerStats(slot.stats) && (
-                          <div className="text-sm text-gray-500 mt-0.5">
+                          <div className="text-sm text-slate-500 mt-0.5">
                             {formatPlayerStats(slot.stats)}
                           </div>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <span className="text-gray-400 italic text-sm">Empty slot</span>
+                    <span className="text-slate-500 italic text-sm">Empty slot</span>
                   )}
                 </div>
 
                 {/* Points and Actions */}
                 <div className="flex items-center gap-6">
                   {slot.player && (
-                    <span className="text-lg font-semibold text-blue-600 w-16 text-right">
+                    <span className={`text-lg font-semibold w-20 text-right flex items-center justify-end gap-1 ${isTopScorer(slot) ? 'text-yellow-400' : 'text-field-400'}`}>
+                      {isTopScorer(slot) && <span>👑</span>}
                       {slot.points.toFixed(1)}
                     </span>
                   )}
 
-                  {!isLocked && (
-                    <div className="flex items-center gap-2 w-20 justify-end">
+                  {canEdit && (
+                    <div className="flex items-center gap-1 justify-end">
                       {slot.player && (
                         <button
                           onClick={() => handleRemovePlayer(slot)}
                           disabled={saving}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition disabled:opacity-50"
+                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded transition disabled:opacity-50"
                           title="Remove player"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -491,9 +574,18 @@ export default function Lineup() {
                       <button
                         onClick={() => setSelectingSlot(slot)}
                         disabled={saving}
-                        className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition disabled:opacity-50"
+                        className="p-1.5 text-slate-500 hover:text-field-400 hover:bg-field-500/10 rounded transition disabled:opacity-50"
+                        title={slot.player ? 'Change player' : 'Select player'}
                       >
-                        {slot.player ? 'Change' : 'Select'}
+                        {slot.player ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        )}
                       </button>
                     </div>
                   )}
@@ -505,42 +597,62 @@ export default function Lineup() {
 
       </div>
 
-      {/* Used Players */}
-      {usedPlayerIds.size > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Previously Used Players ({usedPlayerIds.size})
-          </h3>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <p className="text-sm text-gray-500 mb-3">
-              These players have been used in previous weeks and cannot be selected again.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {Array.from(usedPlayerIds).map(playerId => {
-                const player = players.find(p => p.id === playerId)
-                if (!player) return null
-                return (
-                  <span
-                    key={playerId}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm"
-                  >
-                    <img
-                      src={getPlayerHeadshotUrl(player.id)}
-                      alt={player.name}
-                      className="w-6 h-6 rounded-full bg-gray-200 object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
-                      }}
-                    />
-                    <span className="font-medium">{player.name}</span>
-                    <span className="text-gray-400">({player.position})</span>
-                  </span>
-                )
-              })}
+      {/* Used Players - only show for owner */}
+      {isOwner && usedPlayerIds.size > 0 && (() => {
+        // Group used players by position
+        const usedByPosition: Record<Position, PlayerWithTeam[]> = {
+          QB: [], RB: [], WR: [], TE: [], K: [], DEF: []
+        }
+        Array.from(usedPlayerIds).forEach(playerId => {
+          const player = players.find(p => p.id === playerId)
+          if (player && player.position in usedByPosition) {
+            usedByPosition[player.position as Position].push(player)
+          }
+        })
+        const positionsWithPlayers = (['QB', 'RB', 'WR', 'TE', 'K', 'DEF'] as Position[]).filter(
+          pos => usedByPosition[pos].length > 0
+        )
+
+        return (
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Previously Used Players ({usedPlayerIds.size})
+            </h3>
+            <div className="card-solid p-4">
+              <p className="text-sm text-slate-400 mb-4">
+                These players have been used in previous weeks and cannot be selected again.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                {positionsWithPlayers.map(position => (
+                  <div key={position}>
+                    <div className={`inline-block px-2 py-0.5 rounded text-xs font-semibold border mb-2 ${POSITION_COLORS[position]}`}>
+                      {position}
+                    </div>
+                    <div className="space-y-2">
+                      {usedByPosition[position].map(player => (
+                        <div
+                          key={player.id}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <img
+                            src={getPlayerHeadshotUrl(player.id)}
+                            alt={player.name}
+                            className="w-6 h-6 rounded-full bg-slate-700 object-cover flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                            }}
+                          />
+                          <span className="text-slate-300 truncate">{player.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Player Select Modal */}
       {selectingSlot && (

@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase'
 import { Player, Team, Position } from '../types/database'
 import { createPlayerKey } from '../lib/projections'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
-import { useAuth } from '../contexts/AuthContext'
 import Layout from '../components/Layout'
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
@@ -32,13 +31,10 @@ const POSITION_COLORS: Record<Position, string> = {
 }
 
 export default function Players() {
-  const { user } = useAuth()
   const [players, setPlayers] = useState<(Player & { team: Team })[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [playerStats, setPlayerStats] = useState<Map<string, number>>(new Map())
   const [projections, setProjections] = useState<Map<string, number>>(new Map())
-  const [usedPlayerCounts, setUsedPlayerCounts] = useState<Map<string, number>>(new Map())
-  const [totalEntries, setTotalEntries] = useState<number>(0)
   const [currentWeekId, setCurrentWeekId] = useState<number>(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -124,54 +120,6 @@ export default function Players() {
     fetchData()
   }, [])
 
-  // Fetch used players for the current user's entries
-  useEffect(() => {
-    async function fetchUsedPlayers() {
-      if (!user) {
-        setUsedPlayerCounts(new Map())
-        setTotalEntries(0)
-        return
-      }
-
-      try {
-        // Get user's entry IDs
-        const { data: entriesData } = await supabase
-          .from('entries')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-
-        if (!entriesData || entriesData.length === 0) {
-          setUsedPlayerCounts(new Map())
-          setTotalEntries(0)
-          return
-        }
-
-        setTotalEntries(entriesData.length)
-        const entryIds = entriesData.map(e => e.id)
-
-        // Get all used players for these entries (with entry_id to count)
-        const { data: usedData } = await supabase
-          .from('used_players')
-          .select('player_id, entry_id')
-          .in('entry_id', entryIds)
-
-        if (usedData) {
-          // Count how many entries have used each player
-          const counts = new Map<string, number>()
-          usedData.forEach(u => {
-            counts.set(u.player_id, (counts.get(u.player_id) || 0) + 1)
-          })
-          setUsedPlayerCounts(counts)
-        }
-      } catch (err) {
-        console.error('Failed to fetch used players:', err)
-      }
-    }
-
-    fetchUsedPlayers()
-  }, [user])
-
   // Helper to get projection for a player
   const getProjection = (player: Player & { team: Team }): number => {
     if (!player.team_id) return 0
@@ -192,15 +140,6 @@ export default function Players() {
     return false
   }
 
-  // Helper to check if player is used and get count
-  const isPlayerUsed = (playerId: string): boolean => {
-    return usedPlayerCounts.has(playerId)
-  }
-
-  const getUsedCount = (playerId: string): number => {
-    return usedPlayerCounts.get(playerId) || 0
-  }
-
   // Handle column sort
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -211,25 +150,29 @@ export default function Players() {
     }
   }
 
-  // Filter and sort players (include bye team players)
+  // Check if player's team is eliminated
+  const isTeamEliminated = (team: Team | undefined): boolean => {
+    return team ? !team.is_alive : true
+  }
+
+  // Filter and sort players (include bye team players and eliminated players)
   const filteredPlayers = useMemo(() => {
     let result = players.filter(player => {
       if (selectedPosition !== 'ALL' && player.position !== selectedPosition) return false
       if (selectedTeam !== 'ALL' && player.team_id !== selectedTeam) return false
       if (searchQuery && !player.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
-      if (!player.team?.is_alive) return false
       return true
     })
 
-    // Sort: unavailable players (bye/used) at the end
+    // Sort: unavailable players (eliminated/bye) at the end
     result.sort((a, b) => {
       // First sort by availability status
+      const aEliminated = isTeamEliminated(a.team)
+      const bEliminated = isTeamEliminated(b.team)
       const aOnBye = isTeamOnBye(a.team)
       const bOnBye = isTeamOnBye(b.team)
-      const aUsed = isPlayerUsed(a.id)
-      const bUsed = isPlayerUsed(b.id)
-      const aUnavailable = aOnBye || aUsed
-      const bUnavailable = bOnBye || bUsed
+      const aUnavailable = aEliminated || aOnBye
+      const bUnavailable = bEliminated || bOnBye
       if (aUnavailable && !bUnavailable) return 1
       if (!aUnavailable && bUnavailable) return -1
 
@@ -249,7 +192,7 @@ export default function Players() {
     })
 
     return result
-  }, [players, selectedPosition, selectedTeam, searchQuery, sortField, sortDirection, projections, playerStats, currentWeekId, usedPlayerCounts])
+  }, [players, selectedPosition, selectedTeam, searchQuery, sortField, sortDirection, projections, playerStats, currentWeekId])
 
   return (
     <Layout>
@@ -261,9 +204,9 @@ export default function Players() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-4">
-        <div>
-          <label htmlFor="search" className="block text-sm font-medium text-slate-400 mb-1.5">
+      <div className="mb-6 flex flex-wrap gap-2 sm:gap-4">
+        <div className="flex-1 min-w-0 sm:flex-none">
+          <label htmlFor="search" className="hidden sm:block text-sm font-medium text-slate-400 mb-1.5">
             Search
           </label>
           <input
@@ -271,39 +214,39 @@ export default function Players() {
             id="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search players..."
-            className="w-64 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
+            placeholder="Search..."
+            className="w-full sm:w-48 px-3 py-2 sm:py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition text-sm"
           />
         </div>
 
-        <div>
-          <label htmlFor="position" className="block text-sm font-medium text-slate-400 mb-1.5">
+        <div className="flex-shrink-0">
+          <label htmlFor="position" className="hidden sm:block text-sm font-medium text-slate-400 mb-1.5">
             Position
           </label>
           <select
             id="position"
             value={selectedPosition}
             onChange={(e) => setSelectedPosition(e.target.value as Position | 'ALL')}
-            className="px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
+            className="px-3 py-2 sm:py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition text-sm"
           >
-            <option value="ALL">All Positions</option>
+            <option value="ALL">All</option>
             {POSITIONS.map(pos => (
               <option key={pos} value={pos}>{pos}</option>
             ))}
           </select>
         </div>
 
-        <div>
-          <label htmlFor="team" className="block text-sm font-medium text-slate-400 mb-1.5">
+        <div className="flex-shrink-0">
+          <label htmlFor="team" className="hidden sm:block text-sm font-medium text-slate-400 mb-1.5">
             Team
           </label>
           <select
             id="team"
             value={selectedTeam}
             onChange={(e) => setSelectedTeam(e.target.value)}
-            className="px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
+            className="px-3 py-2 sm:py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition text-sm"
           >
-            <option value="ALL">All Teams</option>
+            <option value="ALL">All</option>
             {teams.map(team => (
               <option key={team.id} value={team.id}>
                 {team.city} {team.name}
@@ -335,7 +278,7 @@ export default function Players() {
               <thead className="bg-slate-800/50">
                 <tr>
                   <th
-                    className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                    className="pl-4 pr-2 sm:px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -345,29 +288,26 @@ export default function Players() {
                       )}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Position
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Team
+                  <th className="px-1 sm:px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Pos
                   </th>
                   <th
-                    className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                    className="px-1 sm:px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                     onClick={() => handleSort('totalPoints')}
                   >
                     <div className="flex items-center justify-end gap-1">
-                      Total Pts
+                      Total
                       {sortField === 'totalPoints' && (
                         <span className="text-emerald-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </div>
                   </th>
                   <th
-                    className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                    className="pl-1 pr-4 sm:px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                     onClick={() => handleSort('projectedPoints')}
                   >
                     <div className="flex items-center justify-end gap-1">
-                      Proj Pts
+                      Proj
                       {sortField === 'projectedPoints' && (
                         <span className="text-emerald-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
@@ -379,56 +319,56 @@ export default function Players() {
                 {filteredPlayers.map(player => {
                   const totalPts = getTotalPoints(player)
                   const projPts = getProjection(player)
+                  const eliminated = isTeamEliminated(player.team)
                   const onBye = isTeamOnBye(player.team)
-                  const used = isPlayerUsed(player.id)
-                  const unavailable = onBye || used
+                  const unavailable = eliminated || onBye
                   return (
                     <tr key={player.id} className={`transition-colors ${unavailable ? 'opacity-50' : 'hover:bg-slate-800/30'}`}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
+                      <td className="pl-4 pr-2 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <img
                             src={getPlayerHeadshotUrl(player.id)}
                             alt={player.name}
-                            className={`w-10 h-10 rounded-full bg-slate-700 object-cover ${unavailable ? 'grayscale' : ''}`}
+                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-700 object-cover ${unavailable ? 'grayscale' : ''}`}
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
                             }}
                           />
-                          <div className={`text-sm font-medium ${unavailable ? 'text-slate-500' : 'text-white'}`}>{player.name}</div>
+                          <div className="min-w-0">
+                            <div className={`text-sm font-medium truncate ${unavailable ? 'text-slate-500' : 'text-white'}`}>{player.name}</div>
+                            <div className={`text-xs truncate ${unavailable ? 'text-slate-600' : 'text-slate-500'}`}>
+                              {player.team?.city} {player.team?.name}
+                            </div>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium border ${unavailable ? 'bg-slate-800 text-slate-500 border-slate-700' : POSITION_COLORS[player.position]}`}>
+                      <td className="px-1 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-1 sm:gap-1.5">
+                          <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-lg text-xs font-medium border ${unavailable ? 'bg-slate-800 text-slate-500 border-slate-700' : POSITION_COLORS[player.position]}`}>
                             {player.position}
                           </span>
-                          {used && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-900/50 text-red-400">
-                              {totalEntries > 1 ? `USED (${getUsedCount(player.id)})` : 'USED'}
+                          {eliminated && (
+                            <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-red-900/50 text-red-400 border border-red-500/30">
+                              ELIM
                             </span>
                           )}
-                          {onBye && !used && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-400">
+                          {onBye && !eliminated && (
+                            <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-slate-700 text-slate-400">
                               BYE
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm ${unavailable ? 'text-slate-600' : 'text-slate-400'}`}>
-                          {player.team?.city} {player.team?.name}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <td className="px-1 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
                         <span className={`text-sm font-medium ${unavailable ? 'text-slate-600' : totalPts > 0 ? 'text-white' : 'text-slate-500'}`}>
                           {totalPts.toFixed(1)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {onBye ? (
+                      <td className="pl-1 pr-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
+                        {unavailable ? (
                           <span className="text-sm font-medium text-slate-600">—</span>
                         ) : (
-                          <span className={`text-sm font-medium ${unavailable ? 'text-slate-600' : projPts > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                          <span className={`text-sm font-medium ${projPts > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
                             {projPts > 0 ? projPts.toFixed(1) : '—'}
                           </span>
                         )}

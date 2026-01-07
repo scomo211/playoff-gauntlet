@@ -138,115 +138,125 @@ export default function Entries() {
             const totalPoints = entry.lineups.reduce((sum, l) => sum + (l.total_points || 0), 0)
             const inTheMoney = entry.rank !== undefined && entry.rank <= payoutSpots
             const currentWeek = weeks.find(w => w.is_current)
-            const currentWeekLocked = currentWeek ? new Date(currentWeek.lockout_time) < new Date() : true
+
+            // Helper to get lineup for a week
+            const getLineupForWeek = (weekId: number) => entry.lineups.find(l => l.week_id === weekId)
 
             return (
-              <div key={entry.id} className="card-solid overflow-hidden">
-                {/* Entry Header */}
-                <div className="px-5 py-3 border-b border-slate-700 bg-slate-800/50 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <Link
-                        to={`/entry/${entry.id}`}
-                        className="text-lg font-semibold text-white hover:text-field-400 transition"
-                      >
+              <div key={entry.id} className="card-solid overflow-hidden hover:border-slate-700 transition-colors">
+                {/* Clickable main content area */}
+                <Link to={`/entry/${entry.id}/lineup?week=${currentWeek?.id || 1}`} className="block p-5 hover:bg-slate-800/30 transition">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-white truncate">
                         {entry.entry_name}
-                      </Link>
-                      <p className="text-xs text-slate-500">Created {formatDate(entry.created_at)}</p>
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Created {formatDate(entry.created_at)}
+                      </p>
                     </div>
-                    {/* Set Lineup Button */}
-                    {currentWeek && !currentWeekLocked && (
-                      <Link
-                        to={`/entry/${entry.id}/lineup?week=${currentWeek.id}`}
-                        className="btn-primary py-1.5 px-3 text-sm"
-                      >
-                        Set Lineup
-                      </Link>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {/* Rank */}
-                    {entry.rank !== undefined && (
-                      <div className={`text-center px-3 py-1 rounded-lg ${inTheMoney ? 'bg-gold-500/10 border border-gold-500/20' : ''}`}>
-                        <div className="text-xs text-slate-500">Rank</div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xl font-bold ${inTheMoney ? 'text-gold-400' : 'text-white'}`}>
-                            {entry.rank}
-                          </span>
-                          <span className="text-xs text-slate-500">/ {totalEntries}</span>
-                          {inTheMoney && (
-                            <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
-                              $
+                    <div className="ml-4 flex items-center gap-3">
+                      {/* Rank badge */}
+                      {entry.rank !== undefined && (
+                        <div className={`text-center px-2.5 py-1 rounded ${inTheMoney ? 'bg-gold-500/10 border border-gold-500/20' : 'bg-slate-800'}`}>
+                          <div className="flex items-center gap-1">
+                            <span className={`text-sm font-bold ${inTheMoney ? 'text-gold-400' : 'text-white'}`}>
+                              #{entry.rank}
                             </span>
-                          )}
+                            {inTheMoney && (
+                              <span className="text-gold-400 text-xs">$</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {/* Total Points */}
-                    <div className="text-right">
-                      <div className="text-xs text-slate-500">Total Points</div>
-                      <div className={`text-xl font-bold ${inTheMoney ? 'text-gold-400' : 'text-field-400'}`}>
-                        {totalPoints.toFixed(1)}
-                      </div>
+                      )}
+                      {/* Points badge */}
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded text-sm font-semibold ${
+                        inTheMoney
+                          ? 'bg-gold-500/10 text-gold-400 border border-gold-500/20'
+                          : 'bg-field-500/10 text-field-400 border border-field-500/20'
+                      }`}>
+                        {totalPoints.toFixed(1)} pts
+                      </span>
                     </div>
-                    {/* Delete Button */}
+                  </div>
+
+                  {/* Week status grid */}
+                  <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+                    {[1, 2, 3, 4].map((weekNum) => {
+                      const week = weeks.find(w => w.id === weekNum)
+                      const lineup = getLineupForWeek(weekNum)
+                      const isSubmitted = lineup?.is_submitted
+                      const isCurrent = weekNum === currentWeek?.id
+                      const isLocked = week ? new Date(week.lockout_time) < new Date() : true
+                      const isPending = isCurrent && !isSubmitted && !isLocked
+
+                      return (
+                        <div
+                          key={weekNum}
+                          className={`rounded py-2 ${
+                            isSubmitted
+                              ? 'bg-green-500/10 border border-green-500/20'
+                              : isPending
+                                ? 'bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/30'
+                                : 'bg-slate-800/50'
+                          }`}
+                        >
+                          <div className={`text-xs ${
+                            isSubmitted ? 'text-green-400' : isPending ? 'text-yellow-400' : 'text-slate-500'
+                          }`}>
+                            Wk {weekNum}
+                          </div>
+                          <div className={`text-sm font-medium flex items-center justify-center gap-1 ${
+                            isSubmitted ? 'text-green-400' : isPending ? 'text-yellow-400' : 'text-slate-300'
+                          }`}>
+                            {isSubmitted ? (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>{lineup?.total_points?.toFixed(1) || '0.0'}</span>
+                              </>
+                            ) : isPending ? (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            ) : (
+                              '--'
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </Link>
+
+                {/* Footer with actions */}
+                <div className="bg-slate-800/30 px-5 py-3 flex items-center justify-between border-t border-slate-800">
+                  <span className="text-sm text-slate-500">
+                    {entry.rank ? `Rank ${entry.rank} of ${totalEntries}` : 'Not ranked yet'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/entry/${entry.id}/lineup?week=${currentWeek?.id || 1}`}
+                      className="btn-primary py-1.5"
+                    >
+                      Set Lineup
+                    </Link>
                     {!entriesLocked && (
                       <button
-                        onClick={() => setDeleteModalEntry(entry)}
-                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setDeleteModalEntry(entry)
+                        }}
+                        className="inline-flex items-center p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
                         title="Delete entry"
                       >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                     )}
                   </div>
-                </div>
-
-                {/* Week Columns - Horizontal Compact */}
-                <div className="grid grid-cols-4 divide-x divide-slate-800">
-                  {weeks.map((week) => {
-                    const lineup = entry.lineups.find(l => l.week_id === week.id)
-                    const isLocked = new Date(week.lockout_time) < new Date()
-                    const isCurrent = week.is_current
-                    const isSubmitted = lineup?.is_submitted
-                    const isPending = isCurrent && !isSubmitted && !isLocked
-
-                    return (
-                      <Link
-                        key={week.id}
-                        to={`/entry/${entry.id}/lineup?week=${week.id}`}
-                        className={`px-3 py-3 flex items-center justify-between gap-2 hover:bg-slate-800/50 transition ${
-                          isPending
-                            ? 'bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/30'
-                            : isCurrent && isSubmitted
-                              ? 'bg-green-500/5'
-                              : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="text-sm font-medium text-white truncate">{week.name}</div>
-                          {isSubmitted ? (
-                            <svg className="w-4 h-4 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : isPending ? (
-                            <svg className="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          ) : isLocked ? (
-                            <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                          ) : null}
-                        </div>
-                        <div className="text-sm font-bold text-white flex-shrink-0">
-                          {lineup?.total_points?.toFixed(1) || '0.0'}
-                        </div>
-                      </Link>
-                    )
-                  })}
                 </div>
               </div>
             )
