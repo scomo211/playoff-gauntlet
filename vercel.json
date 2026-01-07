@@ -19,10 +19,6 @@
     {
       "path": "/api/update-projections",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/update-scores",
-      "schedule": "* * * * *"
     }
   ]
 }
