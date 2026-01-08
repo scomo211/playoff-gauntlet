@@ -4,6 +4,7 @@ import { Player, Team, Position } from '../types/database'
 import { createPlayerKey } from '../lib/projections'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 import Layout from '../components/Layout'
+import PlayoffBracket from '../components/PlayoffBracket'
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
@@ -202,6 +203,9 @@ export default function Players() {
           Browse available players from teams still in the playoffs
         </p>
       </div>
+
+      {/* Playoff Bracket */}
+      <PlayoffBracket />
 
       {/* Filters */}
       <div className="mb-6 flex flex-wrap gap-2 sm:gap-4">
