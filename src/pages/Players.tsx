@@ -197,15 +197,15 @@ export default function Players() {
 
   return (
     <Layout>
-      <div className="mb-8">
+      {/* Playoff Bracket */}
+      <PlayoffBracket />
+
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Players</h1>
         <p className="mt-1 text-slate-400">
           Browse available players from teams still in the playoffs
         </p>
       </div>
-
-      {/* Playoff Bracket */}
-      <PlayoffBracket />
 
       {/* Filters */}
       <div className="mb-6 flex flex-wrap gap-2 sm:gap-4">

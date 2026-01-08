@@ -179,7 +179,7 @@ export default function PlayoffBracket() {
   const nfcAlive = getAliveTeams('NFC')
 
   return (
-    <div className="card-solid p-4 sm:p-6 mb-8 overflow-x-auto">
+    <div className="mb-8 overflow-x-auto">
       <h2 className="text-lg font-bold text-white mb-6">Playoff Bracket</h2>
 
       {/* Desktop Bracket */}
@@ -369,7 +369,7 @@ export default function PlayoffBracket() {
       </div>
 
       {/* Legend */}
-      <div className="mt-6 pt-4 border-t border-slate-700 flex flex-wrap gap-4 text-xs text-slate-500">
+      <div className="mt-6 flex flex-wrap gap-4 text-xs text-slate-500">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-slate-800 border border-slate-600"></div>
           <span>Active</span>
