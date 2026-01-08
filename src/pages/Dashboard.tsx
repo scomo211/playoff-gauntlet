@@ -363,11 +363,8 @@ export default function Dashboard() {
                         <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 4
                         </th>
-                        <th className="px-2 sm:px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="pl-2 pr-5 sm:px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Total
-                        </th>
-                        <th className="pl-2 pr-5 sm:px-4 py-3 text-right text-xs font-medium text-gold-400 uppercase tracking-wider">
-                          Payout
                         </th>
                       </tr>
                     </thead>
@@ -387,9 +384,9 @@ export default function Dashboard() {
                                 <span className={`text-sm font-semibold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
                                   {rank}
                                 </span>
-                                {inTheMoney && (
+                                {inTheMoney && payoutAmounts[rank - 1] !== undefined && (
                                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
-                                    $
+                                    ${payoutAmounts[rank - 1].toLocaleString()}
                                   </span>
                                 )}
                               </div>
@@ -412,19 +409,10 @@ export default function Dashboard() {
                             <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
                             </td>
-                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-right">
+                            <td className="pl-2 pr-5 sm:px-4 py-3 whitespace-nowrap text-right">
                               <span className={`text-sm font-bold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
                                 {entry.total_points.toFixed(1)}
                               </span>
-                            </td>
-                            <td className="pl-2 pr-5 sm:px-4 py-3 whitespace-nowrap text-right">
-                              {inTheMoney && payoutAmounts[rank - 1] !== undefined ? (
-                                <span className="text-sm font-bold text-gold-400">
-                                  ${payoutAmounts[rank - 1].toLocaleString()}
-                                </span>
-                              ) : (
-                                <span className="text-sm text-slate-600">--</span>
-                              )}
                             </td>
                           </tr>
                         )
