@@ -1,11 +1,27 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminStats, useAdminUsers, useAdminEntries } from '../../hooks/useAdmin'
+
+// Default payout percentages based on number of spots
+const DEFAULT_PAYOUTS: Record<number, number[]> = {
+  4: [65, 20, 10, 5],
+  5: [55, 20, 12, 8, 5],
+  6: [50, 20, 12, 8, 6, 4],
+  7: [45, 18, 12, 9, 7, 5, 4],
+  8: [40, 18, 12, 9, 7, 6, 5, 3],
+  9: [38, 17, 12, 9, 7, 6, 5, 4, 2],
+  10: [35, 16, 12, 9, 7, 6, 5, 4, 3, 3],
+}
 
 export default function AdminDashboard() {
   const { stats, loading: statsLoading } = useAdminStats()
   const { users } = useAdminUsers()
   const { entries } = useAdminEntries()
+
+  // Payout calculator state
+  const [commissionerFee, setCommissionerFee] = useState(0)
+  const [payoutPercentages, setPayoutPercentages] = useState<number[]>([65, 20, 10, 5])
 
   // Get entries missing lineups for current week
   const missingLineups = entries.filter(e => {
@@ -29,6 +45,54 @@ export default function AdminDashboard() {
 
   const payoutSpots = stats ? getPayoutSpots(stats.totalEntries) : 4
   const totalPot = stats ? stats.totalEntries * 25 : 0
+  const netPrizePool = totalPot - commissionerFee
+
+  // Update payout percentages when payout spots change
+  useEffect(() => {
+    setPayoutPercentages(DEFAULT_PAYOUTS[payoutSpots] || DEFAULT_PAYOUTS[4])
+  }, [payoutSpots])
+
+  // Handle slider change - adjusts other sliders proportionally to maintain 100%
+  const handlePayoutChange = (index: number, newValue: number) => {
+    const newPercentages = [...payoutPercentages]
+
+    // Clamp newValue between 0 and 100
+    newValue = Math.max(0, Math.min(100, newValue))
+    newPercentages[index] = newValue
+
+    // Calculate how much we need to adjust other sliders
+    const otherTotal = newPercentages.reduce((sum, p, i) => i === index ? sum : sum + p, 0)
+    const targetOtherTotal = 100 - newValue
+
+    if (otherTotal > 0 && targetOtherTotal >= 0) {
+      // Adjust other sliders proportionally
+      const scale = targetOtherTotal / otherTotal
+      for (let i = 0; i < newPercentages.length; i++) {
+        if (i !== index) {
+          newPercentages[i] = Math.round(newPercentages[i] * scale * 10) / 10
+        }
+      }
+
+      // Fix rounding errors - adjust the largest non-current slider
+      const currentTotal = newPercentages.reduce((sum, p) => sum + p, 0)
+      const roundingError = 100 - currentTotal
+      if (Math.abs(roundingError) > 0.01) {
+        let maxIdx = -1
+        let maxVal = -1
+        for (let i = 0; i < newPercentages.length; i++) {
+          if (i !== index && newPercentages[i] > maxVal) {
+            maxVal = newPercentages[i]
+            maxIdx = i
+          }
+        }
+        if (maxIdx >= 0) {
+          newPercentages[maxIdx] = Math.round((newPercentages[maxIdx] + roundingError) * 10) / 10
+        }
+      }
+    }
+
+    setPayoutPercentages(newPercentages)
+  }
 
   return (
     <AdminLayout>
@@ -154,6 +218,128 @@ export default function AdminDashboard() {
                 }}
               />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Payout Calculator */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-6">Payout Calculator</h2>
+
+        {/* Commissioner Fee */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700">Commissioner Fee</label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">$</span>
+              <input
+                type="number"
+                value={commissionerFee}
+                onChange={(e) => setCommissionerFee(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="5"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Total Prize Pool</span>
+            <span className="font-medium text-gray-900">${totalPot.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm mt-1">
+            <span className="text-gray-500">Net Prize Pool (after fee)</span>
+            <span className="font-bold text-green-600">${netPrizePool.toLocaleString()}</span>
+          </div>
+        </div>
+
+        {/* Payout Sliders */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+            <span>Payout Distribution ({payoutSpots} spots)</span>
+            <span>Total: {payoutPercentages.reduce((a, b) => a + b, 0).toFixed(1)}%</span>
+          </div>
+
+          {payoutPercentages.map((percentage, index) => {
+            const dollarAmount = (netPrizePool * percentage) / 100
+            const ordinalSuffix = (n: number) => {
+              if (n === 1) return 'st'
+              if (n === 2) return 'nd'
+              if (n === 3) return 'rd'
+              return 'th'
+            }
+
+            return (
+              <div key={index} className="flex items-center gap-4">
+                <div className="w-16 text-sm font-medium text-gray-700">
+                  {index + 1}{ordinalSuffix(index + 1)} Place
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={percentage}
+                    onChange={(e) => handlePayoutChange(index, parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                </div>
+                <div className="w-16 text-right">
+                  <input
+                    type="number"
+                    value={percentage}
+                    onChange={(e) => handlePayoutChange(index, parseFloat(e.target.value) || 0)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                  />
+                </div>
+                <div className="w-6 text-sm text-gray-500">%</div>
+                <div className="w-24 text-right font-semibold text-green-600">
+                  ${dollarAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Summary Table */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Payout Summary</h3>
+          <div className="bg-gray-50 rounded-lg overflow-hidden">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">Place</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">%</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">Payout</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {payoutPercentages.map((percentage, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-2 text-gray-900">{index + 1}{index === 0 ? 'st' : index === 1 ? 'nd' : index === 2 ? 'rd' : 'th'} Place</td>
+                    <td className="px-4 py-2 text-right text-gray-600">{percentage.toFixed(1)}%</td>
+                    <td className="px-4 py-2 text-right font-semibold text-green-600">
+                      ${((netPrizePool * percentage) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="bg-gray-100 font-semibold">
+                  <td className="px-4 py-2 text-gray-900">Total</td>
+                  <td className="px-4 py-2 text-right text-gray-900">100%</td>
+                  <td className="px-4 py-2 text-right text-green-600">${netPrizePool.toLocaleString()}</td>
+                </tr>
+                {commissionerFee > 0 && (
+                  <tr className="text-gray-500">
+                    <td className="px-4 py-2">Commissioner Fee</td>
+                    <td className="px-4 py-2 text-right">-</td>
+                    <td className="px-4 py-2 text-right">${commissionerFee.toLocaleString()}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
