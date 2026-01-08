@@ -219,7 +219,36 @@ export function useAdminUsers() {
     return { error: null }
   }
 
-  return { users, loading, refetch: fetchUsers, toggleAdmin, updatePayment }
+  const deleteUser = async (userId: string) => {
+    try {
+      // First delete all entries for this user (this will cascade to lineups, lineup_players, used_players)
+      const { error: entriesError } = await supabase
+        .from('entries')
+        .delete()
+        .eq('user_id', userId)
+
+      if (entriesError) {
+        return { error: `Failed to delete user entries: ${entriesError.message}` }
+      }
+
+      // Then delete the profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId)
+
+      if (profileError) {
+        return { error: `Failed to delete user profile: ${profileError.message}` }
+      }
+
+      await fetchUsers()
+      return { error: null }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Failed to delete user' }
+    }
+  }
+
+  return { users, loading, refetch: fetchUsers, toggleAdmin, updatePayment, deleteUser }
 }
 
 export interface AdminEntry {

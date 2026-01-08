@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminUsers, AdminUser } from '../../hooks/useAdmin'
@@ -7,7 +7,7 @@ type SortField = 'display_name' | 'email' | 'entry_count' | 'amount_owed' | 'amo
 type SortDirection = 'asc' | 'desc'
 
 export default function AdminUsers() {
-  const { users, loading, toggleAdmin, updatePayment } = useAdminUsers()
+  const { users, loading, toggleAdmin, updatePayment, deleteUser } = useAdminUsers()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'unpaid'>('all')
   const [sortField, setSortField] = useState<SortField>('display_name')
@@ -93,6 +93,52 @@ export default function AdminUsers() {
     setPaymentInput('')
   }
 
+  const handleDeleteUser = async (user: AdminUser) => {
+    const confirmMessage = user.entry_count > 0
+      ? `Are you sure you want to delete ${user.display_name}?\n\nThis will also delete their ${user.entry_count} ${user.entry_count === 1 ? 'entry' : 'entries'} and all associated data.\n\nThis action cannot be undone.`
+      : `Are you sure you want to delete ${user.display_name}?\n\nThis action cannot be undone.`
+
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    const { error } = await deleteUser(user.id)
+    if (error) {
+      alert('Failed to delete user: ' + error)
+    }
+  }
+
+  const exportUsers = useCallback(() => {
+    // Create CSV content
+    const headers = ['Display Name', 'Email', 'Entries', 'Amount Owed', 'Amount Paid', 'Status', 'Role', 'Unsubmitted Lineups']
+    const rows = filteredUsers.map(user => [
+      user.display_name,
+      user.email,
+      user.entry_count.toString(),
+      `$${user.amount_owed}`,
+      `$${user.amount_paid}`,
+      user.payment_received ? 'Paid' : user.amount_owed === 0 ? 'N/A' : 'Unpaid',
+      user.is_admin ? 'Admin' : 'User',
+      user.unsubmitted_lineups.toString()
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `playoff-gauntlet-users-${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }, [filteredUsers])
+
   // Calculate totals for stats
   const totalOwed = users.reduce((sum, u) => sum + u.amount_owed, 0)
   const totalPaid = users.reduce((sum, u) => sum + u.amount_paid, 0)
@@ -119,9 +165,20 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-        <p className="mt-1 text-gray-600">View and manage all users</p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <p className="mt-1 text-gray-600">View and manage all users</p>
+        </div>
+        <button
+          onClick={exportUsers}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Export CSV
+        </button>
       </div>
 
       {/* Payment Stats */}
@@ -348,16 +405,27 @@ export default function AdminUsers() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <button
-                      onClick={() => handleToggleAdmin(user.id, user.is_admin)}
-                      className={`text-sm font-medium ${
-                        user.is_admin
-                          ? 'text-red-600 hover:text-red-700'
-                          : 'text-blue-600 hover:text-blue-700'
-                      }`}
-                    >
-                      {user.is_admin ? 'Remove Admin' : 'Make Admin'}
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => handleToggleAdmin(user.id, user.is_admin)}
+                        className={`text-sm font-medium ${
+                          user.is_admin
+                            ? 'text-red-600 hover:text-red-700'
+                            : 'text-blue-600 hover:text-blue-700'
+                        }`}
+                      >
+                        {user.is_admin ? 'Remove Admin' : 'Make Admin'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user)}
+                        className="text-sm font-medium text-red-600 hover:text-red-700"
+                        title="Delete user"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
