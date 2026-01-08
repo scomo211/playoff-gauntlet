@@ -11,7 +11,7 @@ import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 import { formatDeadline, formatMobileDeadline } from '../lib/formatTime'
 import Layout from '../components/Layout'
 import PlayerSelectModal from '../components/PlayerSelectModal'
-import Toast from '../components/Toast'
+import { useToast } from '../contexts/ToastContext'
 
 const POSITION_COLORS: Record<Position, string> = {
   QB: 'bg-red-100 text-red-800 border-red-200',
@@ -70,7 +70,7 @@ export default function Lineup() {
   const [selectingSlot, setSelectingSlot] = useState<LineupSlot | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
-  const [showToast, setShowToast] = useState(false)
+  const { showToast } = useToast()
   const [topScorersByPosition, setTopScorersByPosition] = useState<Map<Position, { playerId: string; points: number }>>(new Map())
   const [weekRank, setWeekRank] = useState<{ rank: number; total: number } | null>(null)
 
@@ -217,7 +217,11 @@ export default function Lineup() {
       setSubmitError(error)
     } else {
       setSubmitSuccess(true)
-      setShowToast(true)
+      showToast({
+        type: 'lineup_submitted',
+        message: 'Lineup Submitted!',
+        duration: 3500
+      })
     }
   }
 
@@ -734,14 +738,6 @@ export default function Lineup() {
         />
       )}
 
-      {/* Success Toast */}
-      <Toast
-        isVisible={showToast}
-        message="Lineup Submitted!"
-        onClose={() => setShowToast(false)}
-        duration={3500}
-        icon="logo"
-      />
     </Layout>
   )
 }
