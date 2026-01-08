@@ -81,36 +81,48 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Payment Status</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Payment Collection</h2>
             <Link to="/admin/users" className="text-sm text-blue-600 hover:text-blue-700">
-              View all
+              Manage
             </Link>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Paid</span>
-              <span className="font-semibold text-green-600">
-                {stats?.usersPaid || 0} users
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Unpaid</span>
-              <span className="font-semibold text-red-600">
-                {stats?.usersUnpaid || 0} users
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-green-600 h-2 rounded-full"
-                style={{
-                  width: stats?.totalUsers
-                    ? `${(stats.usersPaid / stats.totalUsers) * 100}%`
-                    : '0%'
-                }}
-              />
-            </div>
-          </div>
+          {(() => {
+            const totalOwed = users.reduce((sum, u) => sum + (u.entry_count * 25), 0)
+            const totalCollected = users.reduce((sum, u) => {
+              // Calculate amount_paid based on payment_received for now
+              // Once migration is run, this will use actual amount_paid
+              return sum + (u.payment_received ? u.entry_count * 25 : 0)
+            }, 0)
+            const outstanding = totalOwed - totalCollected
+            const percentCollected = totalOwed > 0 ? (totalCollected / totalOwed) * 100 : 0
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Collected</span>
+                  <span className="font-semibold text-green-600">${totalCollected}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Outstanding</span>
+                  <span className="font-semibold text-red-600">${outstanding}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Total Owed</span>
+                  <span className="font-semibold text-gray-900">${totalOwed}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-600 h-2 rounded-full transition-all"
+                    style={{ width: `${percentCollected}%` }}
+                  />
+                </div>
+                <div className="text-center text-sm text-gray-500">
+                  {percentCollected.toFixed(0)}% collected
+                </div>
+              </div>
+            )
+          })()}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

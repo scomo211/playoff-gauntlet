@@ -3,15 +3,17 @@ import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminUsers, AdminUser } from '../../hooks/useAdmin'
 
-type SortField = 'display_name' | 'email' | 'entry_count' | 'payment_received' | 'is_admin' | 'unsubmitted_lineups'
+type SortField = 'display_name' | 'email' | 'entry_count' | 'amount_owed' | 'amount_paid' | 'payment_received' | 'is_admin' | 'unsubmitted_lineups'
 type SortDirection = 'asc' | 'desc'
 
 export default function AdminUsers() {
-  const { users, loading, toggleAdmin, togglePayment } = useAdminUsers()
+  const { users, loading, toggleAdmin, updatePayment } = useAdminUsers()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'unpaid'>('all')
   const [sortField, setSortField] = useState<SortField>('display_name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [editingPayment, setEditingPayment] = useState<string | null>(null)
+  const [paymentInput, setPaymentInput] = useState<string>('')
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -69,6 +71,28 @@ export default function AdminUsers() {
     await toggleAdmin(userId, !currentStatus)
   }
 
+  const handleStartEditPayment = (userId: string, currentAmount: number) => {
+    setEditingPayment(userId)
+    setPaymentInput(currentAmount.toString())
+  }
+
+  const handleSavePayment = async (userId: string) => {
+    const amount = parseFloat(paymentInput) || 0
+    await updatePayment(userId, amount)
+    setEditingPayment(null)
+    setPaymentInput('')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingPayment(null)
+    setPaymentInput('')
+  }
+
+  // Calculate totals for stats
+  const totalOwed = users.reduce((sum, u) => sum + u.amount_owed, 0)
+  const totalPaid = users.reduce((sum, u) => sum + u.amount_paid, 0)
+  const totalOutstanding = totalOwed - totalPaid
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) {
       return (
@@ -93,6 +117,26 @@ export default function AdminUsers() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
         <p className="mt-1 text-gray-600">View and manage all users</p>
+      </div>
+
+      {/* Payment Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="text-sm text-gray-500">Total Users</div>
+          <div className="text-2xl font-bold text-gray-900">{users.length}</div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="text-sm text-gray-500">Total Owed</div>
+          <div className="text-2xl font-bold text-gray-900">${totalOwed}</div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="text-sm text-gray-500">Collected</div>
+          <div className="text-2xl font-bold text-green-600">${totalPaid}</div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="text-sm text-gray-500">Outstanding</div>
+          <div className="text-2xl font-bold text-red-600">${totalOutstanding}</div>
+        </div>
       </div>
 
       {/* Search and Filter */}
@@ -154,11 +198,29 @@ export default function AdminUsers() {
                   </div>
                 </th>
                 <th
+                  onClick={() => handleSort('amount_owed')}
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Owed
+                    <SortIcon field="amount_owed" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('amount_paid')}
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Paid
+                    <SortIcon field="amount_paid" />
+                  </div>
+                </th>
+                <th
                   onClick={() => handleSort('payment_received')}
                   className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                 >
                   <div className="flex items-center justify-center gap-1">
-                    Payment
+                    Status
                     <SortIcon field="payment_received" />
                   </div>
                 </th>
@@ -202,16 +264,61 @@ export default function AdminUsers() {
                     <span className="text-sm font-medium text-gray-900">{user.entry_count}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => togglePayment(user.id, !user.payment_received)}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition ${
-                        user.payment_received
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
-                      }`}
-                    >
-                      {user.payment_received ? 'Paid' : 'Unpaid'}
-                    </button>
+                    <span className="text-sm font-medium text-gray-900">${user.amount_owed}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    {editingPayment === user.id ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-gray-500">$</span>
+                        <input
+                          type="number"
+                          value={paymentInput}
+                          onChange={(e) => setPaymentInput(e.target.value)}
+                          className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSavePayment(user.id)
+                            if (e.key === 'Escape') handleCancelEdit()
+                          }}
+                        />
+                        <button
+                          onClick={() => handleSavePayment(user.id)}
+                          className="p-1 text-green-600 hover:text-green-700"
+                          title="Save"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="p-1 text-gray-500 hover:text-gray-700"
+                          title="Cancel"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleStartEditPayment(user.id, user.amount_paid)}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        ${user.amount_paid}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      user.payment_received
+                        ? 'bg-green-100 text-green-800'
+                        : user.amount_owed === 0
+                          ? 'bg-gray-100 text-gray-500'
+                          : 'bg-red-100 text-red-800'
+                    }`}>
+                      {user.payment_received ? 'Paid' : user.amount_owed === 0 ? 'N/A' : 'Unpaid'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     {user.is_admin ? (

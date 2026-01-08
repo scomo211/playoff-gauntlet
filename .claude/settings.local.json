@@ -50,7 +50,15 @@
       "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/players?select=id,name,position,team_id&limit=5\" -H \"apikey: $APIKEY\")",
       "Bash(git restore:*)",
       "Bash(npx tsc:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(__NEW_LINE__ echo \"=== Lineup Players with Points ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Lineups with entry info ===\")",
+      "Bash(echo \"=== Lineup 4e138fb1 with player details ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/lineup_players?select=position_slot,points_scored,player:players\\(name,position\\)&lineup_id=eq.4a92baf3-170e-4dfe-b175-ac2a7a8697fe\" -H \"apikey: $APIKEY\")",
+      "Bash(__NEW_LINE__ curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/lineup_players?select=position_slot,points_scored,player_id&lineup_id=eq.4a92baf3-170e-4dfe-b175-ac2a7a8697fe&order=position_slot\" -H \"apikey: $APIKEY\")",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/player_weekly_stats?week_id=eq.1&select=player_id,pass_yards,pass_td,rush_yards,rush_td,rec_yards,rec_td,total_points&limit=10\" -H \"apikey: $APIKEY\")",
+      "Bash(8 car, 74 yd, 1 TD\"\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "WebFetch(domain:app.screencast.com)",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/entries?select=id,entry_name,payment_amount,payment_received&limit=3\" -H \"apikey: $APIKEY\")"
     ]
   }
 }

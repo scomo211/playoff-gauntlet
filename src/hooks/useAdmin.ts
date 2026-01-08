@@ -116,6 +116,8 @@ export interface AdminUser {
   display_name: string
   is_admin: boolean
   payment_received: boolean
+  amount_owed: number
+  amount_paid: number
   entry_count: number
   unsubmitted_lineups: number
 }
@@ -159,13 +161,19 @@ export function useAdminUsers() {
           }
         })
 
+        const entryCount = activeEntries.length
+        const amountOwed = entryCount * 25
+        const amountPaid = user.amount_paid || 0
+
         return {
           id: user.id,
           email: user.email,
           display_name: user.display_name,
           is_admin: user.is_admin,
-          payment_received: user.payment_received || false,
-          entry_count: activeEntries.length,
+          payment_received: amountPaid >= amountOwed && amountOwed > 0,
+          amount_owed: amountOwed,
+          amount_paid: amountPaid,
+          entry_count: entryCount,
           unsubmitted_lineups: unsubmittedCount,
         }
       })
@@ -192,17 +200,17 @@ export function useAdminUsers() {
     return { error: error?.message || null }
   }
 
-  const togglePayment = async (userId: string, paid: boolean) => {
+  const updatePayment = async (userId: string, amount: number) => {
     const { error } = await supabase
       .from('profiles')
-      .update({ payment_received: paid })
+      .update({ amount_paid: amount })
       .eq('id', userId)
 
     if (!error) await fetchUsers()
     return { error: error?.message || null }
   }
 
-  return { users, loading, refetch: fetchUsers, toggleAdmin, togglePayment }
+  return { users, loading, refetch: fetchUsers, toggleAdmin, updatePayment }
 }
 
 export interface AdminEntry {
