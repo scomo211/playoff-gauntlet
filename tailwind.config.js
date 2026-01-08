@@ -41,6 +41,16 @@ export default {
         'field-gradient': 'linear-gradient(135deg, #064e3b 0%, #022c22 50%, #0d1117 100%)',
         'dark-gradient': 'linear-gradient(180deg, #1a1f2e 0%, #0d1117 100%)',
       },
+      animation: {
+        'bounce-once': 'bounce-once 0.5s ease-out',
+      },
+      keyframes: {
+        'bounce-once': {
+          '0%': { transform: 'scale(0.8)', opacity: '0' },
+          '50%': { transform: 'scale(1.1)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+      },
     },
   },
   plugins: [],
