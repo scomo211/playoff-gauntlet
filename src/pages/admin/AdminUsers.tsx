@@ -271,7 +271,8 @@ export default function AdminUsers() {
                       <div className="flex items-center justify-center gap-1">
                         <span className="text-gray-500">$</span>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={paymentInput}
                           onChange={(e) => setPaymentInput(e.target.value)}
                           className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -280,6 +281,7 @@ export default function AdminUsers() {
                             if (e.key === 'Enter') handleSavePayment(user.id)
                             if (e.key === 'Escape') handleCancelEdit()
                           }}
+                          onClick={(e) => e.stopPropagation()}
                         />
                         <button
                           onClick={() => handleSavePayment(user.id)}
