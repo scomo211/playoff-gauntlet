@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminUsers, AdminUser } from '../../hooks/useAdmin'
 
-type SortField = 'display_name' | 'email' | 'entry_count' | 'amount_owed' | 'amount_paid' | 'payment_received' | 'is_admin' | 'unsubmitted_lineups'
+type SortField = 'display_name' | 'email' | 'entry_count' | 'amount_owed' | 'amount_paid' | 'payment_received' | 'unsubmitted_lineups'
 type SortDirection = 'asc' | 'desc'
 
 export default function AdminUsers() {
-  const { users, loading, toggleAdmin, updatePayment, deleteUser } = useAdminUsers()
+  const { users, loading, updatePayment, deleteUser } = useAdminUsers()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'unpaid'>('all')
   const [sortField, setSortField] = useState<SortField>('display_name')
@@ -63,13 +63,6 @@ export default function AdminUsers() {
 
     return matchesSearch && matchesFilter
   }))
-
-  const handleToggleAdmin = async (userId: string, currentStatus: boolean) => {
-    if (!confirm(`Are you sure you want to ${currentStatus ? 'remove' : 'grant'} admin access?`)) {
-      return
-    }
-    await toggleAdmin(userId, !currentStatus)
-  }
 
   const handleStartEditPayment = (userId: string, currentAmount: number) => {
     setEditingPayment(userId)
@@ -223,18 +216,18 @@ export default function AdminUsers() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
                 <th
                   onClick={() => handleSort('display_name')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                 >
                   <div className="flex items-center gap-1">
                     User
@@ -243,7 +236,7 @@ export default function AdminUsers() {
                 </th>
                 <th
                   onClick={() => handleSort('email')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Email
@@ -252,7 +245,7 @@ export default function AdminUsers() {
                 </th>
                 <th
                   onClick={() => handleSort('entry_count')}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                 >
                   <div className="flex items-center justify-center gap-1">
                     Entries
@@ -261,7 +254,7 @@ export default function AdminUsers() {
                 </th>
                 <th
                   onClick={() => handleSort('amount_owed')}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                 >
                   <div className="flex items-center justify-center gap-1">
                     Owed
@@ -270,7 +263,7 @@ export default function AdminUsers() {
                 </th>
                 <th
                   onClick={() => handleSort('amount_paid')}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                 >
                   <div className="flex items-center justify-center gap-1">
                     Paid
@@ -279,7 +272,7 @@ export default function AdminUsers() {
                 </th>
                 <th
                   onClick={() => handleSort('payment_received')}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                 >
                   <div className="flex items-center justify-center gap-1">
                     Status
@@ -287,24 +280,15 @@ export default function AdminUsers() {
                   </div>
                 </th>
                 <th
-                  onClick={() => handleSort('is_admin')}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Role
-                    <SortIcon field="is_admin" />
-                  </div>
-                </th>
-                <th
                   onClick={() => handleSort('unsubmitted_lineups')}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-center gap-1">
-                    Unsubmitted
+                    Unsub.
                     <SortIcon field="unsubmitted_lineups" />
                   </div>
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -312,23 +296,23 @@ export default function AdminUsers() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.map(user => (
                 <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-2 whitespace-nowrap">
                     <Link to={`/admin/user/${user.id}`} className="font-medium text-blue-600 hover:text-blue-700">
                       {user.display_name}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Link to={`/admin/user/${user.id}`} className="text-sm text-gray-600 hover:text-blue-600">
+                  <td className="px-3 py-2 whitespace-nowrap max-w-[200px] truncate">
+                    <Link to={`/admin/user/${user.id}`} className="text-gray-600 hover:text-blue-600" title={user.email}>
                       {user.email}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className="text-sm font-medium text-gray-900">{user.entry_count}</span>
+                  <td className="px-3 py-2 whitespace-nowrap text-center">
+                    <span className="font-medium text-gray-900">{user.entry_count}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className="text-sm font-medium text-gray-900">${user.amount_owed}</span>
+                  <td className="px-3 py-2 whitespace-nowrap text-center">
+                    <span className="font-medium text-gray-900">${user.amount_owed}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                  <td className="px-3 py-2 whitespace-nowrap text-center">
                     {editingPayment === user.id ? (
                       <div className="flex items-center justify-center gap-1">
                         <span className="text-gray-500">$</span>
@@ -337,7 +321,7 @@ export default function AdminUsers() {
                           inputMode="decimal"
                           value={paymentInput}
                           onChange={(e) => setPaymentInput(e.target.value)}
-                          className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-14 px-1 py-0.5 border border-gray-300 rounded text-center text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                           autoFocus
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSavePayment(user.id)
@@ -347,7 +331,7 @@ export default function AdminUsers() {
                         />
                         <button
                           onClick={() => handleSavePayment(user.id)}
-                          className="p-1 text-green-600 hover:text-green-700"
+                          className="p-0.5 text-green-600 hover:text-green-700"
                           title="Save"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -356,7 +340,7 @@ export default function AdminUsers() {
                         </button>
                         <button
                           onClick={handleCancelEdit}
-                          className="p-1 text-gray-500 hover:text-gray-700"
+                          className="p-0.5 text-gray-500 hover:text-gray-700"
                           title="Cancel"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -367,14 +351,14 @@ export default function AdminUsers() {
                     ) : (
                       <button
                         onClick={() => handleStartEditPayment(user.id, user.amount_paid)}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                        className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
                       >
                         ${user.amount_paid}
                       </button>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  <td className="px-3 py-2 whitespace-nowrap text-center">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       user.payment_received
                         ? 'bg-green-100 text-green-800'
                         : user.amount_owed === 0
@@ -384,48 +368,25 @@ export default function AdminUsers() {
                       {user.payment_received ? 'Paid' : user.amount_owed === 0 ? 'N/A' : 'Unpaid'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    {user.is_admin ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        Admin
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        User
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                  <td className="px-3 py-2 whitespace-nowrap text-center">
                     {user.unsubmitted_lineups > 0 ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                         {user.unsubmitted_lineups}
                       </span>
                     ) : (
-                      <span className="text-sm text-green-600">0</span>
+                      <span className="text-green-600">0</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => handleToggleAdmin(user.id, user.is_admin)}
-                        className={`text-sm font-medium ${
-                          user.is_admin
-                            ? 'text-red-600 hover:text-red-700'
-                            : 'text-blue-600 hover:text-blue-700'
-                        }`}
-                      >
-                        {user.is_admin ? 'Remove Admin' : 'Make Admin'}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user)}
-                        className="text-sm font-medium text-red-600 hover:text-red-700"
-                        title="Delete user"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
+                  <td className="px-3 py-2 whitespace-nowrap text-right">
+                    <button
+                      onClick={() => handleDeleteUser(user)}
+                      className="p-1 text-red-600 hover:text-red-700"
+                      title="Delete user"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               ))}
