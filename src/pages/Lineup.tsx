@@ -8,7 +8,7 @@ import { usePlayers, PlayerWithTeam } from '../hooks/usePlayers'
 import { useProjections } from '../hooks/useProjections'
 import { useIsAdmin } from '../hooks/useAdmin'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
-import { formatDeadline } from '../lib/formatTime'
+import { formatDeadline, formatMobileDeadline } from '../lib/formatTime'
 import Layout from '../components/Layout'
 import PlayerSelectModal from '../components/PlayerSelectModal'
 
@@ -382,32 +382,40 @@ export default function Lineup() {
           {!isLocked && !lineup?.is_submitted && week && (
             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-sm text-yellow-400">{formatDeadline(week.lockout_time)}</span>
+                <span className="text-sm text-yellow-400">{formatMobileDeadline(week.lockout_time)}</span>
               </div>
-              <span className="text-sm text-yellow-400">{filledSlots}/{totalSlots} slots</span>
+              <span className="text-sm text-yellow-400 flex-shrink-0">{filledSlots}/{totalSlots}</span>
             </div>
           )}
         </div>
       </div>
 
       {/* Week selector */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {allWeeks.map((w) => (
-          <Link
-            key={w.id}
-            to={`/entry/${entryId}/lineup?week=${w.id}`}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              w.id === weekId
-                ? 'bg-field-500 text-white'
-                : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white'
-            }`}
-          >
-            {w.name}
-          </Link>
-        ))}
+      <div className="mb-6 flex gap-1.5 sm:gap-2">
+        {allWeeks.map((w) => {
+          // Abbreviate week names for mobile
+          const shortName = w.name === 'Wild Card' ? 'Wild' :
+                           w.name === 'Divisional' ? 'Div' :
+                           w.name === 'Championship' ? 'Champ' :
+                           w.name === 'Super Bowl' ? 'SB' : w.name
+          return (
+            <Link
+              key={w.id}
+              to={`/entry/${entryId}/lineup?week=${w.id}`}
+              className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition flex-1 text-center ${
+                w.id === weekId
+                  ? 'bg-field-500 text-white'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              <span className="sm:hidden">{shortName}</span>
+              <span className="hidden sm:inline">{w.name}</span>
+            </Link>
+          )
+        })}
       </div>
 
       {/* Lineup Grid */}
