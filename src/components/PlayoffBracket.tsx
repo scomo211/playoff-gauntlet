@@ -40,42 +40,6 @@ export default function PlayoffBracket() {
     return teams.find(t => t.conference === conference && t.playoff_seed === seed)
   }
 
-  // Get alive teams by conference
-  const getAliveTeams = (conference: 'AFC' | 'NFC'): Team[] => {
-    return teams.filter(t => t.conference === conference && t.is_alive && t.playoff_seed)
-  }
-
-  // Determine divisional round matchups based on who's still alive
-  const getDivisionalMatchups = (conference: 'AFC' | 'NFC'): { high: Matchup; low: Matchup } => {
-    const alive = getAliveTeams(conference).sort((a, b) => (a.playoff_seed || 99) - (b.playoff_seed || 99))
-    const seed1 = getTeam(conference, 1)
-
-    // If 4+ teams alive, we're still in wild card or just finished
-    // If 2-3 teams alive, we're in divisional or beyond
-    if (alive.length >= 4) {
-      // Divisional matchups will be 1 vs lowest, and 2nd vs 3rd lowest
-      const seed1Alive = seed1?.is_alive
-      if (seed1Alive) {
-        // 1 seed plays lowest remaining (after wild card winners determined)
-        return {
-          high: {
-            top: { team: seed1 || null, seed: 1 },
-            bottom: { team: null, seed: null } // TBD - lowest remaining
-          },
-          low: {
-            top: { team: null, seed: null }, // TBD
-            bottom: { team: null, seed: null } // TBD
-          }
-        }
-      }
-    }
-
-    return {
-      high: { top: { team: null, seed: null }, bottom: { team: null, seed: null } },
-      low: { top: { team: null, seed: null }, bottom: { team: null, seed: null } }
-    }
-  }
-
   // Wild Card matchups (2v7, 3v6, 4v5)
   const getWildCardMatchups = (conference: 'AFC' | 'NFC'): Matchup[] => {
     return [
@@ -173,10 +137,6 @@ export default function PlayoffBracket() {
   const nfcWildCard = getWildCardMatchups('NFC')
   const afcSeed1 = getTeam('AFC', 1)
   const nfcSeed1 = getTeam('NFC', 1)
-
-  // Determine conference championship teams (if we're that far)
-  const afcAlive = getAliveTeams('AFC')
-  const nfcAlive = getAliveTeams('NFC')
 
   return (
     <div className="mb-8 overflow-x-auto">

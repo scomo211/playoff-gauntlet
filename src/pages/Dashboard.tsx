@@ -472,7 +472,7 @@ export default function Dashboard() {
                     entry={entry}
                     onDelete={setDeleteModalEntry}
                     entriesLocked={entriesLocked}
-                    currentWeek={settings?.current_week_id}
+                    currentWeek={settings?.current_week_id ?? undefined}
                   />
                 ))}
               </div>
