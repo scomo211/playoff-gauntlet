@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { useAdminStats, useAdminUsers, useAdminEntries } from '../../hooks/useAdmin'
+import { useLeagueSettings } from '../../hooks/useEntries'
 
 // Default payout percentages based on number of spots
 const DEFAULT_PAYOUTS: Record<number, number[]> = {
@@ -18,10 +19,22 @@ export default function AdminDashboard() {
   const { stats, loading: statsLoading } = useAdminStats()
   const { users } = useAdminUsers()
   const { entries } = useAdminEntries()
+  const { settings, updatePayoutSettings } = useLeagueSettings()
 
   // Payout calculator state
   const [commissionerFee, setCommissionerFee] = useState(0)
   const [payoutPercentages, setPayoutPercentages] = useState<number[]>([65, 20, 10, 5])
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+
+  // Load saved payout settings from database
+  useEffect(() => {
+    if (settings) {
+      setCommissionerFee(settings.commissioner_fee || 0)
+      if (settings.payout_percentages && settings.payout_percentages.length > 0) {
+        setPayoutPercentages(settings.payout_percentages)
+      }
+    }
+  }, [settings])
 
   // Get entries missing lineups for current week
   const missingLineups = entries.filter(e => {
@@ -47,10 +60,32 @@ export default function AdminDashboard() {
   const totalPot = stats ? stats.totalEntries * 25 : 0
   const netPrizePool = totalPot - commissionerFee
 
-  // Update payout percentages when payout spots change
+  // Update payout percentages when payout spots change (only if different from saved)
   useEffect(() => {
-    setPayoutPercentages(DEFAULT_PAYOUTS[payoutSpots] || DEFAULT_PAYOUTS[4])
-  }, [payoutSpots])
+    // Only auto-set defaults if the current percentages don't match the spot count
+    if (payoutPercentages.length !== payoutSpots) {
+      setPayoutPercentages(DEFAULT_PAYOUTS[payoutSpots] || DEFAULT_PAYOUTS[4])
+    }
+  }, [payoutSpots, payoutPercentages.length])
+
+  // Auto-save payout settings when they change
+  const savePayoutSettings = useCallback(async (fee: number, percentages: number[]) => {
+    setSaveStatus('saving')
+    const { error } = await updatePayoutSettings(fee, percentages)
+    if (error) {
+      setSaveStatus('error')
+      console.error('Failed to save payout settings:', error)
+    } else {
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2000)
+    }
+  }, [updatePayoutSettings])
+
+  // Handle commissioner fee change
+  const handleCommissionerFeeChange = (newFee: number) => {
+    setCommissionerFee(newFee)
+    savePayoutSettings(newFee, payoutPercentages)
+  }
 
   // Handle slider change - adjusts other sliders proportionally to maintain 100%
   const handlePayoutChange = (index: number, newValue: number) => {
@@ -92,6 +127,7 @@ export default function AdminDashboard() {
     }
 
     setPayoutPercentages(newPercentages)
+    savePayoutSettings(commissionerFee, newPercentages)
   }
 
   return (
@@ -224,7 +260,20 @@ export default function AdminDashboard() {
 
       {/* Payout Calculator */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Payout Calculator</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-gray-900">Payout Calculator</h2>
+          {saveStatus !== 'idle' && (
+            <span className={`text-sm ${
+              saveStatus === 'saving' ? 'text-gray-500' :
+              saveStatus === 'saved' ? 'text-green-600' :
+              'text-red-600'
+            }`}>
+              {saveStatus === 'saving' ? 'Saving...' :
+               saveStatus === 'saved' ? 'Saved!' :
+               'Error saving'}
+            </span>
+          )}
+        </div>
 
         {/* Commissioner Fee */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
@@ -235,7 +284,7 @@ export default function AdminDashboard() {
               <input
                 type="number"
                 value={commissionerFee}
-                onChange={(e) => setCommissionerFee(Math.max(0, parseFloat(e.target.value) || 0))}
+                onChange={(e) => handleCommissionerFeeChange(Math.max(0, parseFloat(e.target.value) || 0))}
                 className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 min="0"
                 step="5"

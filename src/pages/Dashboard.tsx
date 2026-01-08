@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null)
   const [payoutSpots, setPayoutSpots] = useState(4)
+  const [payoutAmounts, setPayoutAmounts] = useState<number[]>([])
   const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [amountPaid, setAmountPaid] = useState<number>(0)
@@ -112,13 +113,14 @@ export default function Dashboard() {
         setLastUpdated(new Date())
 
         const count = formatted.length
-        if (count >= 100) setPayoutSpots(10)
-        else if (count >= 90) setPayoutSpots(9)
-        else if (count >= 80) setPayoutSpots(8)
-        else if (count >= 70) setPayoutSpots(7)
-        else if (count >= 60) setPayoutSpots(6)
-        else if (count >= 50) setPayoutSpots(5)
-        else setPayoutSpots(4)
+        let spots = 4
+        if (count >= 100) spots = 10
+        else if (count >= 90) spots = 9
+        else if (count >= 80) spots = 8
+        else if (count >= 70) spots = 7
+        else if (count >= 60) spots = 6
+        else if (count >= 50) spots = 5
+        setPayoutSpots(spots)
 
       } catch (err) {
         console.error('Failed to fetch leaderboard:', err)
@@ -134,6 +136,22 @@ export default function Dashboard() {
     const interval = setInterval(fetchLeaderboard, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // Calculate payout amounts when settings or entry count changes
+  useEffect(() => {
+    if (settings && leaderboardEntries.length > 0) {
+      const count = leaderboardEntries.length
+      const totalPot = count * 25
+      const commFee = settings.commissioner_fee || 0
+      const netPool = totalPot - commFee
+      const percentages = settings.payout_percentages || [65, 20, 10, 5]
+
+      // Ensure percentages array matches payout spots
+      const effectivePercentages = percentages.slice(0, payoutSpots)
+      const amounts = effectivePercentages.map(pct => Math.round((netPool * pct) / 100))
+      setPayoutAmounts(amounts)
+    }
+  }, [settings, leaderboardEntries.length, payoutSpots])
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [deleteModalEntry, setDeleteModalEntry] = useState<Entry | null>(null)
@@ -345,8 +363,11 @@ export default function Dashboard() {
                         <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 4
                         </th>
-                        <th className="pl-2 pr-5 sm:px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="px-2 sm:px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Total
+                        </th>
+                        <th className="pl-2 pr-5 sm:px-4 py-3 text-right text-xs font-medium text-gold-400 uppercase tracking-wider">
+                          Payout
                         </th>
                       </tr>
                     </thead>
@@ -391,10 +412,19 @@ export default function Dashboard() {
                             <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
                             </td>
-                            <td className="pl-2 pr-5 sm:px-4 py-3 whitespace-nowrap text-right">
+                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-right">
                               <span className={`text-sm font-bold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
                                 {entry.total_points.toFixed(1)}
                               </span>
+                            </td>
+                            <td className="pl-2 pr-5 sm:px-4 py-3 whitespace-nowrap text-right">
+                              {inTheMoney && payoutAmounts[rank - 1] !== undefined ? (
+                                <span className="text-sm font-bold text-gold-400">
+                                  ${payoutAmounts[rank - 1].toLocaleString()}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-slate-600">--</span>
+                              )}
                             </td>
                           </tr>
                         )

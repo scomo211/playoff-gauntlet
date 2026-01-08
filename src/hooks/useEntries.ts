@@ -137,7 +137,15 @@ export function useLeagueSettings() {
           .single()
 
         if (error) throw error
-        setSettings(data)
+        // Parse payout_percentages if it's a string (JSON from DB)
+        const parsedData = {
+          ...data,
+          commissioner_fee: data.commissioner_fee || 0,
+          payout_percentages: typeof data.payout_percentages === 'string'
+            ? JSON.parse(data.payout_percentages)
+            : data.payout_percentages || [65, 20, 10, 5]
+        }
+        setSettings(parsedData)
       } catch (err) {
         console.error('Failed to fetch league settings:', err)
       } finally {
@@ -148,7 +156,36 @@ export function useLeagueSettings() {
     fetchSettings()
   }, [])
 
-  return { settings, loading }
+  const updatePayoutSettings = async (
+    commissionerFee: number,
+    payoutPercentages: number[]
+  ): Promise<{ error: string | null }> => {
+    try {
+      const { error } = await supabase
+        .from('league_settings')
+        .update({
+          commissioner_fee: commissionerFee,
+          payout_percentages: payoutPercentages
+        })
+        .eq('id', 1)
+
+      if (error) throw error
+
+      // Update local state
+      setSettings(prev => prev ? {
+        ...prev,
+        commissioner_fee: commissionerFee,
+        payout_percentages: payoutPercentages
+      } : null)
+
+      return { error: null }
+    } catch (err) {
+      console.error('Failed to update payout settings:', err)
+      return { error: err instanceof Error ? err.message : 'Failed to update payout settings' }
+    }
+  }
+
+  return { settings, loading, updatePayoutSettings }
 }
 
 export function useEntryCount() {

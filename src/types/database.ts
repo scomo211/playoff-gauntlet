@@ -122,6 +122,8 @@ export interface LeagueSettings {
   entry_fee: number
   current_week_id: number | null
   updated_at: string
+  commissioner_fee: number
+  payout_percentages: number[]
 }
 
 // Leaderboard entry with calculated fields
