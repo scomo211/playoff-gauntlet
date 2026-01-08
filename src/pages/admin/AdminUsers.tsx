@@ -78,9 +78,14 @@ export default function AdminUsers() {
 
   const handleSavePayment = async (userId: string) => {
     const amount = parseFloat(paymentInput) || 0
-    await updatePayment(userId, amount)
-    setEditingPayment(null)
-    setPaymentInput('')
+    const { error } = await updatePayment(userId, amount)
+    if (error) {
+      console.error('Failed to save payment:', error)
+      alert('Failed to save payment: ' + error)
+    } else {
+      setEditingPayment(null)
+      setPaymentInput('')
+    }
   }
 
   const handleCancelEdit = () => {
@@ -275,7 +280,7 @@ export default function AdminUsers() {
                           inputMode="decimal"
                           value={paymentInput}
                           onChange={(e) => setPaymentInput(e.target.value)}
-                          className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                           autoFocus
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSavePayment(user.id)

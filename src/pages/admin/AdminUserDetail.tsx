@@ -94,7 +94,10 @@ export default function AdminUserDetail() {
       .update({ amount_paid: amount })
       .eq('id', user.id)
 
-    if (!error) {
+    if (error) {
+      console.error('Failed to save payment:', error)
+      alert('Failed to save payment: ' + error.message)
+    } else {
       setEditingPayment(false)
       setPaymentInput('')
       fetchUserData()
@@ -243,7 +246,7 @@ export default function AdminUserDetail() {
                     inputMode="decimal"
                     value={paymentInput}
                     onChange={(e) => setPaymentInput(e.target.value)}
-                    className="w-20 px-2 py-1 border border-gray-300 rounded text-lg font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-20 px-2 py-1 border border-gray-300 rounded text-lg font-bold text-center text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSavePayment()
