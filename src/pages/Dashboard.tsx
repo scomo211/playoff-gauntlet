@@ -399,7 +399,7 @@ export default function Dashboard() {
                                   {rank}
                                 </span>
                                 {inTheMoney && payoutAmounts[rank - 1] !== undefined && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
+                                  <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
                                     ${payoutAmounts[rank - 1].toLocaleString()}
                                   </span>
                                 )}

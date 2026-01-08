@@ -48,30 +48,30 @@ export default function CountdownTimer({ variant = 'landing' }: CountdownTimerPr
 
   if (variant === 'dashboard') {
     return (
-      <div className="mb-4 px-4 py-3 rounded-xl bg-gradient-to-r from-gold-500/20 via-gold-600/10 to-amber-500/20 border border-gold-500/30 shadow-lg shadow-gold-500/10">
-        <div className="flex items-center justify-between gap-4">
-          <div className="text-sm font-semibold text-gold-400 uppercase tracking-wider whitespace-nowrap">
+      <div className="mb-4 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-gold-500/20 via-gold-600/10 to-amber-500/20 border border-gold-500/30 shadow-lg shadow-gold-500/10">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-4">
+          <div className="text-xs sm:text-sm font-semibold text-gold-400 uppercase tracking-wider whitespace-nowrap">
             Countdown to Kickoff
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex items-baseline gap-1">
-              <span className="text-xl sm:text-2xl font-bold text-white">{timeLeft.days}</span>
-              <span className="text-xs text-gold-400/70">d</span>
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-lg sm:text-2xl font-bold text-white">{timeLeft.days}</span>
+              <span className="text-[10px] sm:text-xs text-gold-400/70">d</span>
             </div>
-            <span className="text-gold-500/50">:</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xl sm:text-2xl font-bold text-white">{String(timeLeft.hours).padStart(2, '0')}</span>
-              <span className="text-xs text-gold-400/70">h</span>
+            <span className="text-gold-500/50 text-sm sm:text-base">:</span>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-lg sm:text-2xl font-bold text-white">{String(timeLeft.hours).padStart(2, '0')}</span>
+              <span className="text-[10px] sm:text-xs text-gold-400/70">h</span>
             </div>
-            <span className="text-gold-500/50">:</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xl sm:text-2xl font-bold text-white">{String(timeLeft.minutes).padStart(2, '0')}</span>
-              <span className="text-xs text-gold-400/70">m</span>
+            <span className="text-gold-500/50 text-sm sm:text-base">:</span>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-lg sm:text-2xl font-bold text-white">{String(timeLeft.minutes).padStart(2, '0')}</span>
+              <span className="text-[10px] sm:text-xs text-gold-400/70">m</span>
             </div>
-            <span className="text-gold-500/50">:</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xl sm:text-2xl font-bold text-gold-400">{String(timeLeft.seconds).padStart(2, '0')}</span>
-              <span className="text-xs text-gold-400/70">s</span>
+            <span className="text-gold-500/50 text-sm sm:text-base">:</span>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-lg sm:text-2xl font-bold text-gold-400">{String(timeLeft.seconds).padStart(2, '0')}</span>
+              <span className="text-[10px] sm:text-xs text-gold-400/70">s</span>
             </div>
           </div>
         </div>
