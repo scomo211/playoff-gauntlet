@@ -11,6 +11,7 @@ interface UserProfile {
   phone: string | null
   is_admin: boolean
   payment_received: boolean
+  amount_paid: number
   created_at: string
 }
 
@@ -32,6 +33,8 @@ export default function AdminUserDetail() {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [entries, setEntries] = useState<UserEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingPayment, setEditingPayment] = useState(false)
+  const [paymentInput, setPaymentInput] = useState('')
 
   const fetchUserData = async () => {
     if (!userId) return
@@ -76,15 +79,31 @@ export default function AdminUserDetail() {
     fetchUserData()
   }, [userId])
 
-  const handleToggleUserPayment = async () => {
+  const handleStartEditPayment = () => {
     if (!user) return
+    setEditingPayment(true)
+    setPaymentInput((user.amount_paid || 0).toString())
+  }
+
+  const handleSavePayment = async () => {
+    if (!user) return
+    const amount = parseFloat(paymentInput) || 0
 
     const { error } = await supabase
       .from('profiles')
-      .update({ payment_received: !user.payment_received })
+      .update({ amount_paid: amount })
       .eq('id', user.id)
 
-    if (!error) fetchUserData()
+    if (!error) {
+      setEditingPayment(false)
+      setPaymentInput('')
+      fetchUserData()
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingPayment(false)
+    setPaymentInput('')
   }
 
   const handleDeleteEntry = async (entry: UserEntry) => {
@@ -185,16 +204,6 @@ export default function AdminUserDetail() {
                   Admin
                 </span>
               )}
-              <button
-                onClick={handleToggleUserPayment}
-                className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  user.payment_received
-                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                    : 'bg-red-100 text-red-800 hover:bg-red-200'
-                }`}
-              >
-                {user.payment_received ? 'Paid' : 'Unpaid'}
-              </button>
             </div>
             <p className="text-sm text-gray-500">
               Joined {formatDate(user.created_at)}
@@ -204,24 +213,81 @@ export default function AdminUserDetail() {
       </div>
 
       {/* Entries Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">Total Entries</div>
-          <div className="text-2xl font-bold text-gray-900">{entries.length}</div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">Active Entries</div>
-          <div className="text-2xl font-bold text-green-600">
-            {entries.filter(e => e.is_active).length}
+      {(() => {
+        const activeCount = entries.filter(e => e.is_active).length
+        const amountOwed = activeCount * 25
+        const amountPaid = user.amount_paid || 0
+        const isPaid = amountPaid >= amountOwed && amountOwed > 0
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="text-sm text-gray-500">Total Entries</div>
+              <div className="text-2xl font-bold text-gray-900">{entries.length}</div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="text-sm text-gray-500">Active Entries</div>
+              <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="text-sm text-gray-500">Amount Owed</div>
+              <div className="text-2xl font-bold text-gray-900">${amountOwed}</div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="text-sm text-gray-500">Amount Paid</div>
+              {editingPayment ? (
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-gray-500">$</span>
+                  <input
+                    type="number"
+                    value={paymentInput}
+                    onChange={(e) => setPaymentInput(e.target.value)}
+                    className="w-20 px-2 py-1 border border-gray-300 rounded text-lg font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSavePayment()
+                      if (e.key === 'Escape') handleCancelEdit()
+                    }}
+                  />
+                  <button
+                    onClick={handleSavePayment}
+                    className="p-1 text-green-600 hover:text-green-700"
+                    title="Save"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="p-1 text-gray-500 hover:text-gray-700"
+                    title="Cancel"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleStartEditPayment}
+                  className="text-2xl font-bold text-blue-600 hover:text-blue-700 hover:underline"
+                >
+                  ${amountPaid}
+                </button>
+              )}
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="text-sm text-gray-500">Status</div>
+              <div className={`text-2xl font-bold ${
+                isPaid ? 'text-green-600' : amountOwed === 0 ? 'text-gray-400' : 'text-red-600'
+              }`}>
+                {isPaid ? 'Paid' : amountOwed === 0 ? 'N/A' : 'Unpaid'}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">Amount Owed</div>
-          <div className="text-2xl font-bold text-gray-900">
-            ${user.payment_received ? 0 : entries.filter(e => e.is_active).length * 25}
-          </div>
-        </div>
-      </div>
+        )
+      })()}
 
       {/* Entries Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
