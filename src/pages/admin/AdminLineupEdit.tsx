@@ -40,6 +40,9 @@ export default function AdminLineupEdit() {
   const [selectingSlot, setSelectingSlot] = useState<LineupSlot | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
 
   const { players, loading: playersLoading } = usePlayers()
   const { getProjection, loading: projectionsLoading } = useProjections(weekId)
@@ -138,6 +141,38 @@ export default function AdminLineupEdit() {
     }
   }
 
+  const handleStartEditName = () => {
+    setNameInput(entry?.entry_name || '')
+    setEditingName(true)
+  }
+
+  const handleSaveName = async () => {
+    if (!entry || !nameInput.trim()) return
+
+    setNameSaving(true)
+    try {
+      const { error } = await supabase
+        .from('entries')
+        .update({ entry_name: nameInput.trim() })
+        .eq('id', entry.id)
+
+      if (error) throw error
+
+      setEntry({ ...entry, entry_name: nameInput.trim() })
+      setEditingName(false)
+    } catch (err) {
+      console.error('Failed to update entry name:', err)
+      alert('Failed to update entry name')
+    } finally {
+      setNameSaving(false)
+    }
+  }
+
+  const handleCancelEditName = () => {
+    setEditingName(false)
+    setNameInput('')
+  }
+
   // Calculate lineup stats
   const filledSlots = lineupSlots.filter(s => s.player !== null).length
   const totalSlots = lineupSlots.length
@@ -196,9 +231,55 @@ export default function AdminLineupEdit() {
             <h1 className="text-2xl font-bold text-gray-900">
               Week {weekId}: {week?.name}
             </h1>
-            <p className="mt-1 text-gray-600">
-              {entry.entry_name}
-            </p>
+            <div className="mt-1">
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveName()
+                      if (e.key === 'Escape') handleCancelEditName()
+                    }}
+                  />
+                  <button
+                    onClick={handleSaveName}
+                    disabled={nameSaving}
+                    className="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition"
+                    title="Save"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleCancelEditName}
+                    className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                    title="Cancel"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">{entry.entry_name}</span>
+                  <button
+                    onClick={handleStartEditName}
+                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                    title="Rename entry"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
             <p className="text-sm text-gray-500">
               {entry.profile?.display_name} ({entry.profile?.email})
             </p>
