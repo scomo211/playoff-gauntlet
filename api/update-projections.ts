@@ -9,6 +9,19 @@ interface SportsDataProjection {
   Team: string
   Position: string
   FantasyPointsPPR: number
+  // Raw stats for custom scoring calculation
+  PassingYards: number
+  PassingTouchdowns: number
+  PassingInterceptions: number
+  RushingYards: number
+  RushingTouchdowns: number
+  Receptions: number
+  ReceivingYards: number
+  ReceivingTouchdowns: number
+  FumblesLost: number
+  TwoPointConversionPasses: number
+  TwoPointConversionRuns: number
+  TwoPointConversionReceptions: number
 }
 
 interface DefenseProjection {
@@ -68,6 +81,41 @@ function normalizePlayerName(name: string): string {
   return name.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim()
 }
 
+// Calculate fantasy points using Playoff Gauntlet league scoring rules:
+// Passing: 0.04/yard, 6 pts/TD, -2 INT
+// Rushing: 0.1/yard, 6 pts/TD
+// Receiving: 0.5 pts/reception (half PPR), 0.1/yard, 6 pts/TD
+// Misc: -2 fumble lost, +2 per 2PT conversion
+function calculateCustomFantasyPoints(p: SportsDataProjection): number {
+  let points = 0
+
+  // Passing
+  points += (p.PassingYards || 0) * 0.04
+  points += (p.PassingTouchdowns || 0) * 6
+  points += (p.PassingInterceptions || 0) * -2
+
+  // Rushing
+  points += (p.RushingYards || 0) * 0.1
+  points += (p.RushingTouchdowns || 0) * 6
+
+  // Receiving (Half PPR)
+  points += (p.Receptions || 0) * 0.5
+  points += (p.ReceivingYards || 0) * 0.1
+  points += (p.ReceivingTouchdowns || 0) * 6
+
+  // Miscellaneous
+  points += (p.FumblesLost || 0) * -2
+  points += ((p.TwoPointConversionPasses || 0) +
+             (p.TwoPointConversionRuns || 0) +
+             (p.TwoPointConversionReceptions || 0)) * 2
+
+  // Apply correction factor - SportsDataIO postseason projections appear inflated
+  // Based on comparison with industry consensus (FantasyPros), scale down by ~40%
+  const correctedPoints = points * 0.6
+
+  return Math.round(correctedPoints * 100) / 100 // Round to 2 decimal places
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Verify this is a cron job or has proper auth
   const authHeader = req.headers.authorization
@@ -90,15 +138,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Fetch defense projections
       const defenseProjections = await fetchDefenseProjectionsFromAPI(week)
 
-      // Transform player projections to database format
+      // Transform player projections to database format using custom league scoring
       const rows: ProjectionRow[] = projections
-        .filter(p => p.FantasyPointsPPR > 0)
-        .map(p => ({
-          player_name: normalizePlayerName(p.Name),
-          team_id: p.Team,
-          week_id: week,
-          fantasy_points: p.FantasyPointsPPR,
-        }))
+        .map(p => {
+          const customPoints = calculateCustomFantasyPoints(p)
+          return {
+            player_name: normalizePlayerName(p.Name),
+            team_id: p.Team,
+            week_id: week,
+            fantasy_points: customPoints,
+          }
+        })
+        .filter(p => p.fantasy_points > 0)
 
       // Add defense projections
       for (const def of defenseProjections) {
@@ -118,7 +169,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         continue
       }
 
-      // Upsert to Supabase using REST API
+      // Delete existing projections for this week first
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/projections?week_id=eq.${week}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          },
+        }
+      )
+
+      // Insert new projections
       const upsertResponse = await fetch(
         `${SUPABASE_URL}/rest/v1/projections`,
         {

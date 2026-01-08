@@ -1,81 +1,47 @@
 import { useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
+import AdminPlayoffBracket from '../../components/AdminPlayoffBracket'
 import { useAdminTeams } from '../../hooks/useAdmin'
+import { Team } from '../../types/database'
 
 export default function AdminTeams() {
   const { teams, loading, eliminateTeam, reinstateTeam } = useAdminTeams()
   const [selectedWeek, setSelectedWeek] = useState(1)
 
-  const afcTeams = teams.filter(t => t.conference === 'AFC')
-  const nfcTeams = teams.filter(t => t.conference === 'NFC')
+  const handleSelectWinner = async (_winner: Team, loser: Team, round: string) => {
+    // Determine the week based on the round
+    let week = selectedWeek
+    if (round === 'wildcard') week = 1
+    else if (round === 'divisional') week = 2
+    else if (round === 'championship') week = 3
+    else if (round === 'superbowl') week = 4
 
-  const handleEliminate = async (teamId: string) => {
-    const team = teams.find(t => t.id === teamId)
-    if (!confirm(`Eliminate ${team?.city} ${team?.name}?`)) return
-    await eliminateTeam(teamId, selectedWeek)
+    await eliminateTeam(loser.id, week)
   }
 
-  const handleReinstate = async (teamId: string) => {
-    const team = teams.find(t => t.id === teamId)
-    if (!confirm(`Reinstate ${team?.city} ${team?.name}?`)) return
-    await reinstateTeam(teamId)
+  const handleReinstate = async (team: Team) => {
+    await reinstateTeam(team.id)
   }
-
-  const TeamCard = ({ team }: { team: typeof teams[0] }) => (
-    <div
-      className={`p-4 rounded-lg border-2 transition ${
-        team.is_alive
-          ? 'bg-white border-green-200'
-          : 'bg-gray-100 border-gray-200 opacity-60'
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="font-semibold text-gray-900">
-            {team.city} {team.name}
-          </div>
-          <div className="text-sm text-gray-500">{team.id}</div>
-        </div>
-        <div>
-          {team.is_alive ? (
-            <button
-              onClick={() => handleEliminate(team.id)}
-              className="px-3 py-1 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
-            >
-              Eliminate
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">
-                Out Week {team.eliminated_week}
-              </span>
-              <button
-                onClick={() => handleReinstate(team.id)}
-                className="px-3 py-1 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition"
-              >
-                Reinstate
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
 
   return (
     <AdminLayout>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
-        <p className="mt-1 text-gray-600">Manage playoff team elimination status</p>
+        <p className="mt-1 text-gray-600">Select winners in each matchup to eliminate teams</p>
       </div>
 
-      {/* Week Selector */}
+      {/* Week Selector for manual overrides */}
       <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Elimination Week
+          Current Playoff Week
         </label>
         <div className="flex gap-2">
-          {[1, 2, 3, 4].map(week => (
+          {[
+            { week: 1, label: 'Wild Card' },
+            { week: 2, label: 'Divisional' },
+            { week: 3, label: 'Championship' },
+            { week: 4, label: 'Super Bowl' },
+          ].map(({ week, label }) => (
             <button
               key={week}
               onClick={() => setSelectedWeek(week)}
@@ -85,12 +51,12 @@ export default function AdminTeams() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Week {week}
+              {label}
             </button>
           ))}
         </div>
         <p className="mt-2 text-sm text-gray-500">
-          Select which week to record when eliminating a team
+          Teams eliminated from the bracket will be recorded for the appropriate week
         </p>
       </div>
 
@@ -99,54 +65,80 @@ export default function AdminTeams() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* AFC */}
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">AFC</h2>
-              <span className="text-sm text-gray-500">
-                {afcTeams.filter(t => t.is_alive).length} alive
-              </span>
-            </div>
-            <div className="space-y-3">
-              {afcTeams.map(team => (
-                <TeamCard key={team.id} team={team} />
-              ))}
-            </div>
-          </div>
+        <AdminPlayoffBracket
+          onSelectWinner={handleSelectWinner}
+          onReinstate={handleReinstate}
+        />
+      )}
 
-          {/* NFC */}
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">NFC</h2>
-              <span className="text-sm text-gray-500">
-                {nfcTeams.filter(t => t.is_alive).length} alive
-              </span>
-            </div>
-            <div className="space-y-3">
-              {nfcTeams.map(team => (
-                <TeamCard key={team.id} team={team} />
+      {/* Quick Stats */}
+      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-gray-900">
+            {teams.filter(t => t.is_alive).length}
+          </div>
+          <div className="text-sm text-gray-500">Teams Remaining</div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-red-600">
+            {teams.filter(t => !t.is_alive).length}
+          </div>
+          <div className="text-sm text-gray-500">Teams Eliminated</div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-red-500">
+            {teams.filter(t => t.conference === 'AFC' && t.is_alive).length}
+          </div>
+          <div className="text-sm text-gray-500">AFC Remaining</div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-blue-500">
+            {teams.filter(t => t.conference === 'NFC' && t.is_alive).length}
+          </div>
+          <div className="text-sm text-gray-500">NFC Remaining</div>
+        </div>
+      </div>
+
+      {/* Eliminated Teams List */}
+      {teams.some(t => !t.is_alive) && (
+        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Eliminated Teams</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {teams
+              .filter(t => !t.is_alive)
+              .sort((a, b) => (a.eliminated_week || 0) - (b.eliminated_week || 0))
+              .map(team => (
+                <div
+                  key={team.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`https://a.espncdn.com/i/teamlogos/nfl/500/${team.id.toLowerCase()}.png`}
+                      alt={team.name}
+                      className="w-8 h-8 object-contain grayscale opacity-50"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-gray-500 line-through">
+                        {team.city} {team.name}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Eliminated Week {team.eliminated_week}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => reinstateTeam(team.id)}
+                    className="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition"
+                  >
+                    Reinstate
+                  </button>
+                </div>
               ))}
-            </div>
           </div>
         </div>
       )}
-
-      {/* Summary */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="text-sm text-blue-800">
-            <p className="font-medium">Team Elimination</p>
-            <p className="mt-1">
-              When a team is eliminated, their players will no longer be available for selection in future weeks.
-              Players already in submitted lineups will still score points.
-            </p>
-          </div>
-        </div>
-      </div>
     </AdminLayout>
   )
 }
