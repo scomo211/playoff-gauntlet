@@ -115,7 +115,7 @@ export default function Entries() {
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'} — $25 each
           </p>
         </div>
-        {!entriesLocked && (
+        {!entriesLocked && settings?.current_week_id === 1 && (
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="btn-primary"
@@ -242,7 +242,7 @@ export default function Entries() {
                     >
                       Set Lineup
                     </Link>
-                    {!entriesLocked && (
+                    {!entriesLocked && settings?.current_week_id === 1 && (
                       <button
                         onClick={(e) => {
                           e.preventDefault()
@@ -274,7 +274,7 @@ export default function Entries() {
             Create your first entry to start competing in the playoff fantasy challenge.
             Entry fee is $25 per entry.
           </p>
-          {!entriesLocked && (
+          {!entriesLocked && settings?.current_week_id === 1 && (
             <button
               onClick={() => setIsCreateModalOpen(true)}
               className="btn-primary px-6 py-3"

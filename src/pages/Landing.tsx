@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import CountdownTimer from '../components/CountdownTimer'
 
 export default function Landing() {
   return (
@@ -73,6 +74,9 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      {/* Countdown Timer */}
+      <CountdownTimer variant="landing" />
 
       {/* Stats Section */}
       <div className="border-y border-slate-800 bg-slate-900/50">

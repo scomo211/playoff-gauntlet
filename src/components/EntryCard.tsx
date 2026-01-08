@@ -105,7 +105,7 @@ export default function EntryCard({ entry, onDelete, entriesLocked, currentWeek 
           >
             Set Lineup
           </Link>
-          {!entriesLocked && (
+          {!entriesLocked && currentWeek === 1 && (
             <button
               onClick={() => onDelete(entry)}
               className="inline-flex items-center p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
