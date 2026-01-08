@@ -86,18 +86,30 @@ export default function AdminUserDetail() {
   }
 
   const handleSavePayment = async () => {
-    if (!user) return
+    console.log('handleSavePayment called', { user: user?.id, paymentInput })
+    if (!user) {
+      console.log('No user, returning')
+      return
+    }
     const amount = parseFloat(paymentInput) || 0
+    console.log('Saving amount:', amount, 'for user:', user.id)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update({ amount_paid: amount })
       .eq('id', user.id)
+      .select()
+
+    console.log('Supabase response:', { data, error })
 
     if (error) {
       console.error('Failed to save payment:', error)
       alert('Failed to save payment: ' + error.message)
+    } else if (!data || data.length === 0) {
+      console.error('No rows updated - likely RLS policy issue')
+      alert('Failed to save: No permission to update this user. Check RLS policies.')
     } else {
+      console.log('Save successful')
       setEditingPayment(false)
       setPaymentInput('')
       fetchUserData()

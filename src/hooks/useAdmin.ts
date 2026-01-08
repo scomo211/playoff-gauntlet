@@ -201,13 +201,26 @@ export function useAdminUsers() {
   }
 
   const updatePayment = async (userId: string, amount: number) => {
-    const { error } = await supabase
+    console.log('updatePayment called', { userId, amount })
+
+    const { data, error } = await supabase
       .from('profiles')
       .update({ amount_paid: amount })
       .eq('id', userId)
+      .select()
 
-    if (!error) await fetchUsers()
-    return { error: error?.message || null }
+    console.log('Supabase response:', { data, error })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    if (!data || data.length === 0) {
+      return { error: 'No permission to update this user. Check RLS policies.' }
+    }
+
+    await fetchUsers()
+    return { error: null }
   }
 
   return { users, loading, refetch: fetchUsers, toggleAdmin, updatePayment }
