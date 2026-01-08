@@ -8,6 +8,10 @@ import EntryCard from '../components/EntryCard'
 import CreateEntryModal from '../components/CreateEntryModal'
 import DeleteEntryModal from '../components/DeleteEntryModal'
 import CountdownTimer from '../components/CountdownTimer'
+import ChalkPicksTable from '../components/ChalkPicksTable'
+import BoldPicksTable from '../components/BoldPicksTable'
+import BoldestLineups from '../components/BoldestLineups'
+import DeadManWalking from '../components/DeadManWalking'
 
 interface LeaderboardEntry {
   id: string
@@ -481,16 +485,17 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="mt-4 card p-3">
+            <div className="mt-4 card px-3 py-2">
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gold-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-gold-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-sm text-slate-400">
-                  Highlighted rows are in payout position (Top {payoutSpots})
+                <span className="text-xs sm:text-sm text-slate-400 whitespace-nowrap">
+                  Highlighted = payout position (Top {payoutSpots})
                 </span>
               </div>
             </div>
+
           </div>
 
           {/* Your Entries Section - Right 1/3 */}
@@ -600,6 +605,28 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {/* Chalk Picks of the Week - Full Width */}
+        {currentWeek && (
+          <div className="mt-8">
+            <ChalkPicksTable weekId={currentWeek} />
+          </div>
+        )}
+
+        {/* Bold Picks of the Week - Full Width */}
+        {currentWeek && (
+          <div className="mt-6">
+            <BoldPicksTable weekId={currentWeek} />
+          </div>
+        )}
+
+        {/* Boldest Lineups + Dead Man Walking - Side by Side */}
+        {currentWeek && (
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BoldestLineups weekId={currentWeek} />
+            <DeadManWalking weekId={currentWeek} />
+          </div>
+        )}
       </main>
 
       {/* Modals */}
