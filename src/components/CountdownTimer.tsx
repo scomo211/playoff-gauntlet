@@ -48,7 +48,7 @@ export default function CountdownTimer({ variant = 'landing' }: CountdownTimerPr
 
   if (variant === 'dashboard') {
     return (
-      <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-gold-500/20 via-gold-600/10 to-amber-500/20 border border-gold-500/30 shadow-lg shadow-gold-500/10">
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-gold-500/20 via-gold-600/10 to-amber-500/20 border border-gold-500/30 shadow-lg shadow-gold-500/10">
         <div className="text-center">
           <div className="text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">
             Countdown to Kickoff

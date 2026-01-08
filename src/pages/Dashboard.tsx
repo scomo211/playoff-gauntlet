@@ -262,6 +262,9 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Countdown Timer - hidden after kickoff */}
+        <CountdownTimer variant="dashboard" />
+
         {/* Two Column Layout: Leaderboard (2/3) | Your Entries (1/3) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Leaderboard Section - Left 2/3 */}
@@ -531,8 +534,6 @@ export default function Dashboard() {
                 </p>
               </div>
             )}
-
-            <CountdownTimer variant="dashboard" />
           </div>
         </div>
       </main>
