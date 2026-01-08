@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [payoutSpots, setPayoutSpots] = useState(4)
   const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [amountPaid, setAmountPaid] = useState<number>(0)
 
   // Fetch current week
   useEffect(() => {
@@ -51,6 +52,20 @@ export default function Dashboard() {
     }
     fetchCurrentWeek()
   }, [])
+
+  // Fetch user's payment status
+  useEffect(() => {
+    async function fetchPaymentStatus() {
+      if (!user) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('amount_paid')
+        .eq('id', user.id)
+        .single()
+      if (data) setAmountPaid(data.amount_paid || 0)
+    }
+    fetchPaymentStatus()
+  }, [user])
 
   // Fetch leaderboard with polling
   useEffect(() => {
@@ -498,34 +513,48 @@ export default function Dashboard() {
               </div>
             )}
 
-            {entries.length > 0 && (
-              <div className="mt-4 card-solid p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400">
-                      {entries.length} {entries.length === 1 ? 'entry' : 'entries'} × $25
-                    </p>
-                    <p className="text-lg font-bold text-white">
-                      Total: ${entries.length * 25}
-                    </p>
+            {entries.length > 0 && (() => {
+              const amountOwed = entries.length * 25
+              const isFullyPaid = amountPaid >= amountOwed
+
+              return (
+                <div className={`mt-4 card-solid p-4 ${isFullyPaid ? 'border border-green-500/30 bg-green-500/5' : ''}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-400">
+                        {entries.length} {entries.length === 1 ? 'entry' : 'entries'} × $25
+                      </p>
+                      <p className="text-lg font-bold text-white">
+                        Total: ${amountOwed}
+                      </p>
+                    </div>
+                    {isFullyPaid ? (
+                      <div className="inline-flex items-center gap-2 px-4 py-2 font-semibold text-sm bg-green-500/20 text-green-400 rounded-lg border border-green-500/30">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Paid in Full
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          const amount = amountOwed - amountPaid
+                          const note = encodeURIComponent(`Playoff Gauntlet - ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`)
+                          const venmoUrl = `https://venmo.com/ScottyMoran?txn=pay&amount=${amount}&note=${note}`
+                          window.open(venmoUrl, '_blank')
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 font-semibold text-sm bg-gold-500 text-slate-900 rounded-lg hover:bg-gold-400 transition"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19.5 3c.9 1.5 1.3 3 1.3 5 0 5.5-4.7 12.7-8.5 17h-6l-2.3-15.5 5.3-.5.9 7.5c1.7-2.7 3.8-7 3.8-9.9 0-1.9-.3-3.2-.9-4.3l6.4.7z"/>
+                        </svg>
+                        Pay ${amountOwed - amountPaid} with Venmo
+                      </button>
+                    )}
                   </div>
-                  <button
-                    onClick={() => {
-                      const amount = entries.length * 25
-                      const note = encodeURIComponent(`Playoff Gauntlet - ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`)
-                      const venmoUrl = `https://venmo.com/ScottyMoran?txn=pay&amount=${amount}&note=${note}`
-                      window.open(venmoUrl, '_blank')
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2 font-semibold text-sm bg-gold-500 text-slate-900 rounded-lg hover:bg-gold-400 transition"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19.5 3c.9 1.5 1.3 3 1.3 5 0 5.5-4.7 12.7-8.5 17h-6l-2.3-15.5 5.3-.5.9 7.5c1.7-2.7 3.8-7 3.8-9.9 0-1.9-.3-3.2-.9-4.3l6.4.7z"/>
-                    </svg>
-                    Pay with Venmo
-                  </button>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {!entriesLocked && settings?.current_week_id === 1 && entries.length > 0 && (
               <div className="mt-3 text-center">
