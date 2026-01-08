@@ -23,6 +23,7 @@ interface TouchdownEvent {
 interface ToastContextType {
   showToast: (notification: Omit<ToastNotification, 'id'>) => void
   showTouchdownToast: (event: TouchdownEvent) => void
+  testTouchdownToast: () => void
 }
 
 const ToastContext = createContext<ToastContextType | null>(null)
@@ -250,6 +251,29 @@ export function ToastProvider({ children }: ToastProviderProps) {
     })
   }, [showToast])
 
+  // Test function for development
+  const testTouchdownToast = useCallback(() => {
+    // Drake Maye throws 67-yard TD pass
+    showTouchdownToast({
+      player_id: '11564',
+      player_name: 'Drake Maye',
+      td_type: 'pass',
+      yards: 67,
+      week_id: 1
+    })
+
+    // Nico Collins catches 67-yard TD reception
+    setTimeout(() => {
+      showTouchdownToast({
+        player_id: '7569',
+        player_name: 'Nico Collins',
+        td_type: 'rec',
+        yards: 67,
+        week_id: 1
+      })
+    }, 100)
+  }, [showTouchdownToast])
+
   const handleToastClose = useCallback(() => {
     setIsVisible(false)
     // Wait for exit animation
@@ -259,7 +283,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
   }, [])
 
   return (
-    <ToastContext.Provider value={{ showToast, showTouchdownToast }}>
+    <ToastContext.Provider value={{ showToast, showTouchdownToast, testTouchdownToast }}>
       {children}
 
       {/* Global Toast Display */}

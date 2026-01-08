@@ -8,6 +8,7 @@ import EntryCard from '../components/EntryCard'
 import CreateEntryModal from '../components/CreateEntryModal'
 import DeleteEntryModal from '../components/DeleteEntryModal'
 import CountdownTimer from '../components/CountdownTimer'
+import { useToast } from '../contexts/ToastContext'
 
 interface LeaderboardEntry {
   id: string
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const { entries, loading, createEntry, deleteEntry } = useEntries()
+  const { testTouchdownToast } = useToast()
   const { settings } = useLeagueSettings()
   const { count: totalEntries } = useEntryCount()
 
@@ -318,6 +320,14 @@ export default function Dashboard() {
           <div className="lg:col-span-2">
             {/* Countdown Timer - hidden after kickoff */}
             <CountdownTimer variant="dashboard" />
+
+            {/* Test TD Toast Button - Remove after testing */}
+            <button
+              onClick={testTouchdownToast}
+              className="mb-4 px-4 py-2 bg-gold-500/20 border border-gold-500/30 rounded-lg text-gold-400 text-sm font-medium hover:bg-gold-500/30 transition"
+            >
+              🏈 Test TD Toast
+            </button>
 
             <div className="mb-4 flex items-center justify-between">
               <div>
