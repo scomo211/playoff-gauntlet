@@ -36,7 +36,10 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center gap-8">
               <Link to="/dashboard" className="flex items-center gap-2.5">
                 <img src="/favicon.png" alt="Playoff Gauntlet" className="w-7 h-7" />
-                <span className="text-base font-bold text-white tracking-tight">Playoff Gauntlet</span>
+                <div className="flex flex-col">
+                  <span className="text-base font-bold text-white tracking-tight leading-tight">Playoff Gauntlet</span>
+                  <span className="text-[10px] text-slate-500 tracking-wide">Year 8</span>
+                </div>
               </Link>
               <div className="hidden sm:flex items-center gap-1">
                 {navLinks.map((link) => (

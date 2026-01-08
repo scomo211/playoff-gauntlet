@@ -18,7 +18,10 @@ export default function Landing() {
           <nav className="flex items-center justify-between py-6">
             <div className="flex items-center gap-2.5">
               <img src="/favicon.png" alt="Playoff Gauntlet" className="w-8 h-8" />
-              <span className="text-lg font-bold text-white tracking-tight">Playoff Gauntlet</span>
+              <div className="flex flex-col">
+                <span className="text-lg font-bold text-white tracking-tight leading-tight">Playoff Gauntlet</span>
+                <span className="text-[10px] text-slate-500 tracking-wide">Year 8</span>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <Link
