@@ -442,7 +442,6 @@ export default function Dashboard() {
 
           {/* Your Entries Section - Right 1/3 */}
           <div>
-            <CountdownTimer variant="dashboard" />
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white">Your Entries</h2>
               {!entriesLocked && settings?.current_week_id === 1 && (
@@ -532,6 +531,8 @@ export default function Dashboard() {
                 </p>
               </div>
             )}
+
+            <CountdownTimer variant="dashboard" />
           </div>
         </div>
       </main>

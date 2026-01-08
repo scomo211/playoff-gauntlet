@@ -48,30 +48,30 @@ export default function CountdownTimer({ variant = 'landing' }: CountdownTimerPr
 
   if (variant === 'dashboard') {
     return (
-      <div className="card-solid p-4 mb-4">
+      <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-gold-500/20 via-gold-600/10 to-amber-500/20 border border-gold-500/30 shadow-lg shadow-gold-500/10">
         <div className="text-center">
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+          <div className="text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">
             Countdown to Kickoff
           </div>
           <div className="flex items-center justify-center gap-3">
             <div className="text-center">
               <div className="text-2xl font-bold text-white">{timeLeft.days}</div>
-              <div className="text-xs text-slate-500">days</div>
+              <div className="text-xs text-gold-400/70">days</div>
             </div>
-            <span className="text-slate-600 text-xl">:</span>
+            <span className="text-gold-500/50 text-xl">:</span>
             <div className="text-center">
               <div className="text-2xl font-bold text-white">{String(timeLeft.hours).padStart(2, '0')}</div>
-              <div className="text-xs text-slate-500">hrs</div>
+              <div className="text-xs text-gold-400/70">hrs</div>
             </div>
-            <span className="text-slate-600 text-xl">:</span>
+            <span className="text-gold-500/50 text-xl">:</span>
             <div className="text-center">
               <div className="text-2xl font-bold text-white">{String(timeLeft.minutes).padStart(2, '0')}</div>
-              <div className="text-xs text-slate-500">min</div>
+              <div className="text-xs text-gold-400/70">min</div>
             </div>
-            <span className="text-slate-600 text-xl">:</span>
+            <span className="text-gold-500/50 text-xl">:</span>
             <div className="text-center">
-              <div className="text-2xl font-bold text-field-400">{String(timeLeft.seconds).padStart(2, '0')}</div>
-              <div className="text-xs text-slate-500">sec</div>
+              <div className="text-2xl font-bold text-gold-400">{String(timeLeft.seconds).padStart(2, '0')}</div>
+              <div className="text-xs text-gold-400/70">sec</div>
             </div>
           </div>
         </div>
