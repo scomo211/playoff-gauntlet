@@ -159,14 +159,9 @@ export default function Entries() {
                       {/* Rank badge */}
                       {entry.rank !== undefined && (
                         <div className={`text-center px-2.5 py-1 rounded ${inTheMoney ? 'bg-gold-500/10 border border-gold-500/20' : 'bg-slate-800'}`}>
-                          <div className="flex items-center gap-1">
-                            <span className={`text-sm font-bold ${inTheMoney ? 'text-gold-400' : 'text-white'}`}>
-                              #{entry.rank}
-                            </span>
-                            {inTheMoney && (
-                              <span className="text-gold-400 text-xs">$</span>
-                            )}
-                          </div>
+                          <span className={`text-sm font-bold ${inTheMoney ? 'text-gold-400' : 'text-white'}`}>
+                            #{entry.rank}
+                          </span>
                         </div>
                       )}
                       {/* Points badge */}
