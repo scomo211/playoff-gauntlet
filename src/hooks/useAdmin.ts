@@ -212,6 +212,7 @@ export interface AdminEntry {
   display_name: string
   email: string
   payment_received: boolean
+  payment_amount: number
   created_at: string
   total_points: number
   lineups_submitted: number
@@ -246,6 +247,7 @@ export function useAdminEntries() {
           display_name: profile?.display_name || 'Unknown',
           email: profile?.email || '',
           payment_received: entry.payment_received,
+          payment_amount: entry.payment_amount || 0,
           created_at: entry.created_at,
           total_points: lineups?.reduce((sum, l) => sum + (l.total_points || 0), 0) || 0,
           lineups_submitted: lineups?.filter(l => l.is_submitted).length || 0,
@@ -264,10 +266,13 @@ export function useAdminEntries() {
     fetchEntries()
   }, [])
 
-  const togglePayment = async (entryId: string, paid: boolean) => {
+  const updatePayment = async (entryId: string, amount: number) => {
     const { error } = await supabase
       .from('entries')
-      .update({ payment_received: paid })
+      .update({
+        payment_amount: amount,
+        payment_received: amount > 0
+      })
       .eq('id', entryId)
 
     if (!error) await fetchEntries()
@@ -284,7 +289,7 @@ export function useAdminEntries() {
     return { error: error?.message || null }
   }
 
-  return { entries, loading, refetch: fetchEntries, togglePayment, deleteEntry }
+  return { entries, loading, refetch: fetchEntries, updatePayment, deleteEntry }
 }
 
 export function useAdminTeams() {

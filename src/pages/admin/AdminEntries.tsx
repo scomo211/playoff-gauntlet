@@ -5,9 +5,11 @@ import { useAdminEntries } from '../../hooks/useAdmin'
 import { formatDate } from '../../lib/formatTime'
 
 export default function AdminEntries() {
-  const { entries, loading, togglePayment, deleteEntry } = useAdminEntries()
+  const { entries, loading, updatePayment, deleteEntry } = useAdminEntries()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'unpaid'>('all')
+  const [editingPayment, setEditingPayment] = useState<string | null>(null)
+  const [paymentInput, setPaymentInput] = useState<string>('')
 
   const filteredEntries = entries.filter(entry => {
     const matchesSearch =
@@ -23,8 +25,21 @@ export default function AdminEntries() {
     return matchesSearch && matchesFilter
   })
 
-  const handleTogglePayment = async (entryId: string, currentStatus: boolean) => {
-    await togglePayment(entryId, !currentStatus)
+  const handleStartEditPayment = (entryId: string, currentAmount: number) => {
+    setEditingPayment(entryId)
+    setPaymentInput(currentAmount.toString())
+  }
+
+  const handleSavePayment = async (entryId: string) => {
+    const amount = parseFloat(paymentInput) || 0
+    await updatePayment(entryId, amount)
+    setEditingPayment(null)
+    setPaymentInput('')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingPayment(null)
+    setPaymentInput('')
   }
 
   const handleDeleteEntry = async (entry: typeof entries[0]) => {
@@ -34,8 +49,9 @@ export default function AdminEntries() {
     await deleteEntry(entry.id)
   }
 
-  const totalOwed = entries.filter(e => !e.payment_received).length * 25
-  const totalCollected = entries.filter(e => e.payment_received).length * 25
+  const totalOwed = entries.length * 25
+  const totalCollected = entries.reduce((sum, e) => sum + (e.payment_amount || 0), 0)
+  const totalOutstanding = totalOwed - totalCollected
 
   return (
     <AdminLayout>
@@ -56,7 +72,7 @@ export default function AdminEntries() {
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="text-sm text-gray-500">Outstanding</div>
-          <div className="text-2xl font-bold text-red-600">${totalOwed}</div>
+          <div className="text-2xl font-bold text-red-600">${totalOutstanding}</div>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="text-sm text-gray-500">Total Pot</div>
@@ -139,16 +155,53 @@ export default function AdminEntries() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => handleTogglePayment(entry.id, entry.payment_received)}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition ${
-                        entry.payment_received
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
-                      }`}
-                    >
-                      {entry.payment_received ? 'Paid' : 'Unpaid'}
-                    </button>
+                    {editingPayment === entry.id ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-gray-500">$</span>
+                        <input
+                          type="number"
+                          value={paymentInput}
+                          onChange={(e) => setPaymentInput(e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSavePayment(entry.id)
+                            if (e.key === 'Escape') handleCancelEdit()
+                          }}
+                        />
+                        <button
+                          onClick={() => handleSavePayment(entry.id)}
+                          className="p-1 text-green-600 hover:text-green-700"
+                          title="Save"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="p-1 text-gray-500 hover:text-gray-700"
+                          title="Cancel"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleStartEditPayment(entry.id, entry.payment_amount)}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition ${
+                          entry.payment_amount >= 25
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : entry.payment_amount > 0
+                              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                              : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        ${entry.payment_amount}
+                      </button>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-3">
