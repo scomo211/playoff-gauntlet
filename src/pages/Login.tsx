@@ -7,12 +7,14 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [useMagicLink, setUseMagicLink] = useState(false)
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
-  const { signIn, resetPassword } = useAuth()
+  const { signIn, signInWithMagicLink, resetPassword } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: FormEvent) => {
@@ -20,13 +22,22 @@ export default function Login() {
     setError(null)
     setLoading(true)
 
-    const { error } = await signIn(email, password)
-
-    if (error) {
-      setError(error.message)
+    if (useMagicLink) {
+      const { error } = await signInWithMagicLink(email)
+      if (error) {
+        setError(error.message)
+      } else {
+        setMagicLinkSent(true)
+      }
       setLoading(false)
     } else {
-      navigate('/dashboard')
+      const { error } = await signIn(email, password)
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      } else {
+        navigate('/dashboard')
+      }
     }
   }
 
@@ -70,73 +81,131 @@ export default function Login() {
         </div>
 
         <div className="card-solid p-8">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
-                {error}
+          {magicLinkSent ? (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-field-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-field-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
               </div>
-            )}
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1.5">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
-                placeholder="you@example.com"
-              />
+              <h3 className="text-lg font-semibold text-white mb-2">Check your email</h3>
+              <p className="text-slate-400 text-sm mb-4">
+                We sent a magic link to <span className="text-white">{email}</span>
+              </p>
+              <p className="text-slate-500 text-xs mb-6">
+                Click the link in your email to sign in. The link expires in 1 hour.
+              </p>
+              <button
+                onClick={() => {
+                  setMagicLinkSent(false)
+                  setEmail('')
+                }}
+                className="text-sm text-field-400 hover:text-field-300 transition"
+              >
+                Use a different email
+              </button>
             </div>
+          ) : (
+            <>
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-300">
-                  Password
-                </label>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1.5">
+                    Email address
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                {!useMagicLink && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={openForgotPassword}
+                        className="text-sm text-field-400 hover:text-field-300 transition"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required={!useMagicLink}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
+                      placeholder="Enter your password"
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full btn-primary py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (useMagicLink ? 'Sending link...' : 'Signing in...') : (useMagicLink ? 'Send Magic Link' : 'Sign in')}
+                </button>
+              </form>
+
+              {/* Toggle between password and magic link */}
+              <div className="mt-4 pt-4 border-t border-slate-700">
                 <button
                   type="button"
-                  onClick={openForgotPassword}
-                  className="text-sm text-field-400 hover:text-field-300 transition"
+                  onClick={() => {
+                    setUseMagicLink(!useMagicLink)
+                    setError(null)
+                  }}
+                  className="w-full text-sm text-slate-400 hover:text-white transition flex items-center justify-center gap-2"
                 >
-                  Forgot password?
+                  {useMagicLink ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Sign in with password instead
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Sign in with magic link instead
+                    </>
+                  )}
                 </button>
               </div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-field-500 focus:border-transparent transition"
-                placeholder="Enter your password"
-              />
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-slate-400">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-field-400 hover:text-field-300 transition">
-                Sign up
-              </Link>
-            </p>
-          </div>
+              <div className="mt-4 text-center">
+                <p className="text-sm text-slate-400">
+                  Don't have an account?{' '}
+                  <Link to="/signup" className="font-medium text-field-400 hover:text-field-300 transition">
+                    Sign up
+                  </Link>
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
