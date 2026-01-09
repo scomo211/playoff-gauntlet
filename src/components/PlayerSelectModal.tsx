@@ -224,10 +224,12 @@ export default function PlayerSelectModal({
                       </div>
                       <div className={`text-sm ${isDisabled ? 'text-slate-600' : 'text-slate-400'}`}>
                         {player.team?.city} {player.team?.name}
-                        {!eliminated && !onBye && getOpponentDisplay(player.team as Team) && (
-                          <span className="text-slate-500 ml-1.5">• {getOpponentDisplay(player.team as Team)}</span>
-                        )}
                       </div>
+                      {!eliminated && !onBye && getOpponentDisplay(player.team as Team) && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {getOpponentDisplay(player.team as Team)}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

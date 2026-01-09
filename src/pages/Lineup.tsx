@@ -554,10 +554,12 @@ export default function Lineup() {
                         <div className="font-medium text-white">{slot.player.name}</div>
                         <div className="text-sm text-slate-400">
                           {slot.player.team?.city} {slot.player.team?.name}
-                          {getOpponentDisplay(slot.player.team as Team) && (
-                            <span className="text-slate-500 ml-1.5">• {getOpponentDisplay(slot.player.team as Team)}</span>
-                          )}
                         </div>
+                        {getOpponentDisplay(slot.player.team as Team) && (
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {getOpponentDisplay(slot.player.team as Team)}
+                          </div>
+                        )}
                         {formatPlayerStats(slot.stats) && (
                           <div className="text-xs text-slate-500 mt-0.5">
                             {formatPlayerStats(slot.stats)}
