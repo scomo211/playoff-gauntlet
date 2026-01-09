@@ -9,6 +9,7 @@ import Lineup from './pages/Lineup'
 import Players from './pages/Players'
 import Rules from './pages/Rules'
 import ConfirmEmail from './pages/ConfirmEmail'
+import ResetPassword from './pages/ResetPassword'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminUserDetail from './pages/admin/AdminUserDetail'
@@ -68,6 +69,7 @@ function App() {
         }
       />
       <Route path="/confirm-email" element={<ConfirmEmail />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/dashboard"
         element={
