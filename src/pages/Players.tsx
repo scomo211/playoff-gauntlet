@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import { Player, Team, Position } from '../types/database'
 import { createPlayerKey } from '../lib/projections'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
+import { getOpponentInfo } from '../lib/matchups'
 import Layout from '../components/Layout'
 import PlayoffBracket from '../components/PlayoffBracket'
 
@@ -31,7 +33,12 @@ const POSITION_COLORS: Record<Position, string> = {
   DEF: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
 }
 
+// ESPN CDN for team logos
+const getTeamLogoUrl = (teamId: string) =>
+  `https://a.espncdn.com/i/teamlogos/nfl/500/${teamId.toLowerCase()}.png`
+
 export default function Players() {
+  const { user } = useAuth()
   const [players, setPlayers] = useState<(Player & { team: Team })[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [playerStats, setPlayerStats] = useState<Map<string, number>>(new Map())
@@ -44,6 +51,9 @@ export default function Players() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('projectedPoints')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [depthChartTeam, setDepthChartTeam] = useState<Team | null>(null)
+  const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
+  const [hasSingleEntry, setHasSingleEntry] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -121,6 +131,41 @@ export default function Players() {
     fetchData()
   }, [])
 
+  // Fetch user's used players if they have only one entry
+  useEffect(() => {
+    async function fetchUsedPlayers() {
+      if (!user) return
+
+      // Get user's entries
+      const { data: entries } = await supabase
+        .from('entries')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+
+      if (!entries || entries.length !== 1) {
+        setHasSingleEntry(false)
+        setUsedPlayerIds(new Set())
+        return
+      }
+
+      setHasSingleEntry(true)
+      const entryId = entries[0].id
+
+      // Get used players for this entry
+      const { data: usedPlayers } = await supabase
+        .from('used_players')
+        .select('player_id')
+        .eq('entry_id', entryId)
+
+      if (usedPlayers) {
+        setUsedPlayerIds(new Set(usedPlayers.map(up => up.player_id)))
+      }
+    }
+
+    fetchUsedPlayers()
+  }, [user])
+
   // Helper to get projection for a player
   const getProjection = (player: Player & { team: Team }): number => {
     if (!player.team_id) return 0
@@ -141,6 +186,13 @@ export default function Players() {
     return false
   }
 
+  // Get opponent display text for a team
+  const getOpponentDisplay = (team: Team | undefined): string => {
+    if (!team) return ''
+    const info = getOpponentInfo(team, currentWeekId, teams)
+    return info.displayText
+  }
+
   // Handle column sort
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -154,6 +206,26 @@ export default function Players() {
   // Check if player's team is eliminated
   const isTeamEliminated = (team: Team | undefined): boolean => {
     return team ? !team.is_alive : true
+  }
+
+  // Get depth chart for a team (sorted by total points - consistent order across weeks)
+  const getDepthChart = (team: Team) => {
+    const teamPlayers = players.filter(p => p.team_id === team.id)
+
+    // Sort by total points scored (descending) - consistent ordering
+    const sortByTotalPoints = (a: Player, b: Player) => {
+      const aPts = playerStats.get(a.id) || 0
+      const bPts = playerStats.get(b.id) || 0
+      return bPts - aPts
+    }
+
+    const qbs = teamPlayers.filter(p => p.position === 'QB').sort(sortByTotalPoints).slice(0, 2)
+    const rbs = teamPlayers.filter(p => p.position === 'RB').sort(sortByTotalPoints).slice(0, 3)
+    const wrs = teamPlayers.filter(p => p.position === 'WR').sort(sortByTotalPoints).slice(0, 6)
+    const tes = teamPlayers.filter(p => p.position === 'TE').sort(sortByTotalPoints).slice(0, 3)
+    const ks = teamPlayers.filter(p => p.position === 'K').sort(sortByTotalPoints).slice(0, 1)
+
+    return { qbs, rbs, wrs, tes, ks }
   }
 
   // Filter and sort players (include bye team players and eliminated players)
@@ -198,7 +270,7 @@ export default function Players() {
   return (
     <Layout>
       {/* Playoff Bracket */}
-      <PlayoffBracket />
+      <PlayoffBracket onTeamClick={(team) => setDepthChartTeam(team)} />
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Players</h1>
@@ -342,6 +414,9 @@ export default function Players() {
                             <div className={`text-sm font-medium truncate ${unavailable ? 'text-slate-500' : 'text-white'}`}>{player.name}</div>
                             <div className={`text-xs truncate ${unavailable ? 'text-slate-600' : 'text-slate-500'}`}>
                               {player.team?.city} {player.team?.name}
+                              {!unavailable && getOpponentDisplay(player.team) && (
+                                <span className="text-slate-600 ml-1">• {getOpponentDisplay(player.team)}</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -395,6 +470,115 @@ export default function Players() {
       <div className="mt-4 text-sm text-slate-500">
         Showing {filteredPlayers.length} of {players.length} players
       </div>
+
+      {/* Depth Chart Modal */}
+      {depthChartTeam && (() => {
+        const depth = getDepthChart(depthChartTeam)
+        const eliminated = !depthChartTeam.is_alive
+
+        const PlayerRow = ({ player, label }: { player: Player; label?: string }) => {
+          const pts = playerStats.get(player.id) || 0
+          const isUsed = hasSingleEntry && usedPlayerIds.has(player.id)
+          return (
+            <div className="flex items-center gap-3 py-2">
+              <img
+                src={getPlayerHeadshotUrl(player.id)}
+                alt={player.name}
+                className={`w-10 h-10 rounded-full bg-slate-700 object-cover flex-shrink-0 ${eliminated ? 'grayscale' : ''}`}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-medium truncate ${eliminated ? 'text-slate-400' : 'text-white'}`}>
+                    {player.name}
+                  </span>
+                  {isUsed && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-900/50 text-red-400 border border-red-500/30 flex-shrink-0">
+                      USED
+                    </span>
+                  )}
+                </div>
+                {label && (
+                  <div className="text-xs text-slate-500">{label}</div>
+                )}
+              </div>
+              <div className={`text-sm font-medium ${pts > 0 ? 'text-field-400' : 'text-slate-500'}`}>
+                {pts.toFixed(1)} pts
+              </div>
+            </div>
+          )
+        }
+
+        const PositionSection = ({ title, players: posPlayers, labels }: { title: string; players: Player[]; labels?: string[] }) => (
+          <div className="mb-4">
+            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${POSITION_COLORS[title as Position] || 'bg-slate-700 text-slate-400 border-slate-600'}`}>
+                {title}
+              </span>
+            </div>
+            <div className="space-y-1">
+              {posPlayers.map((player, i) => (
+                <PlayerRow key={player.id} player={player} label={labels?.[i]} />
+              ))}
+              {posPlayers.length === 0 && (
+                <div className="text-sm text-slate-500 py-2">No players</div>
+              )}
+            </div>
+          </div>
+        )
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/70"
+              onClick={() => setDepthChartTeam(null)}
+            />
+            <div className="relative bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center gap-4 p-4 border-b border-slate-700 bg-slate-800/50">
+                <img
+                  src={getTeamLogoUrl(depthChartTeam.id)}
+                  alt={depthChartTeam.name}
+                  className={`w-12 h-12 object-contain ${eliminated ? 'grayscale opacity-50' : ''}`}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+                <div className="flex-1">
+                  <h2 className={`text-lg font-bold ${eliminated ? 'text-slate-400' : 'text-white'}`}>
+                    {depthChartTeam.city} {depthChartTeam.name}
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-400">Depth Chart</span>
+                    {eliminated && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-red-900/50 text-red-400 border border-red-500/30">
+                        ELIMINATED
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setDepthChartTeam(null)}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="overflow-y-auto p-4 flex-1">
+                <PositionSection title="QB" players={depth.qbs} labels={['Starter', 'Backup']} />
+                <PositionSection title="RB" players={depth.rbs} />
+                <PositionSection title="WR" players={depth.wrs} />
+                <PositionSection title="TE" players={depth.tes} />
+                <PositionSection title="K" players={depth.ks} />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </Layout>
   )
 }

@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { Entry, Position } from '../types/database'
+import { Entry, Position, Team } from '../types/database'
 import { useLineup, LineupSlot } from '../hooks/useLineup'
 import { usePlayers, PlayerWithTeam } from '../hooks/usePlayers'
 import { useProjections } from '../hooks/useProjections'
 import { useIsAdmin } from '../hooks/useAdmin'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 import { formatDeadline, formatMobileDeadline } from '../lib/formatTime'
+import { getOpponentInfo } from '../lib/matchups'
 import Layout from '../components/Layout'
 import PlayerSelectModal from '../components/PlayerSelectModal'
 import { useToast } from '../contexts/ToastContext'
@@ -274,6 +275,24 @@ export default function Lineup() {
     .filter(s => s.player !== null)
     .map(s => s.player!.id)
 
+  // Get all teams for opponent lookup
+  const allTeams = useMemo(() => {
+    const teamMap = new Map<string, Team>()
+    players.forEach(p => {
+      if (p.team) {
+        teamMap.set(p.team.id, p.team as Team)
+      }
+    })
+    return Array.from(teamMap.values())
+  }, [players])
+
+  // Get opponent display text for a team
+  const getOpponentDisplay = (team: Team | undefined): string => {
+    if (!team) return ''
+    const info = getOpponentInfo(team, weekId, allTeams)
+    return info.displayText
+  }
+
   const loading = entryLoading || lineupLoading || playersLoading
 
   if (loading) {
@@ -535,6 +554,9 @@ export default function Lineup() {
                         <div className="font-medium text-white">{slot.player.name}</div>
                         <div className="text-sm text-slate-400">
                           {slot.player.team?.city} {slot.player.team?.name}
+                          {getOpponentDisplay(slot.player.team as Team) && (
+                            <span className="text-slate-500 ml-1.5">• {getOpponentDisplay(slot.player.team as Team)}</span>
+                          )}
                         </div>
                         {formatPlayerStats(slot.stats) && (
                           <div className="text-xs text-slate-500 mt-0.5">
@@ -602,6 +624,9 @@ export default function Lineup() {
                         <div className="font-medium text-white">{slot.player.name}</div>
                         <div className="text-sm text-slate-400">
                           {slot.player.team?.city} {slot.player.team?.name}
+                          {getOpponentDisplay(slot.player.team as Team) && (
+                            <span className="text-slate-500 ml-1.5">• {getOpponentDisplay(slot.player.team as Team)}</span>
+                          )}
                         </div>
                         {formatPlayerStats(slot.stats) && (
                           <div className="text-sm text-slate-500 mt-0.5">

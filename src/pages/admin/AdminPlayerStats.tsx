@@ -10,6 +10,7 @@ interface PlayerUsage {
   position: string
   count: number
   percentage: number
+  week_points: number
 }
 
 interface WeekStats {
@@ -26,7 +27,7 @@ export default function AdminPlayerStats() {
   const [stats, setStats] = useState<WeekStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
-  const [sortBy, setSortBy] = useState<'most' | 'least'>('most')
+  const [sortBy, setSortBy] = useState<'most_used' | 'least_used' | 'most_points' | 'least_points'>('most_used')
 
   // Fetch weeks
   useEffect(() => {
@@ -103,6 +104,18 @@ export default function AdminPlayerStats() {
           `)
           .in('lineup_id', lineupIds)
 
+        // Get player weekly stats for this week
+        const { data: playerStatsData } = await supabase
+          .from('player_weekly_stats')
+          .select('player_id, total_points')
+          .eq('week_id', selectedWeek)
+
+        // Create a map of player_id to total_points
+        const playerPointsMap = new Map<string, number>()
+        playerStatsData?.forEach(stat => {
+          playerPointsMap.set(stat.player_id, stat.total_points || 0)
+        })
+
         // Count player usage
         const playerCounts = new Map<string, {
           player_id: string
@@ -110,6 +123,7 @@ export default function AdminPlayerStats() {
           team_name: string
           position: string
           count: number
+          week_points: number
         }>()
 
         lineupPlayersData?.forEach(lp => {
@@ -126,6 +140,7 @@ export default function AdminPlayerStats() {
               team_name: player.team?.name || 'Unknown',
               position: player.position,
               count: 1,
+              week_points: playerPointsMap.get(player.id) || 0,
             })
           }
         })
@@ -158,8 +173,13 @@ export default function AdminPlayerStats() {
   const filteredPlayers = stats?.players
     .filter(p => positionFilter === 'ALL' || p.position === positionFilter)
     .sort((a, b) => {
-      if (sortBy === 'most') return b.percentage - a.percentage
-      return a.percentage - b.percentage
+      switch (sortBy) {
+        case 'most_used': return b.percentage - a.percentage
+        case 'least_used': return a.percentage - b.percentage
+        case 'most_points': return b.week_points - a.week_points
+        case 'least_points': return a.week_points - b.week_points
+        default: return 0
+      }
     }) || []
 
   const positions = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K', 'DEF']
@@ -226,11 +246,13 @@ export default function AdminPlayerStats() {
 
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as 'most' | 'least')}
+          onChange={(e) => setSortBy(e.target.value as 'most_used' | 'least_used' | 'most_points' | 'least_points')}
           className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="most">Most Used First</option>
-          <option value="least">Least Used First</option>
+          <option value="most_used">Most Used First</option>
+          <option value="least_used">Least Used First</option>
+          <option value="most_points">Most Points First</option>
+          <option value="least_points">Least Points First</option>
         </select>
       </div>
 
@@ -256,6 +278,9 @@ export default function AdminPlayerStats() {
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Times Used
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Points
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Usage %
@@ -300,6 +325,11 @@ export default function AdminPlayerStats() {
                     </span>
                     <span className="text-sm text-gray-500">
                       /{stats?.submitted_lineups}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className="text-sm font-medium text-gray-900">
+                      {player.week_points.toFixed(1)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

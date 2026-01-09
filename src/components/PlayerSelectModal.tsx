@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
 import Modal from './Modal'
-import { Position } from '../types/database'
+import { Position, Team } from '../types/database'
 import { PlayerWithTeam } from '../hooks/usePlayers'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
+import { getOpponentInfo } from '../lib/matchups'
 
 interface PlayerSelectModalProps {
   isOpen: boolean
@@ -40,22 +41,50 @@ export default function PlayerSelectModal({
     return false
   }
 
-  // Get unique teams from available players (including bye teams)
+  // Check if team is eliminated
+  const isTeamEliminated = (team: PlayerWithTeam['team']) => {
+    return team ? !team.is_alive : true
+  }
+
+  // Get unique teams from available players (including bye teams and eliminated teams)
   const teams = useMemo(() => {
-    const teamSet = new Map<string, { id: string; name: string; city: string }>()
+    const teamSet = new Map<string, { id: string; name: string; city: string; is_alive: boolean }>()
     players.forEach(p => {
-      if (p.team && p.team.is_alive) {
-        teamSet.set(p.team.id, { id: p.team.id, name: p.team.name, city: p.team.city })
+      if (p.team) {
+        teamSet.set(p.team.id, { id: p.team.id, name: p.team.name, city: p.team.city, is_alive: p.team.is_alive })
       }
     })
-    return Array.from(teamSet.values()).sort((a, b) => a.city.localeCompare(b.city))
+    // Sort: alive teams first, then eliminated, alphabetically within each group
+    return Array.from(teamSet.values()).sort((a, b) => {
+      if (a.is_alive && !b.is_alive) return -1
+      if (!a.is_alive && b.is_alive) return 1
+      return a.city.localeCompare(b.city)
+    })
   }, [players])
 
-  // Filter players and remove duplicates (include bye team players)
+  // Get all teams for opponent lookup
+  const allTeams = useMemo(() => {
+    const teamMap = new Map<string, Team>()
+    players.forEach(p => {
+      if (p.team) {
+        teamMap.set(p.team.id, p.team as Team)
+      }
+    })
+    return Array.from(teamMap.values())
+  }, [players])
+
+  // Get opponent display text for a team
+  const getOpponentDisplay = (team: Team | undefined): string => {
+    if (!team) return ''
+    const info = getOpponentInfo(team, weekId, allTeams)
+    return info.displayText
+  }
+
+  // Filter players and remove duplicates (include bye team players and eliminated team players)
   const filteredPlayers = useMemo(() => {
     const seen = new Set<string>()
     return players
-      .filter(p => p.position === position && p.team?.is_alive)
+      .filter(p => p.position === position && p.team) // Include all players with a team
       .filter(p => {
         // Remove duplicates by player ID
         if (seen.has(p.id)) return false
@@ -75,21 +104,36 @@ export default function PlayerSelectModal({
         return true
       })
       .sort((a, b) => {
-        // Sort: available first, then used/bye
+        // Sort order: available (with projections) > used/bye > eliminated > zero projections
         const aOnBye = isTeamOnBye(a.team)
         const bOnBye = isTeamOnBye(b.team)
+        const aEliminated = isTeamEliminated(a.team)
+        const bEliminated = isTeamEliminated(b.team)
         const aUsed = isPlayerUsed(a.id) || currentLineupPlayerIds.includes(a.id)
         const bUsed = isPlayerUsed(b.id) || currentLineupPlayerIds.includes(b.id)
+
+        // Get projections
+        const aProj = (getProjection && a.team_id) ? (getProjection(a.name, a.team_id) ?? 0) : 0
+        const bProj = (getProjection && b.team_id) ? (getProjection(b.name, b.team_id) ?? 0) : 0
+
+        // Zero projection players go to the very end
+        const aZeroProj = aProj === 0 && !aEliminated
+        const bZeroProj = bProj === 0 && !bEliminated
+        if (aZeroProj && !bZeroProj) return 1
+        if (!aZeroProj && bZeroProj) return -1
+
+        // Eliminated teams go above zero projections but below available
+        if (aEliminated && !bEliminated && !bZeroProj) return 1
+        if (!aEliminated && bEliminated && !aZeroProj) return -1
+
+        // Used/bye players go below available
         const aUnavailable = aUsed || aOnBye
         const bUnavailable = bUsed || bOnBye
-        if (aUnavailable && !bUnavailable) return 1
-        if (!aUnavailable && bUnavailable) return -1
+        if (aUnavailable && !bUnavailable && !bEliminated) return 1
+        if (!aUnavailable && bUnavailable && !aEliminated) return -1
+
         // Sort by projected points (highest first) if available
-        if (getProjection && a.team_id && b.team_id) {
-          const aProj = getProjection(a.name, a.team_id) ?? 0
-          const bProj = getProjection(b.name, b.team_id) ?? 0
-          if (aProj !== bProj) return bProj - aProj
-        }
+        if (aProj !== bProj) return bProj - aProj
         return a.name.localeCompare(b.name)
       })
   }, [players, position, searchQuery, teamFilter, isPlayerUsed, currentLineupPlayerIds, getProjection, weekId])
@@ -135,7 +179,7 @@ export default function PlayerSelectModal({
             <option value="ALL">All Teams</option>
             {teams.map(team => (
               <option key={team.id} value={team.id}>
-                {team.city} {team.name}
+                {team.city} {team.name}{!team.is_alive ? ' (ELIM)' : ''}
               </option>
             ))}
           </select>
@@ -148,7 +192,8 @@ export default function PlayerSelectModal({
               const isUsed = isPlayerUsed(player.id)
               const isInCurrentLineup = currentLineupPlayerIds.includes(player.id)
               const onBye = isTeamOnBye(player.team)
-              const isDisabled = isUsed || isInCurrentLineup || onBye
+              const eliminated = isTeamEliminated(player.team)
+              const isDisabled = isUsed || isInCurrentLineup || onBye || eliminated
 
               return (
                 <button
@@ -174,16 +219,19 @@ export default function PlayerSelectModal({
                       }}
                     />
                     <div>
-                      <div className={`font-medium ${isDisabled ? 'text-slate-500' : 'text-white'}`}>
+                      <div className={`font-medium ${isDisabled ? 'text-slate-500' : 'text-white'} ${eliminated ? 'line-through' : ''}`}>
                         {player.name}
                       </div>
                       <div className={`text-sm ${isDisabled ? 'text-slate-600' : 'text-slate-400'}`}>
                         {player.team?.city} {player.team?.name}
+                        {!eliminated && !onBye && getOpponentDisplay(player.team as Team) && (
+                          <span className="text-slate-500 ml-1.5">• {getOpponentDisplay(player.team as Team)}</span>
+                        )}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {getProjection && player.team_id && !onBye && (() => {
+                    {getProjection && player.team_id && !onBye && !eliminated && (() => {
                       const proj = getProjection(player.name, player.team_id)
                       return proj !== null ? (
                         <span className={`text-sm font-semibold ${isDisabled ? 'text-slate-500' : 'text-emerald-400'}`}>
@@ -191,17 +239,22 @@ export default function PlayerSelectModal({
                         </span>
                       ) : null
                     })()}
-                    {onBye && (
+                    {eliminated && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-red-900/50 text-red-400 border border-red-500/30 font-medium">
+                        ELIM
+                      </span>
+                    )}
+                    {onBye && !eliminated && (
                       <span className="text-xs px-2 py-1 rounded-full bg-slate-700 text-slate-400 font-medium">
                         BYE
                       </span>
                     )}
-                    {isUsed && (
+                    {isUsed && !eliminated && (
                       <span className="text-xs px-2 py-1 rounded-full bg-red-900/50 text-red-400">
                         Used
                       </span>
                     )}
-                    {isInCurrentLineup && !isUsed && (
+                    {isInCurrentLineup && !isUsed && !eliminated && (
                       <span className="text-xs px-2 py-1 rounded-full bg-yellow-900/50 text-yellow-400">
                         In Lineup
                       </span>
@@ -223,7 +276,7 @@ export default function PlayerSelectModal({
         </div>
 
         <div className="text-sm text-slate-400">
-          {filteredPlayers.filter(p => !isPlayerUsed(p.id) && !currentLineupPlayerIds.includes(p.id) && !isTeamOnBye(p.team)).length} available
+          {filteredPlayers.filter(p => !isPlayerUsed(p.id) && !currentLineupPlayerIds.includes(p.id) && !isTeamOnBye(p.team) && !isTeamEliminated(p.team)).length} available
           {' / '}
           {filteredPlayers.length} total
         </div>
