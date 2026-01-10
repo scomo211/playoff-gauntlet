@@ -12,6 +12,8 @@ import ChalkPicksTable from '../components/ChalkPicksTable'
 import BoldPicksTable from '../components/BoldPicksTable'
 import BoldestLineups from '../components/BoldestLineups'
 import DeadManWalking from '../components/DeadManWalking'
+import AnimatedScore from '../components/AnimatedScore'
+import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 
 interface LeaderboardEntry {
   id: string
@@ -392,8 +394,10 @@ export default function Dashboard() {
                         const inTheMoney = rank <= payoutSpots
 
                         return (
-                          <tr
+                          <AnimatedLeaderboardRow
                             key={entry.id}
+                            entryId={entry.id}
+                            rank={rank}
                             onClick={() => navigate(`/entry/${entry.id}/lineup?week=${currentWeek || 1}`)}
                             className={`cursor-pointer transition ${inTheMoney ? 'bg-field-500/5 hover:bg-field-500/10' : 'hover:bg-slate-800/50'}`}
                           >
@@ -428,11 +432,12 @@ export default function Dashboard() {
                               {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
                             </td>
                             <td className="pl-2 pr-5 sm:px-4 py-3 whitespace-nowrap text-right">
-                              <span className={`text-sm font-bold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
-                                {entry.total_points.toFixed(1)}
-                              </span>
+                              <AnimatedScore
+                                value={entry.total_points}
+                                className={`text-sm font-bold inline-block px-1 py-0.5 rounded ${inTheMoney ? 'text-field-400' : 'text-white'}`}
+                              />
                             </td>
-                          </tr>
+                          </AnimatedLeaderboardRow>
                         )
                       })}
                     </tbody>
