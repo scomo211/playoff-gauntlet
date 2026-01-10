@@ -63,3 +63,48 @@
     transform: scale(1);
   }
 }
+
+/* Rank movement animations */
+.animate-rank-up {
+  animation: rank-up 1.5s ease-out;
+}
+
+@keyframes rank-up {
+  0% {
+    background-color: rgba(5, 150, 105, 0.3);
+    transform: translateX(-8px);
+  }
+  20% {
+    background-color: rgba(5, 150, 105, 0.4);
+    transform: translateX(0);
+  }
+  100% {
+    background-color: transparent;
+    transform: translateX(0);
+  }
+}
+
+.animate-rank-badge {
+  animation: rank-badge 1.5s ease-out forwards;
+}
+
+@keyframes rank-badge {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+  30% {
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}

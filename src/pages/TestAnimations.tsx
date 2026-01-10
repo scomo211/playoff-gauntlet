@@ -1,71 +1,140 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Layout from '../components/Layout'
 import AnimatedScore from '../components/AnimatedScore'
+import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
+
+interface Entry {
+  id: string
+  name: string
+  score: number
+}
 
 export default function TestAnimations() {
+  // State for leaderboard demo
+  const [entries, setEntries] = useState<Entry[]>([
+    { id: '1', name: 'The Commish', score: 125.5 },
+    { id: '2', name: 'Go Birds', score: 122.2 },
+    { id: '3', name: 'Septic Squad', score: 118.8 },
+    { id: '4', name: 'Purple Tears', score: 115.0 },
+    { id: '5', name: 'Hailstorm', score: 110.5 },
+  ])
+
+  // State for simple score demos
   const [score1, setScore1] = useState(125.5)
   const [score2, setScore2] = useState(89.2)
   const [score3, setScore3] = useState(156.8)
 
-  const randomChange = (current: number) => {
-    const change = (Math.random() - 0.3) * 20 // Bias towards increases
-    return Math.max(0, current + change)
+  // Sort entries by score to get ranks
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort((a, b) => b.score - a.score)
+  }, [entries])
+
+  // Get rank for each entry
+  const getRank = (id: string) => {
+    return sortedEntries.findIndex(e => e.id === id) + 1
   }
 
-  const simulateScoreUpdate = () => {
-    setScore1(prev => randomChange(prev))
-    setScore2(prev => randomChange(prev))
-    setScore3(prev => randomChange(prev))
+  const addPointsToEntry = (id: string, amount: number) => {
+    setEntries(prev => prev.map(e =>
+      e.id === id ? { ...e, score: e.score + amount } : e
+    ))
+  }
+
+  const simulateRankChange = () => {
+    // Pick a random entry that's not #1 and give them a big boost
+    const notFirst = entries.filter(e => getRank(e.id) > 1)
+    if (notFirst.length > 0) {
+      const lucky = notFirst[Math.floor(Math.random() * notFirst.length)]
+      addPointsToEntry(lucky.id, 15 + Math.random() * 10)
+    }
   }
 
   const addPoints = (setter: React.Dispatch<React.SetStateAction<number>>, amount: number) => {
     setter(prev => prev + amount)
   }
 
+  const simulateScoreUpdate = () => {
+    // Random updates to all scores
+    setScore1(prev => prev + Math.random() * 10)
+    setScore2(prev => prev + Math.random() * 8)
+    setScore3(prev => prev + Math.random() * 12)
+  }
+
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold text-white mb-2">Animation Test Page</h1>
-        <p className="text-slate-400 mb-8">Test the score animations before they go live</p>
+        <p className="text-slate-400 mb-8">Test the score and rank animations before they go live</p>
 
-        {/* Leaderboard Style */}
+        {/* Rank Change Animation */}
         <div className="card-solid p-6 mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">Leaderboard Style</h2>
+          <h2 className="text-lg font-semibold text-white mb-2">Rank Change Animation</h2>
+          <p className="text-slate-400 text-sm mb-4">
+            Add points to an entry to make them jump up the leaderboard
+          </p>
 
-          <div className="space-y-3">
-            {[
-              { rank: 1, name: 'The Commish', score: score1, setScore: setScore1 },
-              { rank: 2, name: 'Go Birds', score: score2, setScore: setScore2 },
-              { rank: 3, name: 'Septic Squad', score: score3, setScore: setScore3 },
-            ].map((entry) => (
-              <div
-                key={entry.rank}
-                className="flex items-center justify-between py-3 px-4 bg-slate-800/50 rounded-lg"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-field-400 font-bold w-6">{entry.rank}</span>
-                  <span className="text-white font-medium">{entry.name}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => addPoints(entry.setScore, 6.5)}
-                    className="px-2 py-1 text-xs bg-field-600 hover:bg-field-500 rounded text-white"
-                  >
-                    +TD
-                  </button>
-                  <button
-                    onClick={() => addPoints(entry.setScore, 0.1)}
-                    className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded text-white"
-                  >
-                    +0.1
-                  </button>
-                  <AnimatedScore
-                    value={entry.score}
-                    className="text-lg font-bold text-field-400 min-w-[80px] text-right inline-block px-2 py-1 rounded"
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="overflow-hidden rounded-lg border border-slate-700">
+            <table className="min-w-full">
+              <thead className="bg-slate-800/50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Rank</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Entry</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase">Points</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {sortedEntries.map((entry) => {
+                  const rank = getRank(entry.id)
+                  return (
+                    <AnimatedLeaderboardRow
+                      key={entry.id}
+                      entryId={entry.id}
+                      rank={rank}
+                      className="hover:bg-slate-800/50"
+                    >
+                      <td className="px-4 py-3">
+                        <span className="text-field-400 font-bold">{rank}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-white font-medium">{entry.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <AnimatedScore
+                          value={entry.score}
+                          className="text-lg font-bold text-field-400 inline-block px-2 py-1 rounded"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => addPointsToEntry(entry.id, 6.5)}
+                            className="px-2 py-1 text-xs bg-field-600 hover:bg-field-500 rounded text-white"
+                          >
+                            +TD
+                          </button>
+                          <button
+                            onClick={() => addPointsToEntry(entry.id, 15)}
+                            className="px-2 py-1 text-xs bg-yellow-600 hover:bg-yellow-500 rounded text-white"
+                          >
+                            +15
+                          </button>
+                        </div>
+                      </td>
+                    </AnimatedLeaderboardRow>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4">
+            <button
+              onClick={simulateRankChange}
+              className="w-full btn-primary py-3"
+            >
+              Simulate Random Rank Jump
+            </button>
           </div>
         </div>
 
@@ -99,6 +168,34 @@ export default function TestAnimations() {
           </div>
         </div>
 
+        {/* Score Comparison */}
+        <div className="card-solid p-6 mb-8">
+          <h2 className="text-lg font-semibold text-white mb-4">Multiple Scores</h2>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-slate-400 text-sm mb-1">Entry A</div>
+              <AnimatedScore
+                value={score1}
+                className="text-2xl font-bold text-white inline-block px-2 py-1 rounded"
+              />
+            </div>
+            <div className="text-center">
+              <div className="text-slate-400 text-sm mb-1">Entry B</div>
+              <AnimatedScore
+                value={score2}
+                className="text-2xl font-bold text-white inline-block px-2 py-1 rounded"
+              />
+            </div>
+            <div className="text-center">
+              <div className="text-slate-400 text-sm mb-1">Entry C</div>
+              <AnimatedScore
+                value={score3}
+                className="text-2xl font-bold text-white inline-block px-2 py-1 rounded"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Bulk Update */}
         <div className="card-solid p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Simulate Live Update</h2>
@@ -120,6 +217,13 @@ export default function TestAnimations() {
               setScore1(125.5)
               setScore2(89.2)
               setScore3(156.8)
+              setEntries([
+                { id: '1', name: 'The Commish', score: 125.5 },
+                { id: '2', name: 'Go Birds', score: 122.2 },
+                { id: '3', name: 'Septic Squad', score: 118.8 },
+                { id: '4', name: 'Purple Tears', score: 115.0 },
+                { id: '5', name: 'Hailstorm', score: 110.5 },
+              ])
             }}
             className="text-slate-400 hover:text-white text-sm"
           >
