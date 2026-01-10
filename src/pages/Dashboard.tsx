@@ -14,6 +14,7 @@ import BoldestLineups from '../components/BoldestLineups'
 import DeadManWalking from '../components/DeadManWalking'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
+import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
 
 interface LeaderboardEntry {
   id: string
@@ -24,6 +25,8 @@ interface LeaderboardEntry {
   week3_points: number
   week4_points: number
   total_points: number
+  playersPlayed: number
+  totalPlayers: number
 }
 
 interface ProfileData {
@@ -85,11 +88,19 @@ export default function Dashboard() {
             id,
             entry_name,
             profile:profiles(display_name),
-            lineups(week_id, total_points)
+            lineups(week_id, total_points, lineup_players(points_scored))
           `)
           .eq('is_active', true)
 
         if (fetchError) throw fetchError
+
+        // Get current week for player progress calculation
+        const { data: weekData } = await supabase
+          .from('weeks')
+          .select('id')
+          .eq('is_current', true)
+          .single()
+        const activeWeek = weekData?.id || 1
 
         const formatted = data.map(entry => {
           const profile = entry.profile as ProfileData | ProfileData[] | null
@@ -98,9 +109,15 @@ export default function Dashboard() {
             : profile?.display_name
 
           // Get points per week
-          const lineups = entry.lineups as { week_id: number; total_points: number }[] || []
+          const lineups = entry.lineups as { week_id: number; total_points: number; lineup_players?: { points_scored: number }[] }[] || []
           const getWeekPoints = (weekId: number) =>
             lineups.find(l => l.week_id === weekId)?.total_points || 0
+
+          // Calculate players played for current week
+          const currentWeekLineup = lineups.find(l => l.week_id === activeWeek)
+          const lineupPlayers = currentWeekLineup?.lineup_players || []
+          const totalPlayers = lineupPlayers.length
+          const playersPlayed = lineupPlayers.filter(lp => (lp.points_scored || 0) > 0).length
 
           return {
             id: entry.id,
@@ -110,7 +127,9 @@ export default function Dashboard() {
             week2_points: getWeekPoints(2),
             week3_points: getWeekPoints(3),
             week4_points: getWeekPoints(4),
-            total_points: lineups.reduce((sum, l) => sum + (l.total_points || 0), 0)
+            total_points: lineups.reduce((sum, l) => sum + (l.total_points || 0), 0),
+            playersPlayed,
+            totalPlayers
           }
         })
 
@@ -362,14 +381,18 @@ export default function Dashboard() {
                   <table className="min-w-full divide-y divide-slate-800">
                     <thead className="bg-slate-800/50">
                       <tr>
-                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="px-1.5 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Rank
                         </th>
-                        <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="pl-1 pr-0 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Entry
                         </th>
-                        <th className="hidden md:table-cell px-2 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Owner
+                        </th>
+                        <th className="px-0 sm:px-2 py-2 sm:py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          <span className="hidden sm:inline">Remaining</span>
+                          <span className="sm:hidden">Left</span>
                         </th>
                         <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 1
@@ -383,7 +406,7 @@ export default function Dashboard() {
                         <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 4
                         </th>
-                        <th className="pl-2 pr-5 sm:px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Total
                         </th>
                       </tr>
@@ -401,23 +424,32 @@ export default function Dashboard() {
                             onClick={() => navigate(`/entry/${entry.id}/lineup?week=${currentWeek || 1}`)}
                             className={`cursor-pointer transition ${inTheMoney ? 'bg-field-500/5 hover:bg-field-500/10' : 'hover:bg-slate-800/50'}`}
                           >
-                            <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
+                            <td className="px-1.5 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
+                              <div className="flex items-center gap-1 sm:gap-2">
                                 <span className={`text-sm font-semibold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
                                   {rank}
                                 </span>
                                 {inTheMoney && payoutAmounts[rank - 1] !== undefined && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
+                                  <span className="inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
                                     ${payoutAmounts[rank - 1].toLocaleString()}
                                   </span>
                                 )}
                               </div>
                             </td>
-                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
-                              <div className="text-sm font-medium text-white truncate max-w-[150px] sm:max-w-none" title={entry.entry_name}>{entry.entry_name}</div>
+                            <td className="pl-1 pr-0 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
+                              <div className="text-sm font-medium text-white sm:truncate sm:max-w-none" title={entry.entry_name}>
+                                <span className="sm:hidden">{entry.entry_name.length > 20 ? entry.entry_name.slice(0, 20) + '…' : entry.entry_name}</span>
+                                <span className="hidden sm:inline">{entry.entry_name}</span>
+                              </div>
                             </td>
-                            <td className="hidden md:table-cell px-2 sm:px-4 py-3 whitespace-nowrap">
+                            <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
                               <div className="text-sm text-slate-400 truncate max-w-[80px] sm:max-w-none" title={entry.display_name}>{entry.display_name}</div>
+                            </td>
+                            <td className="px-0 sm:px-2 py-2 sm:py-3 whitespace-nowrap">
+                              <PlayersRemainingIndicator
+                                playersPlayed={entry.playersPlayed}
+                                totalPlayers={entry.totalPlayers}
+                              />
                             </td>
                             <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week1_points > 0 ? entry.week1_points.toFixed(1) : '--'}
@@ -431,7 +463,7 @@ export default function Dashboard() {
                             <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
                             </td>
-                            <td className="pl-2 pr-5 sm:px-4 py-3 whitespace-nowrap text-right">
+                            <td className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-right">
                               <AnimatedScore
                                 value={entry.total_points}
                                 className={`text-sm font-bold inline-block px-1 py-0.5 rounded ${inTheMoney ? 'text-field-400' : 'text-white'}`}
