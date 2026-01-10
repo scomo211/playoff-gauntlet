@@ -366,7 +366,7 @@ export default function Dashboard() {
                         <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Entry
                         </th>
-                        <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="hidden md:table-cell px-2 sm:px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Owner
                         </th>
                         <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
@@ -412,7 +412,7 @@ export default function Dashboard() {
                             <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
                               <div className="text-sm font-medium text-white truncate max-w-[80px] sm:max-w-none" title={entry.entry_name}>{entry.entry_name}</div>
                             </td>
-                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
+                            <td className="hidden md:table-cell px-2 sm:px-4 py-3 whitespace-nowrap">
                               <div className="text-sm text-slate-400 truncate max-w-[80px] sm:max-w-none" title={entry.display_name}>{entry.display_name}</div>
                             </td>
                             <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
