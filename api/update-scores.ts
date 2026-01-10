@@ -300,23 +300,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lineupTotals.set(lineup.id, Math.round(lineupTotal * 100) / 100)
     }
 
-    // Batch update all lineup_players in chunks (Supabase has limits on request size)
-    const BATCH_SIZE = 50
+    // Update lineup_players in parallel batches
+    const BATCH_SIZE = 20
     for (let i = 0; i < lineupPlayerUpdates.length; i += BATCH_SIZE) {
       const batch = lineupPlayerUpdates.slice(i, i + BATCH_SIZE)
-      // Use upsert with on_conflict to update existing records
-      await supabaseRequest('/lineup_players', {
-        method: 'POST',
-        headers: {
-          'Prefer': 'resolution=merge-duplicates',
-        },
-        body: JSON.stringify(batch),
-      })
+      await Promise.all(
+        batch.map(update =>
+          supabaseRequest(`/lineup_players?id=eq.${update.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ points_scored: update.points_scored }),
+          })
+        )
+      )
     }
 
     console.log(`Updated ${lineupPlayerUpdates.length} lineup player scores`)
 
-    // Batch update lineup totals
+    // Update lineup totals in parallel batches
     const lineupUpdates = Array.from(lineupTotals.entries()).map(([id, total_points]) => ({
       id,
       total_points,
@@ -324,13 +324,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     for (let i = 0; i < lineupUpdates.length; i += BATCH_SIZE) {
       const batch = lineupUpdates.slice(i, i + BATCH_SIZE)
-      await supabaseRequest('/lineups', {
-        method: 'POST',
-        headers: {
-          'Prefer': 'resolution=merge-duplicates',
-        },
-        body: JSON.stringify(batch),
-      })
+      await Promise.all(
+        batch.map(update =>
+          supabaseRequest(`/lineups?id=eq.${update.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ total_points: update.total_points }),
+          })
+        )
+      )
     }
 
     console.log(`Updated ${lineupUpdates.length} lineup totals`)
