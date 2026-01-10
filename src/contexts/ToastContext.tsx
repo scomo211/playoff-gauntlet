@@ -15,6 +15,7 @@ interface ToastNotification {
 
 interface MiniToastNotification {
   id: string
+  playerId: string
   playerName: string
   playDescription: string
   points: number
@@ -52,6 +53,7 @@ const BIG_PLAY_POINTS_THRESHOLD = 4
 const MINI_PLAY_POINTS_THRESHOLD = 0.5
 
 interface MiniPlayEvent {
+  playerId: string
   playerName: string
   playDescription: string
   points: number
@@ -277,6 +279,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
                   } else if (points >= MINI_PLAY_POINTS_THRESHOLD) {
                     // Smaller play - mini toast at bottom
                     showMiniToast({
+                      playerId: stat.player_id,
                       playerName,
                       playDescription: `${rushYardGain} Yard Rush`,
                       points
@@ -307,6 +310,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
                   } else if (points >= MINI_PLAY_POINTS_THRESHOLD) {
                     // Smaller play - mini toast at bottom
                     showMiniToast({
+                      playerId: stat.player_id,
                       playerName,
                       playDescription: `${recYardGain} Yard Reception`,
                       points
@@ -337,6 +341,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
                   } else if (points >= MINI_PLAY_POINTS_THRESHOLD) {
                     // Smaller play - mini toast at bottom
                     showMiniToast({
+                      playerId: stat.player_id,
                       playerName,
                       playDescription: `${passYardGain} Yard Pass`,
                       points
@@ -424,6 +429,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     const id = `mini-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     setMiniToastQueue(prev => [...prev, {
       id,
+      playerId: event.playerId,
       playerName: event.playerName,
       playDescription: event.playDescription,
       points: event.points
@@ -433,12 +439,14 @@ export function ToastProvider({ children }: ToastProviderProps) {
   // Test function for development
   const testMiniToast = useCallback(() => {
     showMiniToast({
+      playerId: '4034',
       playerName: 'Christian McCaffrey',
       playDescription: '13 Yard Reception',
       points: 1.8
     })
     setTimeout(() => {
       showMiniToast({
+        playerId: '4866',
         playerName: 'Saquon Barkley',
         playDescription: '8 Yard Rush',
         points: 0.8
@@ -446,6 +454,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     }, 500)
     setTimeout(() => {
       showMiniToast({
+        playerId: '3918',
         playerName: 'Josh Allen',
         playDescription: '24 Yard Pass',
         points: 1.0
@@ -795,7 +804,7 @@ function MiniToast({ notification, isVisible, onClose }: MiniToastProps) {
       <div
         className={`
           bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-lg shadow-xl shadow-black/30
-          px-4 py-2.5 flex items-center gap-4
+          pl-4 pr-3 py-2 flex items-center gap-3
           transform transition-all duration-300 ease-out
           ${isAnimating
             ? 'opacity-100 translate-y-0'
@@ -803,17 +812,26 @@ function MiniToast({ notification, isVisible, onClose }: MiniToastProps) {
           }
         `}
       >
-        {/* Play description */}
-        <div className="text-sm text-slate-300">
-          <span className="font-medium text-white">{notification.playerName}</span>
-          <span className="mx-1.5 text-slate-500">•</span>
-          <span>{notification.playDescription}</span>
+        {/* Player name and play description */}
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-white leading-tight">{notification.playerName}</span>
+          <span className="text-xs text-slate-400 leading-tight">{notification.playDescription}</span>
         </div>
 
         {/* Points */}
-        <div className={`text-lg font-bold ${notification.points >= 0 ? 'text-field-400' : 'text-red-400'}`}>
+        <div className={`text-xl font-bold ${notification.points >= 0 ? 'text-field-400' : 'text-red-400'}`}>
           {notification.points >= 0 ? '+' : ''}{notification.points.toFixed(1)}
         </div>
+
+        {/* Player headshot */}
+        <img
+          src={getPlayerHeadshotUrl(notification.playerId)}
+          alt={notification.playerName}
+          className="w-8 h-8 rounded-full bg-slate-700 object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/favicon.png'
+          }}
+        />
       </div>
     </div>
   )
