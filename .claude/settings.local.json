@@ -58,7 +58,20 @@
       "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/player_weekly_stats?week_id=eq.1&select=player_id,pass_yards,pass_td,rush_yards,rush_td,rec_yards,rec_td,total_points&limit=10\" -H \"apikey: $APIKEY\")",
       "Bash(8 car, 74 yd, 1 TD\"\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "WebFetch(domain:app.screencast.com)",
-      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/entries?select=id,entry_name,payment_amount,payment_received&limit=3\" -H \"apikey: $APIKEY\")"
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/entries?select=id,entry_name,payment_amount,payment_received&limit=3\" -H \"apikey: $APIKEY\")",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/league_settings?select=*\" -H \"apikey: $APIKEY\")",
+      "WebFetch(domain:developers.fantasydata.com)",
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Bash(for week in 18 19 20 21 22)",
+      "Bash(do echo '=== Week $week ===' curl -s https://playoffgauntlet.com/api/update-projections?week=$week)",
+      "WebFetch(domain:api.fantasynerds.com)",
+      "WebFetch(domain:www.fantasypros.com)",
+      "WebFetch(domain:draftedge.com)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:www.rotowire.com)",
+      "WebFetch(domain:www.numberfire.com)",
+      "WebFetch(domain:www.fanduel.com)",
+      "Bash(echo \"=== Users with UNSUBMITTED lineups for Week 1 \\(these received emails\\) ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/entries?select=entry_name,user_id,profiles\\(display_name,email\\),lineups\\(is_submitted\\)&is_active=eq.true&lineups.week_id=eq.1&lineups.is_submitted=eq.false\" -H \"apikey: $APIKEY\")"
     ]
   }
 }

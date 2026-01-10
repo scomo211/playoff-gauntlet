@@ -18,6 +18,7 @@ import AdminLineupEdit from './pages/admin/AdminLineupEdit'
 import AdminTeams from './pages/admin/AdminTeams'
 import AdminSettings from './pages/admin/AdminSettings'
 import AdminPlayerStats from './pages/admin/AdminPlayerStats'
+import TestAnimations from './pages/TestAnimations'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -172,6 +173,15 @@ function App() {
         element={
           <ProtectedRoute>
             <AdminSettings />
+          </ProtectedRoute>
+        }
+      />
+      {/* Test Routes */}
+      <Route
+        path="/test/animations"
+        element={
+          <ProtectedRoute>
+            <TestAnimations />
           </ProtectedRoute>
         }
       />

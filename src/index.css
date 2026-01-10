@@ -43,4 +43,23 @@
   .card-solid {
     @apply bg-slate-900 border border-slate-800 rounded-lg;
   }
+
+  /* Score animation */
+  .animate-score-highlight {
+    animation: score-highlight 0.8s ease-out;
+  }
+}
+
+@keyframes score-highlight {
+  0% {
+    background-color: rgba(5, 150, 105, 0.4);
+    transform: scale(1.05);
+  }
+  50% {
+    background-color: rgba(5, 150, 105, 0.2);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
 }
