@@ -800,11 +800,11 @@ function MiniToast({ notification, isVisible, onClose }: MiniToastProps) {
   }, [isVisible, onClose])
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
       <div
         className={`
-          bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-lg shadow-xl shadow-black/30
-          pl-4 pr-3 py-2 flex items-center gap-3
+          bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-xl shadow-xl shadow-black/30
+          pl-3 pr-5 py-2.5 flex items-center gap-4
           transform transition-all duration-300 ease-out
           ${isAnimating
             ? 'opacity-100 translate-y-0'
@@ -812,26 +812,26 @@ function MiniToast({ notification, isVisible, onClose }: MiniToastProps) {
           }
         `}
       >
-        {/* Player name and play description */}
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-white leading-tight">{notification.playerName}</span>
-          <span className="text-xs text-slate-400 leading-tight">{notification.playDescription}</span>
-        </div>
-
-        {/* Points */}
-        <div className={`text-xl font-bold ${notification.points >= 0 ? 'text-field-400' : 'text-red-400'}`}>
-          {notification.points >= 0 ? '+' : ''}{notification.points.toFixed(1)}
-        </div>
-
         {/* Player headshot */}
         <img
           src={getPlayerHeadshotUrl(notification.playerId)}
           alt={notification.playerName}
-          className="w-8 h-8 rounded-full bg-slate-700 object-cover"
+          className="w-10 h-10 rounded-full bg-slate-700 object-cover"
           onError={(e) => {
             (e.target as HTMLImageElement).src = '/favicon.png'
           }}
         />
+
+        {/* Player name and play description */}
+        <div className="flex flex-col">
+          <span className="text-base font-medium text-white leading-tight">{notification.playerName}</span>
+          <span className="text-sm text-slate-400 leading-tight">{notification.playDescription}</span>
+        </div>
+
+        {/* Points */}
+        <div className={`text-2xl font-bold ${notification.points >= 0 ? 'text-field-400' : 'text-red-400'}`}>
+          {notification.points >= 0 ? '+' : ''}{notification.points.toFixed(1)}
+        </div>
       </div>
     </div>
   )
