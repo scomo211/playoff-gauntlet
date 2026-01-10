@@ -601,12 +601,14 @@ export default function Lineup() {
           {lineupSlots.map((slot) => {
             const gameStatus = slot.player ? getGameStatus(slot.player.team?.id, slot.player.team?.playoff_seed) : 'upcoming'
             const isLive = gameStatus === 'live'
+            const isFinal = gameStatus === 'final'
 
             return (
             <div
               key={slot.slot}
               className={`px-6 py-4 ${
                 isLive ? 'bg-green-500/10 border-l-2 border-l-green-500' :
+                isFinal ? 'bg-slate-500/10 border-l-2 border-l-slate-500' :
                 !slot.player && canEdit && !lineup?.is_submitted ? 'bg-yellow-500/5' : ''
               }`}
             >
