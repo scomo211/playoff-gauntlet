@@ -35,6 +35,10 @@ export default function AdminUserDetail() {
   const [loading, setLoading] = useState(true)
   const [editingPayment, setEditingPayment] = useState(false)
   const [paymentInput, setPaymentInput] = useState('')
+  const [editingDisplayName, setEditingDisplayName] = useState(false)
+  const [displayNameInput, setDisplayNameInput] = useState('')
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
+  const [entryNameInput, setEntryNameInput] = useState('')
 
   const fetchUserData = async () => {
     if (!userId) return
@@ -109,6 +113,63 @@ export default function AdminUserDetail() {
   const handleCancelEdit = () => {
     setEditingPayment(false)
     setPaymentInput('')
+  }
+
+  // Display name editing handlers
+  const handleStartEditDisplayName = () => {
+    if (!user) return
+    setEditingDisplayName(true)
+    setDisplayNameInput(user.display_name || '')
+  }
+
+  const handleSaveDisplayName = async () => {
+    if (!user || !displayNameInput.trim()) return
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ display_name: displayNameInput.trim() })
+      .eq('id', user.id)
+
+    if (error) {
+      alert('Failed to save display name: ' + error.message)
+    } else {
+      setEditingDisplayName(false)
+      setDisplayNameInput('')
+      fetchUserData()
+    }
+  }
+
+  const handleCancelDisplayNameEdit = () => {
+    setEditingDisplayName(false)
+    setDisplayNameInput('')
+  }
+
+  // Entry name editing handlers
+  const handleStartEditEntryName = (entry: UserEntry) => {
+    setEditingEntryId(entry.id)
+    setEntryNameInput(entry.entry_name)
+  }
+
+  const handleSaveEntryName = async (entryId: string) => {
+    if (!entryNameInput.trim()) return
+
+    const { error } = await supabase
+      .from('entries')
+      .update({ entry_name: entryNameInput.trim() })
+      .eq('id', entryId)
+
+    if (error) {
+      alert('Failed to save entry name: ' + error.message)
+    } else {
+      setEditingEntryId(null)
+      setEntryNameInput('')
+      fetchUserData()
+    }
+  }
+
+  const handleCancelEntryNameEdit = () => {
+    setEditingEntryId(null)
+    setEntryNameInput('')
   }
 
   const handleDeleteEntry = async (entry: UserEntry) => {
@@ -196,7 +257,52 @@ export default function AdminUserDetail() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{user.display_name}</h1>
+            {editingDisplayName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={displayNameInput}
+                  onChange={(e) => setDisplayNameInput(e.target.value)}
+                  className="text-2xl font-bold text-gray-900 px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveDisplayName()
+                    if (e.key === 'Escape') handleCancelDisplayNameEdit()
+                  }}
+                />
+                <button
+                  onClick={handleSaveDisplayName}
+                  className="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                  title="Save"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleCancelDisplayNameEdit}
+                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                  title="Cancel"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group">
+                <h1 className="text-2xl font-bold text-gray-900">{user.display_name}</h1>
+                <button
+                  onClick={handleStartEditDisplayName}
+                  className="p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition"
+                  title="Edit display name"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </div>
+            )}
             <p className="text-gray-600 mt-1">{user.email}</p>
             {user.phone && (
               <p className="text-gray-500 text-sm mt-1">{user.phone}</p>
@@ -331,8 +437,55 @@ export default function AdminUserDetail() {
               {entries.map(entry => (
                 <tr key={entry.id} className={`hover:bg-gray-50 ${!entry.is_active ? 'opacity-50' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900">{entry.entry_name}</div>
-                    <div className="text-xs text-gray-500">{formatDate(entry.created_at)}</div>
+                    {editingEntryId === entry.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={entryNameInput}
+                          onChange={(e) => setEntryNameInput(e.target.value)}
+                          className="font-medium text-gray-900 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEntryName(entry.id)
+                            if (e.key === 'Escape') handleCancelEntryNameEdit()
+                          }}
+                        />
+                        <button
+                          onClick={() => handleSaveEntryName(entry.id)}
+                          className="p-1 text-green-600 hover:text-green-700"
+                          title="Save"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={handleCancelEntryNameEdit}
+                          className="p-1 text-gray-500 hover:text-gray-700"
+                          title="Cancel"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="group flex items-center gap-2">
+                        <div>
+                          <div className="font-medium text-gray-900">{entry.entry_name}</div>
+                          <div className="text-xs text-gray-500">{formatDate(entry.created_at)}</div>
+                        </div>
+                        <button
+                          onClick={() => handleStartEditEntryName(entry)}
+                          className="p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition"
+                          title="Edit entry name"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <button

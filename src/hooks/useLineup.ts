@@ -37,11 +37,11 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
   const [error, setError] = useState<string | null>(null)
 
   // Fetch lineup data
-  const fetchLineup = useCallback(async () => {
+  const fetchLineup = useCallback(async (silent: boolean = false) => {
     if (!entryId || !weekId) return
 
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
 
       // Fetch week info
       const { data: weekData, error: weekError } = await supabase
@@ -236,7 +236,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
         }
       }
 
-      await fetchLineup()
+      await fetchLineup(true) // Silent refetch - don't show loading spinner
       return { error: null }
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Failed to add player' }
@@ -289,7 +289,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
         }
       }
 
-      await fetchLineup()
+      await fetchLineup(true) // Silent refetch - don't show loading spinner
       return { error: null }
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Failed to remove player' }
@@ -342,7 +342,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
         if (usedError) throw usedError
       }
 
-      await fetchLineup()
+      await fetchLineup(true) // Silent refetch
       return { error: null }
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Failed to submit lineup' }
@@ -381,7 +381,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
         if (deleteError) throw deleteError
       }
 
-      await fetchLineup()
+      await fetchLineup(true) // Silent refetch
       return { error: null }
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Failed to unsubmit lineup' }

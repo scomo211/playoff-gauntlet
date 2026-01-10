@@ -25,7 +25,11 @@ export default function AdminDashboard() {
   const [commissionerFee, setCommissionerFee] = useState(0)
   const [payoutPercentages, setPayoutPercentages] = useState<number[]>([65, 20, 10, 5])
   const [payoutDollars, setPayoutDollars] = useState<number[]>([])
-  const [useDollarMode, setUseDollarMode] = useState(false)
+  const [useDollarMode, setUseDollarMode] = useState(() => {
+    // Load saved preference from localStorage
+    const saved = localStorage.getItem('payoutDollarMode')
+    return saved === 'true'
+  })
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   // Load saved payout settings from database
@@ -304,7 +308,10 @@ export default function AdminDashboard() {
               <span className="text-sm text-gray-500">Payout Distribution ({payoutSpots} spots)</span>
               <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
                 <button
-                  onClick={() => setUseDollarMode(false)}
+                  onClick={() => {
+                    setUseDollarMode(false)
+                    localStorage.setItem('payoutDollarMode', 'false')
+                  }}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition ${
                     !useDollarMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
@@ -312,7 +319,10 @@ export default function AdminDashboard() {
                   %
                 </button>
                 <button
-                  onClick={() => setUseDollarMode(true)}
+                  onClick={() => {
+                    setUseDollarMode(true)
+                    localStorage.setItem('payoutDollarMode', 'true')
+                  }}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition ${
                     useDollarMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}

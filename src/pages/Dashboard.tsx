@@ -534,11 +534,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Favorites Leaderboard */}
-            <div className="mt-6">
-              <FavoritesLeaderboard currentWeek={currentWeek} />
-            </div>
-
+            
           </div>
 
           {/* Your Entries Section - Right 1/3 */}
@@ -647,6 +643,15 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Favorites Leaderboard - Full Width */}
+        <div className="mt-8">
+          <FavoritesLeaderboard
+            currentWeek={currentWeek}
+            payoutSpots={payoutSpots}
+            payoutAmounts={payoutAmounts}
+          />
         </div>
 
         {/* Chalk Picks of the Week - Full Width */}
