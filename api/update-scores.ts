@@ -42,9 +42,11 @@ interface SleeperPlayerStats {
     sack?: number            // sacks
     safe?: number            // safeties
     pts_allow?: number       // points allowed
-    td?: number              // defensive/ST TDs (Sleeper combines them)
-    def_td?: number          // defensive TD (alternative)
-    st_td?: number           // special teams TD (alternative)
+    // TD fields - don't use generic "td" as it includes offensive TDs!
+    def_td?: number          // defensive TD
+    st_td?: number           // special teams TD
+    int_ret_td?: number      // interception return TD
+    fum_ret_td?: number      // fumble return TD
     // Misc
     fum_lost?: number
     pr_td?: number
@@ -89,12 +91,15 @@ function calculatePoints(stats: SleeperPlayerStats['stats'], position: string): 
   points += (stats.xpm || 0) * 1
   points += (stats.xpmiss || 0) * -1
 
-  // Defense: +2 fumble rec, +2 INT, +1 sack, +2 safety
+  // Defense: +2 fumble rec, +2 INT, +1 sack, +2 safety, +6 def/ST TD
   if (position === 'DEF') {
     // Use Sleeper field names with fallbacks
+    // Note: Sleeper's generic "td" field includes offensive TDs, don't use it!
+    // Only count TDs from specific defensive/ST fields
     const fumbleRec = stats.def_st_fum_rec || stats.fum_rec || 0
     const interceptions = stats.int || stats.def_int || 0
-    const defTDs = stats.td || ((stats.def_td || 0) + (stats.st_td || 0))
+    // Only count defensive/ST TDs from specific fields, NOT generic "td"
+    const defTDs = (stats.def_td || 0) + (stats.st_td || 0) + (stats.int_ret_td || 0) + (stats.fum_ret_td || 0)
 
     points += fumbleRec * 2
     points += interceptions * 2
