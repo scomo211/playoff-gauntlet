@@ -163,32 +163,26 @@ export default function Dashboard() {
     return () => clearInterval(interval)
   }, [])
 
-  // Default payout percentages based on number of spots
+  // Default payout amounts in dollars based on number of spots
   const DEFAULT_PAYOUTS: Record<number, number[]> = {
-    4: [65, 20, 10, 5],
-    5: [55, 20, 12, 8, 5],
-    6: [50, 20, 12, 8, 6, 4],
-    7: [45, 18, 12, 9, 7, 5, 4],
-    8: [40, 18, 12, 9, 7, 6, 5, 3],
-    9: [38, 17, 12, 9, 7, 6, 5, 4, 2],
-    10: [35, 16, 12, 9, 7, 6, 5, 4, 3, 3],
+    4: [650, 200, 100, 50],
+    5: [550, 200, 120, 80, 50],
+    6: [500, 200, 120, 80, 60, 40],
+    7: [450, 180, 120, 90, 70, 50, 40],
+    8: [400, 180, 120, 90, 70, 60, 50, 30],
+    9: [380, 170, 120, 90, 70, 60, 50, 40, 20],
+    10: [350, 160, 120, 90, 70, 60, 50, 40, 30, 30],
   }
 
-  // Calculate payout amounts when settings or entry count changes
+  // Use stored payout amounts or defaults
   useEffect(() => {
     if (leaderboardEntries.length > 0) {
-      const count = leaderboardEntries.length
-      const totalPot = count * 25
-      const commFee = settings?.commissioner_fee || 0
-      const netPool = totalPot - commFee
-
-      // Use stored percentages if they match current payout spots, otherwise use defaults
-      const storedPercentages = settings?.payout_percentages || []
-      const percentages = storedPercentages.length >= payoutSpots
-        ? storedPercentages.slice(0, payoutSpots)
+      // Use stored dollar amounts if they match current payout spots, otherwise use defaults
+      const storedAmounts = settings?.payout_amounts || []
+      const amounts = storedAmounts.length >= payoutSpots
+        ? storedAmounts.slice(0, payoutSpots)
         : DEFAULT_PAYOUTS[payoutSpots] || DEFAULT_PAYOUTS[4]
 
-      const amounts = percentages.map(pct => Math.round((netPool * pct) / 100))
       setPayoutAmounts(amounts)
     }
   }, [settings, leaderboardEntries.length, payoutSpots])
