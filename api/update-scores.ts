@@ -286,40 +286,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Create a map of player_id -> points for quick lookup
     const pointsMap = new Map(playerStats.map(p => [p.player_id, p.total_points]))
 
-    // Update each lineup_player's points
-    let updatedLineupPlayers = 0
+    // Batch update lineup_players - collect all updates first
+    const lineupPlayerUpdates: Array<{ id: string; points_scored: number }> = []
+    const lineupTotals: Map<string, number> = new Map()
+
     for (const lineup of lineups || []) {
+      let lineupTotal = 0
       for (const lp of lineup.lineup_players || []) {
         const points = pointsMap.get(lp.player_id) || 0
-        await supabaseRequest(`/lineup_players?id=eq.${lp.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ points_scored: points }),
-        })
-        updatedLineupPlayers++
+        lineupPlayerUpdates.push({ id: lp.id, points_scored: points })
+        lineupTotal += points
       }
+      lineupTotals.set(lineup.id, Math.round(lineupTotal * 100) / 100)
     }
 
-    console.log(`Updated ${updatedLineupPlayers} lineup player scores`)
-
-    // Recalculate lineup totals
-    let updatedLineups = 0
-    for (const lineup of lineups || []) {
-      const lineupPlayers = await supabaseRequest(
-        `/lineup_players?lineup_id=eq.${lineup.id}&select=points_scored`
-      )
-      const totalPoints = (lineupPlayers || []).reduce(
-        (sum: number, lp: { points_scored: number }) => sum + (lp.points_scored || 0),
-        0
-      )
-
-      await supabaseRequest(`/lineups?id=eq.${lineup.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ total_points: Math.round(totalPoints * 100) / 100 }),
+    // Batch update all lineup_players in chunks (Supabase has limits on request size)
+    const BATCH_SIZE = 50
+    for (let i = 0; i < lineupPlayerUpdates.length; i += BATCH_SIZE) {
+      const batch = lineupPlayerUpdates.slice(i, i + BATCH_SIZE)
+      // Use upsert with on_conflict to update existing records
+      await supabaseRequest('/lineup_players', {
+        method: 'POST',
+        headers: {
+          'Prefer': 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify(batch),
       })
-      updatedLineups++
     }
 
-    console.log(`Updated ${updatedLineups} lineup totals`)
+    console.log(`Updated ${lineupPlayerUpdates.length} lineup player scores`)
+
+    // Batch update lineup totals
+    const lineupUpdates = Array.from(lineupTotals.entries()).map(([id, total_points]) => ({
+      id,
+      total_points,
+    }))
+
+    for (let i = 0; i < lineupUpdates.length; i += BATCH_SIZE) {
+      const batch = lineupUpdates.slice(i, i + BATCH_SIZE)
+      await supabaseRequest('/lineups', {
+        method: 'POST',
+        headers: {
+          'Prefer': 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify(batch),
+      })
+    }
+
+    console.log(`Updated ${lineupUpdates.length} lineup totals`)
 
     return res.status(200).json({
       success: true,
@@ -328,8 +342,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       season: testMode ? '2024' : '2025',
       week: currentWeek,
       playersUpdated: playerStats.length,
-      lineupsUpdated: updatedLineups,
-      lineupPlayersUpdated: updatedLineupPlayers,
+      lineupsUpdated: lineupUpdates.length,
+      lineupPlayersUpdated: lineupPlayerUpdates.length,
     })
   } catch (error) {
     console.error('Error updating scores:', error)
