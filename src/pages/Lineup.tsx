@@ -13,6 +13,7 @@ import { getOpponentInfo } from '../lib/matchups'
 import Layout from '../components/Layout'
 import PlayerSelectModal from '../components/PlayerSelectModal'
 import { useToast } from '../contexts/ToastContext'
+import AnimatedScore from '../components/AnimatedScore'
 
 const POSITION_COLORS: Record<Position, string> = {
   QB: 'bg-red-100 text-red-800 border-red-200',
@@ -93,7 +94,16 @@ export default function Lineup() {
     addPlayer,
     removePlayer,
     submitLineup,
+    refetch: refetchLineup,
   } = useLineup(entryId || '', weekId, isAdmin)
+
+  // Poll for live updates every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchLineup()
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [refetchLineup])
 
   // Fetch entry details with owner profile
   useEffect(() => {
@@ -374,7 +384,10 @@ export default function Lineup() {
           {canViewLineup ? (
             <div className="bg-gradient-to-br from-field-500/20 to-field-600/10 border border-field-500/30 rounded-xl px-5 py-3 text-center shadow-lg shadow-field-500/10">
               <div className="text-xs font-medium text-field-300 uppercase tracking-wider mb-1">Total Points</div>
-              <div className="text-3xl font-bold text-white">{totalPoints.toFixed(1)}</div>
+              <AnimatedScore
+                value={totalPoints}
+                className="text-3xl font-bold text-white inline-block px-2 py-1 rounded"
+              />
               {weekRank && (
                 <div className="text-xs text-slate-400 mt-1">
                   Rank: {weekRank.rank} of {weekRank.total}
@@ -578,7 +591,10 @@ export default function Lineup() {
                   {slot.player && (
                     <span className={`text-lg font-semibold flex items-center gap-1 ${isTopScorer(slot) ? 'text-yellow-400' : 'text-field-400'}`}>
                       {isTopScorer(slot) && <span>👑</span>}
-                      {slot.points.toFixed(1)}
+                      <AnimatedScore
+                        value={slot.points}
+                        className="inline-block px-1 py-0.5 rounded"
+                      />
                     </span>
                   )}
 
@@ -649,7 +665,10 @@ export default function Lineup() {
                   {slot.player && (
                     <span className={`text-lg font-semibold w-20 text-right flex items-center justify-end gap-1 ${isTopScorer(slot) ? 'text-yellow-400' : 'text-field-400'}`}>
                       {isTopScorer(slot) && <span>👑</span>}
-                      {slot.points.toFixed(1)}
+                      <AnimatedScore
+                        value={slot.points}
+                        className="inline-block px-1 py-0.5 rounded"
+                      />
                     </span>
                   )}
 
