@@ -304,6 +304,7 @@ export default function AdminDashboard() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Place</th>
                   <th className="px-4 py-3 text-center font-medium text-gray-600">Amount</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-600">% of Pool</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -314,6 +315,7 @@ export default function AdminDashboard() {
                     if (n === 3) return 'rd'
                     return 'th'
                   }
+                  const percentage = netPrizePool > 0 ? (dollarAmount / netPrizePool) * 100 : 0
 
                   return (
                     <tr key={index} className="bg-white">
@@ -333,6 +335,9 @@ export default function AdminDashboard() {
                           />
                         </div>
                       </td>
+                      <td className="px-4 py-3 text-right text-gray-500">
+                        {percentage.toFixed(1)}%
+                      </td>
                     </tr>
                   )
                 })}
@@ -342,6 +347,9 @@ export default function AdminDashboard() {
                     <span className={Math.abs(remainingDollars) < 1 ? 'text-green-600' : 'text-red-600'}>
                       ${totalAllocated.toLocaleString()}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-500">
+                    {netPrizePool > 0 ? ((totalAllocated / netPrizePool) * 100).toFixed(1) : 0}%
                   </td>
                 </tr>
               </tbody>
