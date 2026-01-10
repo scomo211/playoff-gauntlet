@@ -410,7 +410,7 @@ export default function Dashboard() {
                               </div>
                             </td>
                             <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
-                              <div className="text-sm font-medium text-white truncate max-w-[80px] sm:max-w-none" title={entry.entry_name}>{entry.entry_name}</div>
+                              <div className="text-sm font-medium text-white truncate max-w-[150px] sm:max-w-none" title={entry.entry_name}>{entry.entry_name}</div>
                             </td>
                             <td className="hidden md:table-cell px-2 sm:px-4 py-3 whitespace-nowrap">
                               <div className="text-sm text-slate-400 truncate max-w-[80px] sm:max-w-none" title={entry.display_name}>{entry.display_name}</div>
