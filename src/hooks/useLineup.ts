@@ -14,6 +14,16 @@ export interface PlayerStats {
   receptions: number
   rec_yards: number
   rec_td: number
+  // Kicker stats
+  fg_made_yards: number
+  xp_made: number
+  xp_missed: number
+  // Defense stats
+  def_pts_allowed: number
+  def_sacks: number
+  def_int: number
+  def_fumble_rec: number
+  def_safety: number
 }
 
 export interface LineupSlot {
@@ -126,7 +136,7 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
       if (playerIds.length > 0) {
         const { data: statsData } = await supabase
           .from('player_weekly_stats')
-          .select('player_id, pass_cmp, pass_att, pass_yards, pass_td, rush_att, rush_yards, rush_td, receptions, rec_yards, rec_td')
+          .select('player_id, pass_cmp, pass_att, pass_yards, pass_td, rush_att, rush_yards, rush_td, receptions, rec_yards, rec_td, fg_made_yards, xp_made, xp_missed, def_pts_allowed, def_sacks, def_int, def_fumble_rec, def_safety')
           .eq('week_id', weekId)
           .in('player_id', playerIds)
 
@@ -144,6 +154,14 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
             receptions: number
             rec_yards: number
             rec_td: number
+            fg_made_yards: number
+            xp_made: number
+            xp_missed: number
+            def_pts_allowed: number
+            def_sacks: number
+            def_int: number
+            def_fumble_rec: number
+            def_safety: number
           }) => {
             statsMap.set(stat.player_id, {
               pass_cmp: stat.pass_cmp || 0,
@@ -156,6 +174,14 @@ export function useLineup(entryId: string, weekId: number, isAdmin: boolean = fa
               receptions: stat.receptions || 0,
               rec_yards: stat.rec_yards || 0,
               rec_td: stat.rec_td || 0,
+              fg_made_yards: stat.fg_made_yards || 0,
+              xp_made: stat.xp_made || 0,
+              xp_missed: stat.xp_missed || 0,
+              def_pts_allowed: stat.def_pts_allowed || 0,
+              def_sacks: stat.def_sacks || 0,
+              def_int: stat.def_int || 0,
+              def_fumble_rec: stat.def_fumble_rec || 0,
+              def_safety: stat.def_safety || 0,
             })
           })
         }

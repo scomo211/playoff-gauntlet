@@ -57,6 +57,16 @@ interface PlayerStats {
   receptions?: number
   rec_yards?: number
   rec_td?: number
+  // Kicker stats
+  fg_made_yards?: number
+  xp_made?: number
+  xp_missed?: number
+  // Defense stats
+  def_pts_allowed?: number
+  def_sacks?: number
+  def_int?: number
+  def_fumble_rec?: number
+  def_safety?: number
 }
 
 interface Projection {
@@ -79,10 +89,39 @@ const getTeamLogoUrl = (teamId: string) =>
   `https://a.espncdn.com/i/teamlogos/nfl/500/${teamId.toLowerCase()}.png`
 
 // Format player stats as inline text
-function formatPlayerStats(stats: PlayerStats | undefined): string {
+function formatPlayerStats(stats: PlayerStats | undefined, position?: string): string {
   if (!stats) return ''
 
   const parts: string[] = []
+
+  // Kicker stats: "FG: 66 yds, XP: 2/2"
+  if (position === 'K') {
+    const fgYards = stats.fg_made_yards || 0
+    const xpMade = stats.xp_made || 0
+    const xpMissed = stats.xp_missed || 0
+    const xpAtt = xpMade + xpMissed
+    if (fgYards > 0 || xpAtt > 0) {
+      if (fgYards > 0) parts.push(`FG: ${fgYards} yds`)
+      if (xpAtt > 0) parts.push(`XP: ${xpMade}/${xpAtt}`)
+    }
+    return parts.join(', ')
+  }
+
+  // Defense stats: "17 PA, 2 sacks, 1 INT"
+  if (position === 'DEF') {
+    const ptsAllowed = stats.def_pts_allowed || 0
+    const sacks = stats.def_sacks || 0
+    const ints = stats.def_int || 0
+    const fumbles = stats.def_fumble_rec || 0
+    const safeties = stats.def_safety || 0
+
+    parts.push(`${ptsAllowed} PA`)
+    if (sacks > 0) parts.push(`${sacks} sack${sacks !== 1 ? 's' : ''}`)
+    if (ints > 0) parts.push(`${ints} INT`)
+    if (fumbles > 0) parts.push(`${fumbles} FR`)
+    if (safeties > 0) parts.push(`${safeties} safety`)
+    return parts.join(', ')
+  }
 
   // Passing stats: "14/18, 179 yd, 1 TD"
   if ((stats.pass_att || 0) > 0 || (stats.pass_yards || 0) > 0 || (stats.pass_td || 0) > 0) {
@@ -162,7 +201,7 @@ export default function Players() {
         // Fetch player stats (total points from all weeks)
         const { data: statsData } = await supabase
           .from('player_weekly_stats')
-          .select('player_id, total_points, week_id, pass_cmp, pass_att, pass_yards, pass_td, rush_att, rush_yards, rush_td, receptions, rec_yards, rec_td')
+          .select('player_id, total_points, week_id, pass_cmp, pass_att, pass_yards, pass_td, rush_att, rush_yards, rush_td, receptions, rec_yards, rec_td, fg_made_yards, xp_made, xp_missed, def_pts_allowed, def_sacks, def_int, def_fumble_rec, def_safety')
 
         if (statsData) {
           const statsMap = new Map<string, number>()
@@ -476,7 +515,7 @@ export default function Players() {
                   const isLive = gameStatus === 'live'
                   const isFinal = gameStatus === 'final'
                   const stats = weeklyStats.get(player.id)
-                  const statsText = formatPlayerStats(stats)
+                  const statsText = formatPlayerStats(stats, player.position)
                   return (
                     <tr key={player.id} className={`transition-colors ${
                       isLive ? 'bg-green-500/10' :

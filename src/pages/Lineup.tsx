@@ -76,10 +76,47 @@ function formatPlayerStats(stats: {
   receptions: number
   rec_yards: number
   rec_td: number
-} | null): string {
+  fg_made_yards: number
+  xp_made: number
+  xp_missed: number
+  def_pts_allowed: number
+  def_sacks: number
+  def_int: number
+  def_fumble_rec: number
+  def_safety: number
+} | null, position?: string): string {
   if (!stats) return ''
 
   const parts: string[] = []
+
+  // Kicker stats: "FG: 66 yds, XP: 2/2"
+  if (position === 'K') {
+    const fgYards = stats.fg_made_yards || 0
+    const xpMade = stats.xp_made || 0
+    const xpMissed = stats.xp_missed || 0
+    const xpAtt = xpMade + xpMissed
+    if (fgYards > 0 || xpAtt > 0) {
+      if (fgYards > 0) parts.push(`FG: ${fgYards} yds`)
+      if (xpAtt > 0) parts.push(`XP: ${xpMade}/${xpAtt}`)
+    }
+    return parts.join(', ')
+  }
+
+  // Defense stats: "17 PA, 2 sacks, 1 INT"
+  if (position === 'DEF') {
+    const ptsAllowed = stats.def_pts_allowed || 0
+    const sacks = stats.def_sacks || 0
+    const ints = stats.def_int || 0
+    const fumbles = stats.def_fumble_rec || 0
+    const safeties = stats.def_safety || 0
+
+    parts.push(`${ptsAllowed} PA`)
+    if (sacks > 0) parts.push(`${sacks} sack${sacks !== 1 ? 's' : ''}`)
+    if (ints > 0) parts.push(`${ints} INT`)
+    if (fumbles > 0) parts.push(`${fumbles} FR`)
+    if (safeties > 0) parts.push(`${safeties} safety`)
+    return parts.join(', ')
+  }
 
   // Passing stats: "14/18, 179 yd, 1 TD"
   if (stats.pass_att > 0 || stats.pass_yards > 0 || stats.pass_td > 0) {
@@ -643,9 +680,9 @@ export default function Lineup() {
                             {getOpponentDisplay(slot.player.team as Team)}
                           </div>
                         )}
-                        {formatPlayerStats(slot.stats) && (
+                        {formatPlayerStats(slot.stats, slot.position) && (
                           <div className="text-xs text-slate-500 mt-0.5">
-                            {formatPlayerStats(slot.stats)}
+                            {formatPlayerStats(slot.stats, slot.position)}
                           </div>
                         )}
                       </div>
@@ -719,9 +756,9 @@ export default function Lineup() {
                           </span>
                           <GameStatusIndicator status={gameStatus} />
                         </div>
-                        {formatPlayerStats(slot.stats) && (
+                        {formatPlayerStats(slot.stats, slot.position) && (
                           <div className="text-sm text-slate-500 mt-0.5">
-                            {formatPlayerStats(slot.stats)}
+                            {formatPlayerStats(slot.stats, slot.position)}
                           </div>
                         )}
                       </div>

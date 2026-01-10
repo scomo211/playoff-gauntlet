@@ -220,6 +220,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rec_yards: number
       rec_td: number
       fumbles_lost: number
+      // Kicker stats
+      fg_made_yards: number
+      xp_made: number
+      xp_missed: number
+      // Defense stats
+      def_pts_allowed: number
+      def_sacks: number
+      def_int: number
+      def_fumble_rec: number
+      def_safety: number
     }> = []
 
     for (const stat of sleeperStats) {
@@ -244,6 +254,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         rec_yards: stat.stats.rec_yd || 0,
         rec_td: stat.stats.rec_td || 0,
         fumbles_lost: stat.stats.fum_lost || 0,
+        // Kicker stats
+        fg_made_yards: stat.stats.fgm_yds || 0,
+        xp_made: stat.stats.xpm || 0,
+        xp_missed: stat.stats.xpmiss || 0,
+        // Defense stats
+        def_pts_allowed: stat.stats.pts_allow || 0,
+        def_sacks: stat.stats.sack || 0,
+        def_int: stat.stats.int || stat.stats.def_int || 0,
+        def_fumble_rec: stat.stats.def_st_fum_rec || stat.stats.fum_rec || 0,
+        def_safety: stat.stats.safe || 0,
       })
     }
 
