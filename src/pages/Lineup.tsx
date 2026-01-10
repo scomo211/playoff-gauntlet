@@ -10,11 +10,50 @@ import { useIsAdmin } from '../hooks/useAdmin'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 import { formatDeadline, formatMobileDeadline } from '../lib/formatTime'
 import { getOpponentInfo } from '../lib/matchups'
+import { useGameStatus } from '../hooks/useGameStatus'
+import { GameStatus } from '../lib/schedule'
 import Layout from '../components/Layout'
 import PlayerSelectModal from '../components/PlayerSelectModal'
 import { useToast } from '../contexts/ToastContext'
 import AnimatedScore from '../components/AnimatedScore'
 import { useFavorites } from '../hooks/useFavorites'
+
+// Game status indicator component
+function GameStatusIndicator({ status }: { status: GameStatus | 'bye' }) {
+  if (status === 'live') {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        </span>
+        LIVE
+      </span>
+    )
+  }
+
+  if (status === 'final') {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-500/20 text-slate-400 border border-slate-500/30">
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        FINAL
+      </span>
+    )
+  }
+
+  if (status === 'bye') {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+        BYE
+      </span>
+    )
+  }
+
+  // upcoming - no indicator needed (or subtle clock)
+  return null
+}
 
 const POSITION_COLORS: Record<Position, string> = {
   QB: 'bg-red-100 text-red-800 border-red-200',
@@ -81,6 +120,7 @@ export default function Lineup() {
   const { players, loading: playersLoading } = usePlayers()
   const { getProjection, loading: projectionsLoading } = useProjections(weekId)
   const { isAdmin } = useIsAdmin()
+  const { getStatus: getGameStatus } = useGameStatus(weekId)
   const {
     lineup,
     week,
@@ -587,8 +627,9 @@ export default function Lineup() {
                       />
                       <div>
                         <div className="font-medium text-white">{slot.player.name}</div>
-                        <div className="text-sm text-slate-400">
-                          {slot.player.team?.city} {slot.player.team?.name}
+                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                          <span>{slot.player.team?.city} {slot.player.team?.name}</span>
+                          <GameStatusIndicator status={getGameStatus(slot.player.team?.id, slot.player.team?.playoff_seed)} />
                         </div>
                         {getOpponentDisplay(slot.player.team as Team) && (
                           <div className="text-xs text-slate-500 mt-0.5">
@@ -662,11 +703,14 @@ export default function Lineup() {
                       />
                       <div>
                         <div className="font-medium text-white">{slot.player.name}</div>
-                        <div className="text-sm text-slate-400">
-                          {slot.player.team?.city} {slot.player.team?.name}
-                          {getOpponentDisplay(slot.player.team as Team) && (
-                            <span className="text-slate-500 ml-1.5">• {getOpponentDisplay(slot.player.team as Team)}</span>
-                          )}
+                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                          <span>
+                            {slot.player.team?.city} {slot.player.team?.name}
+                            {getOpponentDisplay(slot.player.team as Team) && (
+                              <span className="text-slate-500 ml-1.5">• {getOpponentDisplay(slot.player.team as Team)}</span>
+                            )}
+                          </span>
+                          <GameStatusIndicator status={getGameStatus(slot.player.team?.id, slot.player.team?.playoff_seed)} />
                         </div>
                         {formatPlayerStats(slot.stats) && (
                           <div className="text-sm text-slate-500 mt-0.5">

@@ -71,7 +71,19 @@
       "WebFetch(domain:www.rotowire.com)",
       "WebFetch(domain:www.numberfire.com)",
       "WebFetch(domain:www.fanduel.com)",
-      "Bash(echo \"=== Users with UNSUBMITTED lineups for Week 1 \\(these received emails\\) ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/entries?select=entry_name,user_id,profiles\\(display_name,email\\),lineups\\(is_submitted\\)&is_active=eq.true&lineups.week_id=eq.1&lineups.is_submitted=eq.false\" -H \"apikey: $APIKEY\")"
+      "Bash(echo \"=== Users with UNSUBMITTED lineups for Week 1 \\(these received emails\\) ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/entries?select=entry_name,user_id,profiles\\(display_name,email\\),lineups\\(is_submitted\\)&is_active=eq.true&lineups.week_id=eq.1&lineups.is_submitted=eq.false\" -H \"apikey: $APIKEY\")",
+      "Bash(__NEW_LINE__ echo \"=== Player stats for Week 1 \\(top 10 by points\\) ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Current week settings ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Check if Derrick Henry \\(Sleeper ID: 3198\\) is in our database ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Search for Derrick Henry by name ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Top lineup totals for Week 1 ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Get player names and teams for top scorers ===\")",
+      "Bash(for id in 11635 4984 7569 6904 421 5850)",
+      "Bash(do)",
+      "Bash(done)",
+      "Bash(echo \"=== Check if any Week 1 stats exist now ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/player_weekly_stats?week_id=eq.1&order=total_points.desc&limit=10&select=player_id,total_points\" -H \"apikey: $APIKEY\")",
+      "Bash(for id in 9493 421 7694 11646 9228 7594)",
+      "Bash(APIKEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE echo '=== Check for games/schedule tables ===' curl -s https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/ -H 'apikey: $APIKEY')"
     ]
   }
 }

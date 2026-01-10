@@ -131,6 +131,7 @@ export interface LeagueSettings {
   updated_at: string
   commissioner_fee: number
   payout_percentages: number[]
+  payout_amounts: number[] | null
 }
 
 // Leaderboard entry with calculated fields

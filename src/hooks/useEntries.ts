@@ -137,13 +137,16 @@ export function useLeagueSettings() {
           .single()
 
         if (error) throw error
-        // Parse payout_percentages if it's a string (JSON from DB)
+        // Parse payout_percentages and payout_amounts if they're strings (JSON from DB)
         const parsedData = {
           ...data,
           commissioner_fee: data.commissioner_fee || 0,
           payout_percentages: typeof data.payout_percentages === 'string'
             ? JSON.parse(data.payout_percentages)
-            : data.payout_percentages || [65, 20, 10, 5]
+            : data.payout_percentages || [65, 20, 10, 5],
+          payout_amounts: typeof data.payout_amounts === 'string'
+            ? JSON.parse(data.payout_amounts)
+            : data.payout_amounts || null
         }
         setSettings(parsedData)
       } catch (err) {
@@ -158,15 +161,26 @@ export function useLeagueSettings() {
 
   const updatePayoutSettings = async (
     commissionerFee: number,
-    payoutPercentages: number[]
+    payoutPercentages: number[],
+    payoutAmounts?: number[]
   ): Promise<{ error: string | null }> => {
     try {
+      const updateData: {
+        commissioner_fee: number
+        payout_percentages: number[]
+        payout_amounts?: number[]
+      } = {
+        commissioner_fee: commissionerFee,
+        payout_percentages: payoutPercentages
+      }
+
+      if (payoutAmounts) {
+        updateData.payout_amounts = payoutAmounts
+      }
+
       const { error } = await supabase
         .from('league_settings')
-        .update({
-          commissioner_fee: commissionerFee,
-          payout_percentages: payoutPercentages
-        })
+        .update(updateData)
         .eq('id', 1)
 
       if (error) throw error
@@ -175,7 +189,8 @@ export function useLeagueSettings() {
       setSettings(prev => prev ? {
         ...prev,
         commissioner_fee: commissionerFee,
-        payout_percentages: payoutPercentages
+        payout_percentages: payoutPercentages,
+        payout_amounts: payoutAmounts || prev.payout_amounts
       } : null)
 
       return { error: null }

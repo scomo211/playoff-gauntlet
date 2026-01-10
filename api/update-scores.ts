@@ -26,7 +26,7 @@ interface SleeperPlayerStats {
     rec_2pt?: number
     // Kicking
     fgm?: number
-    fgm_yds?: number
+    fgm_yds?: number  // Total FG yards (Sleeper provides directly)
     fgm_0_19?: number
     fgm_20_29?: number
     fgm_30_39?: number
@@ -34,18 +34,21 @@ interface SleeperPlayerStats {
     fgm_50p?: number
     xpm?: number
     xpmiss?: number
-    // Defense
-    def_st_fum_rec?: number
-    def_int?: number
-    sack?: number
-    safe?: number
-    pts_allow?: number
+    // Defense (Sleeper field names)
+    def_st_fum_rec?: number  // fumble recoveries
+    fum_rec?: number         // alternative name for fumble recoveries
+    def_int?: number         // interceptions (alternative)
+    int?: number             // interceptions (Sleeper uses this)
+    sack?: number            // sacks
+    safe?: number            // safeties
+    pts_allow?: number       // points allowed
+    td?: number              // defensive/ST TDs (Sleeper combines them)
+    def_td?: number          // defensive TD (alternative)
+    st_td?: number           // special teams TD (alternative)
     // Misc
     fum_lost?: number
     pr_td?: number
     kr_td?: number
-    def_td?: number
-    st_td?: number
   }
 }
 
@@ -71,25 +74,33 @@ function calculatePoints(stats: SleeperPlayerStats['stats'], position: string): 
   points += (stats.rec_2pt || 0) * 2
 
   // Kicking: 0.1/FG yard, +1 XP, -1 XP miss
-  // Sleeper gives us individual FG buckets, calculate yards
-  const fgYards =
-    (stats.fgm_0_19 || 0) * 17 +    // avg 17 yards
-    (stats.fgm_20_29 || 0) * 25 +   // avg 25 yards
-    (stats.fgm_30_39 || 0) * 35 +   // avg 35 yards
-    (stats.fgm_40_49 || 0) * 45 +   // avg 45 yards
-    (stats.fgm_50p || 0) * 53       // avg 53 yards
+  // Sleeper provides fgm_yds directly, or we calculate from buckets as fallback
+  let fgYards = stats.fgm_yds || 0
+  if (!fgYards && (stats.fgm_0_19 || stats.fgm_20_29 || stats.fgm_30_39 || stats.fgm_40_49 || stats.fgm_50p)) {
+    // Fallback: calculate from buckets using average distances
+    fgYards =
+      (stats.fgm_0_19 || 0) * 17 +    // avg 17 yards
+      (stats.fgm_20_29 || 0) * 25 +   // avg 25 yards
+      (stats.fgm_30_39 || 0) * 35 +   // avg 35 yards
+      (stats.fgm_40_49 || 0) * 45 +   // avg 45 yards
+      (stats.fgm_50p || 0) * 53       // avg 53 yards
+  }
   points += fgYards * 0.1
   points += (stats.xpm || 0) * 1
   points += (stats.xpmiss || 0) * -1
 
   // Defense: +2 fumble rec, +2 INT, +1 sack, +2 safety
   if (position === 'DEF') {
-    points += (stats.def_st_fum_rec || 0) * 2
-    points += (stats.def_int || 0) * 2
+    // Use Sleeper field names with fallbacks
+    const fumbleRec = stats.def_st_fum_rec || stats.fum_rec || 0
+    const interceptions = stats.int || stats.def_int || 0
+    const defTDs = stats.td || ((stats.def_td || 0) + (stats.st_td || 0))
+
+    points += fumbleRec * 2
+    points += interceptions * 2
     points += (stats.sack || 0) * 1
     points += (stats.safe || 0) * 2
-    points += (stats.def_td || 0) * 6
-    points += (stats.st_td || 0) * 6
+    points += defTDs * 6
 
     // Points allowed scoring
     const ptsAllowed = stats.pts_allow || 0
@@ -110,6 +121,17 @@ function calculatePoints(stats: SleeperPlayerStats['stats'], position: string): 
   return Math.round(points * 100) / 100
 }
 
+// Map Sleeper defense IDs to our database IDs
+function mapPlayerId(sleeperId: string): string {
+  // Sleeper uses team abbreviation for defenses (e.g., "LAR")
+  // Our database uses "TEAM_DEF" format (e.g., "LAR_DEF")
+  const defenseTeams = ['LAR', 'CAR', 'DEN', 'BUF', 'PIT', 'BAL', 'LAC', 'HOU', 'GB', 'PHI', 'WAS', 'TB', 'MIN', 'DET', 'KC', 'SF']
+  if (defenseTeams.includes(sleeperId)) {
+    return `${sleeperId}_DEF`
+  }
+  return sleeperId
+}
+
 async function fetchSleeperStats(week: number, testMode: boolean = false): Promise<SleeperPlayerStats[]> {
   // Use 2024 data for testing, 2025 for production (2025-2026 NFL season)
   const season = testMode ? '2024' : '2025'
@@ -122,9 +144,9 @@ async function fetchSleeperStats(week: number, testMode: boolean = false): Promi
 
   const data = await response.json()
 
-  // Transform Sleeper's response format
+  // Transform Sleeper's response format and map player IDs
   return data.map((item: { player_id: string; stats: SleeperPlayerStats['stats'] }) => ({
-    player_id: item.player_id,
+    player_id: mapPlayerId(item.player_id),
     stats: item.stats || {}
   }))
 }

@@ -398,15 +398,6 @@ export default function Dashboard() {
                         <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 1
                         </th>
-                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                          Wk 2
-                        </th>
-                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                          Wk 3
-                        </th>
-                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                          Wk 4
-                        </th>
                         <th className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Total
                         </th>
@@ -454,15 +445,6 @@ export default function Dashboard() {
                             </td>
                             <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week1_points > 0 ? entry.week1_points.toFixed(1) : '--'}
-                            </td>
-                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
-                              {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
-                            </td>
-                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
-                              {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
-                            </td>
-                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
-                              {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
                             </td>
                             <td className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-right">
                               <AnimatedScore

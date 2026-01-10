@@ -39,6 +39,10 @@ export default function AdminDashboard() {
       if (settings.payout_percentages && settings.payout_percentages.length > 0) {
         setPayoutPercentages(settings.payout_percentages)
       }
+      // Load saved dollar amounts if available
+      if (settings.payout_amounts && settings.payout_amounts.length > 0) {
+        setPayoutDollars(settings.payout_amounts)
+      }
     }
   }, [settings])
 
@@ -75,9 +79,9 @@ export default function AdminDashboard() {
   }, [payoutSpots, payoutPercentages.length])
 
   // Auto-save payout settings when they change
-  const savePayoutSettings = useCallback(async (fee: number, percentages: number[]) => {
+  const savePayoutSettings = useCallback(async (fee: number, percentages: number[], amounts?: number[]) => {
     setSaveStatus('saving')
-    const { error } = await updatePayoutSettings(fee, percentages)
+    const { error } = await updatePayoutSettings(fee, percentages, amounts)
     if (error) {
       setSaveStatus('error')
       console.error('Failed to save payout settings:', error)
@@ -90,7 +94,8 @@ export default function AdminDashboard() {
   // Handle commissioner fee change
   const handleCommissionerFeeChange = (newFee: number) => {
     setCommissionerFee(newFee)
-    savePayoutSettings(newFee, payoutPercentages)
+    // Save with current dollar amounts if in dollar mode
+    savePayoutSettings(newFee, payoutPercentages, useDollarMode ? payoutDollars : undefined)
   }
 
   // Handle direct percentage input change
@@ -101,7 +106,9 @@ export default function AdminDashboard() {
     newPercentages[index] = newValue
     setPayoutPercentages(newPercentages)
     // Also update dollar amounts to match
-    setPayoutDollars(newPercentages.map(p => Math.round((netPrizePool * p) / 100)))
+    const newDollars = newPercentages.map(p => Math.round((netPrizePool * p) / 100))
+    setPayoutDollars(newDollars)
+    // Save percentages (dollars are derived)
     savePayoutSettings(commissionerFee, newPercentages)
   }
 
@@ -111,20 +118,25 @@ export default function AdminDashboard() {
     newDollars[index] = Math.max(0, newDollarValue)
     setPayoutDollars(newDollars)
 
-    // Calculate percentages from dollar amounts
+    // Calculate percentages from dollar amounts (for display purposes)
     const newPercentages = newDollars.map(d =>
       netPrizePool > 0 ? Math.round((d / netPrizePool) * 10000) / 100 : 0
     )
     setPayoutPercentages(newPercentages)
-    savePayoutSettings(commissionerFee, newPercentages)
+    // Save both - dollar amounts are the source of truth in dollar mode
+    savePayoutSettings(commissionerFee, newPercentages, newDollars)
   }
 
   // Initialize dollar amounts from percentages when netPrizePool changes
+  // But only if we don't have saved dollar amounts
   useEffect(() => {
     if (netPrizePool > 0 && payoutPercentages.length > 0) {
-      setPayoutDollars(payoutPercentages.map(p => Math.round((netPrizePool * p) / 100)))
+      // Only calculate from percentages if we don't have saved dollar amounts
+      if (!settings?.payout_amounts || settings.payout_amounts.length === 0) {
+        setPayoutDollars(payoutPercentages.map(p => Math.round((netPrizePool * p) / 100)))
+      }
     }
-  }, [netPrizePool, payoutPercentages])
+  }, [netPrizePool, payoutPercentages, settings?.payout_amounts])
 
   // Calculate total and remaining percentage
   const totalPercentage = payoutPercentages.reduce((a, b) => a + b, 0)
