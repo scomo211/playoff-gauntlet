@@ -111,8 +111,8 @@ function calculatePoints(stats: SleeperPlayerStats['stats'], position: string): 
 }
 
 async function fetchSleeperStats(week: number, testMode: boolean = false): Promise<SleeperPlayerStats[]> {
-  // Use 2023 data for testing, 2024 for production
-  const season = testMode ? '2023' : '2024'
+  // Use 2024 data for testing, 2025 for production (2025-2026 NFL season)
+  const season = testMode ? '2024' : '2025'
   const url = `https://api.sleeper.com/stats/nfl/${season}/${week}?season_type=post`
 
   const response = await fetch(url)
@@ -278,7 +278,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       timestamp: new Date().toISOString(),
       testMode,
-      season: testMode ? '2023' : '2024',
+      season: testMode ? '2024' : '2025',
       week: currentWeek,
       playersUpdated: playerStats.length,
       lineupsUpdated: updatedLineups,
