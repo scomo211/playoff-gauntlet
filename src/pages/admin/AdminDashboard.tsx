@@ -24,6 +24,8 @@ export default function AdminDashboard() {
   // Payout calculator state
   const [commissionerFee, setCommissionerFee] = useState(0)
   const [payoutPercentages, setPayoutPercentages] = useState<number[]>([65, 20, 10, 5])
+  const [payoutDollars, setPayoutDollars] = useState<number[]>([])
+  const [useDollarMode, setUseDollarMode] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   // Load saved payout settings from database
@@ -94,8 +96,31 @@ export default function AdminDashboard() {
     newValue = Math.max(0, Math.min(100, newValue))
     newPercentages[index] = newValue
     setPayoutPercentages(newPercentages)
+    // Also update dollar amounts to match
+    setPayoutDollars(newPercentages.map(p => Math.round((netPrizePool * p) / 100)))
     savePayoutSettings(commissionerFee, newPercentages)
   }
+
+  // Handle dollar amount input change
+  const handleDollarChange = (index: number, newDollarValue: number) => {
+    const newDollars = [...payoutDollars]
+    newDollars[index] = Math.max(0, newDollarValue)
+    setPayoutDollars(newDollars)
+
+    // Calculate percentages from dollar amounts
+    const newPercentages = newDollars.map(d =>
+      netPrizePool > 0 ? Math.round((d / netPrizePool) * 10000) / 100 : 0
+    )
+    setPayoutPercentages(newPercentages)
+    savePayoutSettings(commissionerFee, newPercentages)
+  }
+
+  // Initialize dollar amounts from percentages when netPrizePool changes
+  useEffect(() => {
+    if (netPrizePool > 0 && payoutPercentages.length > 0) {
+      setPayoutDollars(payoutPercentages.map(p => Math.round((netPrizePool * p) / 100)))
+    }
+  }, [netPrizePool, payoutPercentages])
 
   // Calculate total and remaining percentage
   const totalPercentage = payoutPercentages.reduce((a, b) => a + b, 0)
@@ -272,27 +297,61 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Payout Percentages */}
+        {/* Payout Distribution */}
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Payout Distribution ({payoutSpots} spots)</span>
-            <div className={`text-sm font-medium ${
-              Math.abs(remainingPercentage) < 0.1 ? 'text-green-600' :
-              remainingPercentage > 0 ? 'text-yellow-600' : 'text-red-600'
-            }`}>
-              {Math.abs(remainingPercentage) < 0.1 ? (
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  100% Allocated
-                </span>
-              ) : remainingPercentage > 0 ? (
-                `${remainingPercentage.toFixed(1)}% remaining to allocate`
-              ) : (
-                `${Math.abs(remainingPercentage).toFixed(1)}% over allocation`
-              )}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-500">Payout Distribution ({payoutSpots} spots)</span>
+              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setUseDollarMode(false)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition ${
+                    !useDollarMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  %
+                </button>
+                <button
+                  onClick={() => setUseDollarMode(true)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition ${
+                    useDollarMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  $
+                </button>
+              </div>
             </div>
+            {(() => {
+              const totalDollars = payoutDollars.reduce((a, b) => a + b, 0)
+              const remainingDollars = netPrizePool - totalDollars
+              const isFullyAllocated = useDollarMode
+                ? Math.abs(remainingDollars) < 1
+                : Math.abs(remainingPercentage) < 0.1
+
+              return (
+                <div className={`text-sm font-medium ${
+                  isFullyAllocated ? 'text-green-600' :
+                  (useDollarMode ? remainingDollars > 0 : remainingPercentage > 0) ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  {isFullyAllocated ? (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {useDollarMode ? 'Fully Allocated' : '100% Allocated'}
+                    </span>
+                  ) : useDollarMode ? (
+                    remainingDollars > 0
+                      ? `$${remainingDollars.toLocaleString()} remaining to allocate`
+                      : `$${Math.abs(remainingDollars).toLocaleString()} over allocation`
+                  ) : (
+                    remainingPercentage > 0
+                      ? `${remainingPercentage.toFixed(1)}% remaining to allocate`
+                      : `${Math.abs(remainingPercentage).toFixed(1)}% over allocation`
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           <div className="bg-gray-50 rounded-lg overflow-hidden">
@@ -300,13 +359,17 @@ export default function AdminDashboard() {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Place</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-600">Percentage</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-600">Payout</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-600">
+                    {useDollarMode ? 'Amount' : 'Percentage'}
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-600">
+                    {useDollarMode ? 'Percentage' : 'Payout'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {payoutPercentages.map((percentage, index) => {
-                  const dollarAmount = (netPrizePool * percentage) / 100
+                  const dollarAmount = payoutDollars[index] ?? Math.round((netPrizePool * percentage) / 100)
                   const ordinalSuffix = (n: number) => {
                     if (n === 1) return 'st'
                     if (n === 2) return 'nd'
@@ -320,21 +383,39 @@ export default function AdminDashboard() {
                         {index + 1}{ordinalSuffix(index + 1)} Place
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-1">
-                          <input
-                            type="number"
-                            value={percentage}
-                            onChange={(e) => handlePayoutChange(index, parseFloat(e.target.value) || 0)}
-                            className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            min="0"
-                            max="100"
-                            step="0.5"
-                          />
-                          <span className="text-gray-500">%</span>
-                        </div>
+                        {useDollarMode ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <span className="text-gray-500">$</span>
+                            <input
+                              type="number"
+                              value={dollarAmount}
+                              onChange={(e) => handleDollarChange(index, parseInt(e.target.value) || 0)}
+                              className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min="0"
+                              step="1"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1">
+                            <input
+                              type="number"
+                              value={percentage}
+                              onChange={(e) => handlePayoutChange(index, parseFloat(e.target.value) || 0)}
+                              className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                            />
+                            <span className="text-gray-500">%</span>
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-green-600">
-                        ${dollarAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        {useDollarMode ? (
+                          <span className="text-gray-500">{percentage.toFixed(1)}%</span>
+                        ) : (
+                          <span>${dollarAmount.toLocaleString()}</span>
+                        )}
                       </td>
                     </tr>
                   )
@@ -342,11 +423,23 @@ export default function AdminDashboard() {
                 <tr className="bg-gray-100 font-semibold">
                   <td className="px-4 py-3 text-gray-900">Total</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}>
-                      {totalPercentage.toFixed(1)}%
-                    </span>
+                    {useDollarMode ? (
+                      <span className={Math.abs(payoutDollars.reduce((a, b) => a + b, 0) - netPrizePool) < 1 ? 'text-green-600' : 'text-red-600'}>
+                        ${payoutDollars.reduce((a, b) => a + b, 0).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className={totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}>
+                        {totalPercentage.toFixed(1)}%
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-right text-green-600">${netPrizePool.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-green-600">
+                    {useDollarMode ? (
+                      <span className="text-gray-500">{totalPercentage.toFixed(1)}%</span>
+                    ) : (
+                      <span>${netPrizePool.toLocaleString()}</span>
+                    )}
+                  </td>
                 </tr>
               </tbody>
             </table>
