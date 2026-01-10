@@ -14,6 +14,7 @@ import Layout from '../components/Layout'
 import PlayerSelectModal from '../components/PlayerSelectModal'
 import { useToast } from '../contexts/ToastContext'
 import AnimatedScore from '../components/AnimatedScore'
+import { useFavorites } from '../hooks/useFavorites'
 
 const POSITION_COLORS: Record<Position, string> = {
   QB: 'bg-red-100 text-red-800 border-red-200',
@@ -73,6 +74,7 @@ export default function Lineup() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const { showToast } = useToast()
+  const { isFavorite, toggleFavorite } = useFavorites()
   const [topScorersByPosition, setTopScorersByPosition] = useState<Map<Position, { playerId: string; points: number }>>(new Map())
   const [weekRank, setWeekRank] = useState<{ rank: number; total: number } | null>(null)
 
@@ -348,6 +350,24 @@ export default function Lineup() {
               <h1 className="text-2xl font-bold text-white">
                 {entry.entry_name}
               </h1>
+              {/* Favorite star button - only show for other users' entries */}
+              {!isOwner && entryId && (
+                <button
+                  onClick={() => toggleFavorite(entryId)}
+                  className="p-1.5 rounded-lg hover:bg-slate-700/50 transition"
+                  title={isFavorite(entryId) ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {isFavorite(entryId) ? (
+                    <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-slate-400 hover:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  )}
+                </button>
+              )}
               {/* Compact status badges - desktop only */}
               {isLocked && (
                 <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">

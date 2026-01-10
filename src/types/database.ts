@@ -90,6 +90,13 @@ export interface UsedPlayer {
   player?: Player
 }
 
+export interface Favorite {
+  id: string
+  user_id: string
+  entry_id: string
+  created_at: string
+}
+
 export interface PlayerWeeklyStats {
   player_id: string
   week_id: number

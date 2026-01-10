@@ -15,6 +15,7 @@ import DeadManWalking from '../components/DeadManWalking'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
+import FavoritesLeaderboard from '../components/FavoritesLeaderboard'
 
 interface LeaderboardEntry {
   id: string
@@ -531,6 +532,11 @@ export default function Dashboard() {
                   Highlighted = payout position (Top {payoutSpots})
                 </span>
               </div>
+            </div>
+
+            {/* Favorites Leaderboard */}
+            <div className="mt-6">
+              <FavoritesLeaderboard currentWeek={currentWeek} />
             </div>
 
           </div>
