@@ -95,7 +95,7 @@ export default function Lineup() {
     submitLineup,
   } = useLineup(entryId || '', weekId, isAdmin)
 
-  // Fetch entry details
+  // Fetch entry details with owner profile
   useEffect(() => {
     async function fetchEntry() {
       if (!entryId) return
@@ -103,7 +103,7 @@ export default function Lineup() {
       try {
         const { data, error } = await supabase
           .from('entries')
-          .select('*')
+          .select('*, profile:profiles(display_name)')
           .eq('id', entryId)
           .single()
 
@@ -336,7 +336,7 @@ export default function Lineup() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-white">
-                Week {weekId}: {week?.name}
+                {entry.entry_name}
               </h1>
               {/* Compact status badges - desktop only */}
               {isLocked && (
@@ -364,10 +364,12 @@ export default function Lineup() {
                 </span>
               )}
             </div>
-            <p className="mt-1 text-slate-400">
-              {entry.entry_name}
-              {!isOwner && <span className="text-slate-500 ml-2">(View Only)</span>}
+            <p className="mt-1 text-sm text-slate-400">
+              {(entry as any).profile?.display_name || 'Unknown User'}
             </p>
+            {!isOwner && (
+              <p className="mt-0.5 text-sm text-slate-500">(View Only 👀)</p>
+            )}
           </div>
           {canViewLineup ? (
             <div className="bg-gradient-to-br from-field-500/20 to-field-600/10 border border-field-500/30 rounded-xl px-5 py-3 text-center shadow-lg shadow-field-500/10">
