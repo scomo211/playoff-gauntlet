@@ -45,8 +45,11 @@ function calculatePlayPoints(playType: 'pass' | 'rush' | 'rec', yards: number, i
   }
 }
 
-// Minimum points threshold to show a big play toast
+// Minimum points threshold to show a big play toast (center screen with confetti)
 const BIG_PLAY_POINTS_THRESHOLD = 4
+
+// Minimum points threshold to show a mini toast (bottom center, simple)
+const MINI_PLAY_POINTS_THRESHOLD = 0.5
 
 interface MiniPlayEvent {
   playerName: string
@@ -254,14 +257,15 @@ export function ToastProvider({ children }: ToastProviderProps) {
             // Check for big yardage plays (non-TD)
             // Only check if no new TDs on this play type to avoid duplicate notifications
 
-            // Big rushing play
+            // Rushing play
             if (stat.rush_td === lastStats.rush_td) {
               const rushYardGain = (stat.rush_yards || 0) - (lastStats.rush_yards || 0)
               if (rushYardGain > 0) {
                 const points = calculatePlayPoints('rush', rushYardGain, false)
-                if (points >= BIG_PLAY_POINTS_THRESHOLD) {
-                  const playKey = `${stat.player_id}-rush-${stat.rush_yards}-${weekData.id}`
-                  if (!shownPlays.has(playKey)) {
+                const playKey = `${stat.player_id}-rush-${stat.rush_yards}-${weekData.id}`
+                if (!shownPlays.has(playKey)) {
+                  if (points >= BIG_PLAY_POINTS_THRESHOLD) {
+                    // Big play - center screen toast with confetti
                     showBigPlayToast({
                       player_id: stat.player_id,
                       player_name: playerName,
@@ -270,20 +274,28 @@ export function ToastProvider({ children }: ToastProviderProps) {
                       isTouchdown: false,
                       week_id: weekData.id
                     })
-                    setShownPlays(prev => new Set([...prev, playKey]))
+                  } else if (points >= MINI_PLAY_POINTS_THRESHOLD) {
+                    // Smaller play - mini toast at bottom
+                    showMiniToast({
+                      playerName,
+                      playDescription: `${rushYardGain} Yard Rush`,
+                      points
+                    })
                   }
+                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
 
-            // Big receiving play
+            // Receiving play
             if (stat.rec_td === lastStats.rec_td) {
               const recYardGain = (stat.rec_yards || 0) - (lastStats.rec_yards || 0)
               if (recYardGain > 0) {
                 const points = calculatePlayPoints('rec', recYardGain, false)
-                if (points >= BIG_PLAY_POINTS_THRESHOLD) {
-                  const playKey = `${stat.player_id}-rec-${stat.rec_yards}-${weekData.id}`
-                  if (!shownPlays.has(playKey)) {
+                const playKey = `${stat.player_id}-rec-${stat.rec_yards}-${weekData.id}`
+                if (!shownPlays.has(playKey)) {
+                  if (points >= BIG_PLAY_POINTS_THRESHOLD) {
+                    // Big play - center screen toast with confetti
                     showBigPlayToast({
                       player_id: stat.player_id,
                       player_name: playerName,
@@ -292,20 +304,28 @@ export function ToastProvider({ children }: ToastProviderProps) {
                       isTouchdown: false,
                       week_id: weekData.id
                     })
-                    setShownPlays(prev => new Set([...prev, playKey]))
+                  } else if (points >= MINI_PLAY_POINTS_THRESHOLD) {
+                    // Smaller play - mini toast at bottom
+                    showMiniToast({
+                      playerName,
+                      playDescription: `${recYardGain} Yard Reception`,
+                      points
+                    })
                   }
+                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
 
-            // Big passing play (less common to show individually, but included)
+            // Passing play
             if (stat.pass_td === lastStats.pass_td) {
               const passYardGain = (stat.pass_yards || 0) - (lastStats.pass_yards || 0)
               if (passYardGain > 0) {
                 const points = calculatePlayPoints('pass', passYardGain, false)
-                if (points >= BIG_PLAY_POINTS_THRESHOLD) {
-                  const playKey = `${stat.player_id}-pass-${stat.pass_yards}-${weekData.id}`
-                  if (!shownPlays.has(playKey)) {
+                const playKey = `${stat.player_id}-pass-${stat.pass_yards}-${weekData.id}`
+                if (!shownPlays.has(playKey)) {
+                  if (points >= BIG_PLAY_POINTS_THRESHOLD) {
+                    // Big play - center screen toast with confetti
                     showBigPlayToast({
                       player_id: stat.player_id,
                       player_name: playerName,
@@ -314,8 +334,15 @@ export function ToastProvider({ children }: ToastProviderProps) {
                       isTouchdown: false,
                       week_id: weekData.id
                     })
-                    setShownPlays(prev => new Set([...prev, playKey]))
+                  } else if (points >= MINI_PLAY_POINTS_THRESHOLD) {
+                    // Smaller play - mini toast at bottom
+                    showMiniToast({
+                      playerName,
+                      playDescription: `${passYardGain} Yard Pass`,
+                      points
+                    })
                   }
+                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
