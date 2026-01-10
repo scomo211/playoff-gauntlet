@@ -598,10 +598,15 @@ export default function Lineup() {
             </div>
 
             <div className="divide-y divide-slate-800">
-          {lineupSlots.map((slot) => (
+          {lineupSlots.map((slot) => {
+            const gameStatus = slot.player ? getGameStatus(slot.player.team?.id, slot.player.team?.playoff_seed) : 'upcoming'
+            const isLive = gameStatus === 'live'
+
+            return (
             <div
               key={slot.slot}
               className={`px-6 py-4 ${
+                isLive ? 'bg-green-500/10 border-l-2 border-l-green-500' :
                 !slot.player && canEdit && !lineup?.is_submitted ? 'bg-yellow-500/5' : ''
               }`}
             >
@@ -629,7 +634,7 @@ export default function Lineup() {
                         <div className="font-medium text-white">{slot.player.name}</div>
                         <div className="flex items-center gap-2 text-sm text-slate-400">
                           <span>{slot.player.team?.city} {slot.player.team?.name}</span>
-                          <GameStatusIndicator status={getGameStatus(slot.player.team?.id, slot.player.team?.playoff_seed)} />
+                          <GameStatusIndicator status={gameStatus} />
                         </div>
                         {getOpponentDisplay(slot.player.team as Team) && (
                           <div className="text-xs text-slate-500 mt-0.5">
@@ -710,7 +715,7 @@ export default function Lineup() {
                               <span className="text-slate-500 ml-1.5">• {getOpponentDisplay(slot.player.team as Team)}</span>
                             )}
                           </span>
-                          <GameStatusIndicator status={getGameStatus(slot.player.team?.id, slot.player.team?.playoff_seed)} />
+                          <GameStatusIndicator status={gameStatus} />
                         </div>
                         {formatPlayerStats(slot.stats) && (
                           <div className="text-sm text-slate-500 mt-0.5">
@@ -771,7 +776,7 @@ export default function Lineup() {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
             </div>
           </>
         )}
