@@ -7,6 +7,7 @@ import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 import { getOpponentInfo } from '../lib/matchups'
 import Layout from '../components/Layout'
 import PlayoffBracket from '../components/PlayoffBracket'
+import AnimatedScore from '../components/AnimatedScore'
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
@@ -439,17 +440,21 @@ export default function Players() {
                         </div>
                       </td>
                       <td className="px-1 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
-                        <span className={`text-sm font-medium ${unavailable ? 'text-slate-600' : totalPts > 0 ? 'text-white' : 'text-slate-500'}`}>
-                          {totalPts.toFixed(1)}
-                        </span>
+                        <AnimatedScore
+                          value={totalPts}
+                          className={`text-sm font-medium inline-block px-1 py-0.5 rounded ${unavailable ? 'text-slate-600' : totalPts > 0 ? 'text-white' : 'text-slate-500'}`}
+                        />
                       </td>
                       <td className="pl-1 pr-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
                         {unavailable ? (
                           <span className="text-sm font-medium text-slate-600">—</span>
+                        ) : projPts > 0 ? (
+                          <AnimatedScore
+                            value={projPts}
+                            className="text-sm font-medium text-emerald-400 inline-block px-1 py-0.5 rounded"
+                          />
                         ) : (
-                          <span className={`text-sm font-medium ${projPts > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
-                            {projPts > 0 ? projPts.toFixed(1) : '—'}
-                          </span>
+                          <span className="text-sm font-medium text-slate-500">—</span>
                         )}
                       </td>
                     </tr>
@@ -505,7 +510,7 @@ export default function Players() {
                 )}
               </div>
               <div className={`text-sm font-medium ${pts > 0 ? 'text-field-400' : 'text-slate-500'}`}>
-                {pts.toFixed(1)} pts
+                <AnimatedScore value={pts} className="inline-block px-1 py-0.5 rounded" /> pts
               </div>
             </div>
           )
