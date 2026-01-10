@@ -13,6 +13,13 @@ interface ToastNotification {
   pointsScored?: number
 }
 
+interface MiniToastNotification {
+  id: string
+  playerName: string
+  playDescription: string
+  points: number
+}
+
 interface BigPlayEvent {
   player_id: string
   player_name: string
@@ -41,10 +48,18 @@ function calculatePlayPoints(playType: 'pass' | 'rush' | 'rec', yards: number, i
 // Minimum points threshold to show a big play toast
 const BIG_PLAY_POINTS_THRESHOLD = 4
 
+interface MiniPlayEvent {
+  playerName: string
+  playDescription: string
+  points: number
+}
+
 interface ToastContextType {
   showToast: (notification: Omit<ToastNotification, 'id'>) => void
   showBigPlayToast: (event: BigPlayEvent) => void
+  showMiniToast: (event: MiniPlayEvent) => void
   testBigPlayToast: () => void
+  testMiniToast: () => void
 }
 
 const ToastContext = createContext<ToastContextType | null>(null)
@@ -72,6 +87,11 @@ export function ToastProvider({ children }: ToastProviderProps) {
     pass_td: number; rush_td: number; rec_td: number;
     pass_yards: number; rush_yards: number; rec_yards: number
   }>>(new Map())
+
+  // Mini toast state (separate from main toasts)
+  const [miniToastQueue, setMiniToastQueue] = useState<MiniToastNotification[]>([])
+  const [currentMiniToast, setCurrentMiniToast] = useState<MiniToastNotification | null>(null)
+  const [isMiniVisible, setIsMiniVisible] = useState(false)
 
   // Fetch user's lineup player IDs across all their entries
   useEffect(() => {
@@ -334,6 +354,16 @@ export function ToastProvider({ children }: ToastProviderProps) {
     }
   }, [currentToast, queue])
 
+  // Process mini toast queue - show next mini toast when current one is done
+  useEffect(() => {
+    if (!currentMiniToast && miniToastQueue.length > 0) {
+      const [next, ...rest] = miniToastQueue
+      setCurrentMiniToast(next)
+      setMiniToastQueue(rest)
+      setIsMiniVisible(true)
+    }
+  }, [currentMiniToast, miniToastQueue])
+
   const showToast = useCallback((notification: Omit<ToastNotification, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     setQueue(prev => [...prev, { ...notification, id }])
@@ -362,6 +392,39 @@ export function ToastProvider({ children }: ToastProviderProps) {
       duration: 4000
     })
   }, [showToast])
+
+  const showMiniToast = useCallback((event: MiniPlayEvent) => {
+    const id = `mini-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    setMiniToastQueue(prev => [...prev, {
+      id,
+      playerName: event.playerName,
+      playDescription: event.playDescription,
+      points: event.points
+    }])
+  }, [])
+
+  // Test function for development
+  const testMiniToast = useCallback(() => {
+    showMiniToast({
+      playerName: 'Christian McCaffrey',
+      playDescription: '13 Yard Reception',
+      points: 1.8
+    })
+    setTimeout(() => {
+      showMiniToast({
+        playerName: 'Saquon Barkley',
+        playDescription: '8 Yard Rush',
+        points: 0.8
+      })
+    }, 500)
+    setTimeout(() => {
+      showMiniToast({
+        playerName: 'Josh Allen',
+        playDescription: '24 Yard Pass',
+        points: 1.0
+      })
+    }, 1000)
+  }, [showMiniToast])
 
   // Test function for development
   const testBigPlayToast = useCallback(() => {
@@ -408,8 +471,16 @@ export function ToastProvider({ children }: ToastProviderProps) {
     }, 300)
   }, [])
 
+  const handleMiniToastClose = useCallback(() => {
+    setIsMiniVisible(false)
+    // Wait for exit animation
+    setTimeout(() => {
+      setCurrentMiniToast(null)
+    }, 300)
+  }, [])
+
   return (
-    <ToastContext.Provider value={{ showToast, showBigPlayToast, testBigPlayToast }}>
+    <ToastContext.Provider value={{ showToast, showBigPlayToast, showMiniToast, testBigPlayToast, testMiniToast }}>
       {children}
 
       {/* Global Toast Display */}
@@ -418,6 +489,15 @@ export function ToastProvider({ children }: ToastProviderProps) {
           notification={currentToast}
           isVisible={isVisible}
           onClose={handleToastClose}
+        />
+      )}
+
+      {/* Mini Toast Display (bottom center) */}
+      {currentMiniToast && (
+        <MiniToast
+          notification={currentMiniToast}
+          isVisible={isMiniVisible}
+          onClose={handleMiniToastClose}
         />
       )}
     </ToastContext.Provider>
@@ -651,5 +731,63 @@ function GlobalToast({ notification, isVisible, onClose }: GlobalToastProps) {
       </div>
       </div>
     </>
+  )
+}
+
+// Mini toast component for small play updates (bottom center)
+interface MiniToastProps {
+  notification: MiniToastNotification
+  isVisible: boolean
+  onClose: () => void
+}
+
+function MiniToast({ notification, isVisible, onClose }: MiniToastProps) {
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  useEffect(() => {
+    if (isVisible) {
+      // Trigger enter animation
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(true)
+        })
+      })
+
+      // Auto-hide after 2 seconds
+      const timer = setTimeout(() => {
+        setIsAnimating(false)
+        setTimeout(onClose, 300)
+      }, 2000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [isVisible, onClose])
+
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+      <div
+        className={`
+          bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-lg shadow-xl shadow-black/30
+          px-4 py-2.5 flex items-center gap-4
+          transform transition-all duration-300 ease-out
+          ${isAnimating
+            ? 'opacity-100 translate-y-0'
+            : 'opacity-0 translate-y-4'
+          }
+        `}
+      >
+        {/* Play description */}
+        <div className="text-sm text-slate-300">
+          <span className="font-medium text-white">{notification.playerName}</span>
+          <span className="mx-1.5 text-slate-500">•</span>
+          <span>{notification.playDescription}</span>
+        </div>
+
+        {/* Points */}
+        <div className={`text-lg font-bold ${notification.points >= 0 ? 'text-field-400' : 'text-red-400'}`}>
+          {notification.points >= 0 ? '+' : ''}{notification.points.toFixed(1)}
+        </div>
+      </div>
+    </div>
   )
 }

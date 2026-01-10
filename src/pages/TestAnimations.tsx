@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import Layout from '../components/Layout'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
+import { useToast } from '../contexts/ToastContext'
 
 interface Entry {
   id: string
@@ -10,6 +11,8 @@ interface Entry {
 }
 
 export default function TestAnimations() {
+  const { testMiniToast, testBigPlayToast } = useToast()
+
   // State for leaderboard demo
   const [entries, setEntries] = useState<Entry[]>([
     { id: '1', name: 'The Commish', score: 125.5 },
@@ -65,6 +68,28 @@ export default function TestAnimations() {
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold text-white mb-2">Animation Test Page</h1>
         <p className="text-slate-400 mb-8">Test the score and rank animations before they go live</p>
+
+        {/* Toast Notifications */}
+        <div className="card-solid p-6 mb-8">
+          <h2 className="text-lg font-semibold text-white mb-2">Toast Notifications</h2>
+          <p className="text-slate-400 text-sm mb-4">
+            Test the play update toasts that appear during games
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={testMiniToast}
+              className="flex-1 btn-secondary py-3"
+            >
+              Test Mini Toasts
+            </button>
+            <button
+              onClick={testBigPlayToast}
+              className="flex-1 btn-primary py-3"
+            >
+              Test Big Play Toasts
+            </button>
+          </div>
+        </div>
 
         {/* Rank Change Animation */}
         <div className="card-solid p-6 mb-8">
