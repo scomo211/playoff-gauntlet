@@ -5,9 +5,39 @@ import { Player, Team, Position } from '../types/database'
 import { createPlayerKey } from '../lib/projections'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 import { getOpponentInfo } from '../lib/matchups'
+import { useGameStatus } from '../hooks/useGameStatus'
+import { GameStatus } from '../lib/schedule'
 import Layout from '../components/Layout'
 import PlayoffBracket from '../components/PlayoffBracket'
 import AnimatedScore from '../components/AnimatedScore'
+
+// Game status indicator component
+function GameStatusIndicator({ status }: { status: GameStatus | 'bye' }) {
+  if (status === 'live') {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+        </span>
+        LIVE
+      </span>
+    )
+  }
+
+  if (status === 'final') {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-500/20 text-slate-400 border border-slate-500/30">
+        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        FINAL
+      </span>
+    )
+  }
+
+  return null
+}
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
@@ -17,6 +47,16 @@ type SortDirection = 'asc' | 'desc'
 interface PlayerStats {
   player_id: string
   total_points: number
+  pass_cmp?: number
+  pass_att?: number
+  pass_yards?: number
+  pass_td?: number
+  rush_att?: number
+  rush_yards?: number
+  rush_td?: number
+  receptions?: number
+  rec_yards?: number
+  rec_td?: number
 }
 
 interface Projection {
@@ -38,11 +78,36 @@ const POSITION_COLORS: Record<Position, string> = {
 const getTeamLogoUrl = (teamId: string) =>
   `https://a.espncdn.com/i/teamlogos/nfl/500/${teamId.toLowerCase()}.png`
 
+// Format player stats as inline text
+function formatPlayerStats(stats: PlayerStats | undefined): string {
+  if (!stats) return ''
+
+  const parts: string[] = []
+
+  // Passing stats: "14/18, 179 yd, 1 TD"
+  if ((stats.pass_att || 0) > 0 || (stats.pass_yards || 0) > 0 || (stats.pass_td || 0) > 0) {
+    parts.push(`${stats.pass_cmp || 0}/${stats.pass_att || 0}, ${stats.pass_yards || 0} yd, ${stats.pass_td || 0} TD`)
+  }
+
+  // Rushing stats: "3 car, 97 yd, 1 TD"
+  if ((stats.rush_att || 0) > 0 || (stats.rush_yards || 0) !== 0 || (stats.rush_td || 0) > 0) {
+    parts.push(`${stats.rush_att || 0} car, ${stats.rush_yards || 0} yd, ${stats.rush_td || 0} TD`)
+  }
+
+  // Receiving stats: "2 rec, 18 yd, 1 TD"
+  if ((stats.receptions || 0) > 0 || (stats.rec_yards || 0) > 0 || (stats.rec_td || 0) > 0) {
+    parts.push(`${stats.receptions || 0} rec, ${stats.rec_yards || 0} yd, ${stats.rec_td || 0} TD`)
+  }
+
+  return parts.join(' | ')
+}
+
 export default function Players() {
   const { user } = useAuth()
   const [players, setPlayers] = useState<(Player & { team: Team })[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [playerStats, setPlayerStats] = useState<Map<string, number>>(new Map())
+  const [weeklyStats, setWeeklyStats] = useState<Map<string, PlayerStats>>(new Map())
   const [projections, setProjections] = useState<Map<string, number>>(new Map())
   const [currentWeekId, setCurrentWeekId] = useState<number>(1)
   const [loading, setLoading] = useState(true)
@@ -55,6 +120,8 @@ export default function Players() {
   const [depthChartTeam, setDepthChartTeam] = useState<Team | null>(null)
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
   const [hasSingleEntry, setHasSingleEntry] = useState(false)
+
+  const { getStatus: getGameStatus } = useGameStatus(currentWeekId)
 
   useEffect(() => {
     async function fetchData() {
@@ -95,15 +162,21 @@ export default function Players() {
         // Fetch player stats (total points from all weeks)
         const { data: statsData } = await supabase
           .from('player_weekly_stats')
-          .select('player_id, total_points')
+          .select('player_id, total_points, week_id, pass_cmp, pass_att, pass_yards, pass_td, rush_att, rush_yards, rush_td, receptions, rec_yards, rec_td')
 
         if (statsData) {
           const statsMap = new Map<string, number>()
-          statsData.forEach((stat: PlayerStats) => {
+          const weeklyMap = new Map<string, PlayerStats>()
+          statsData.forEach((stat: PlayerStats & { week_id: number }) => {
             const current = statsMap.get(stat.player_id) || 0
             statsMap.set(stat.player_id, current + stat.total_points)
+            // Store current week's detailed stats
+            if (stat.week_id === weekId) {
+              weeklyMap.set(stat.player_id, stat)
+            }
           })
           setPlayerStats(statsMap)
+          setWeeklyStats(weeklyMap)
         }
 
         // Fetch projections for current week
@@ -399,8 +472,17 @@ export default function Players() {
                   const eliminated = isTeamEliminated(player.team)
                   const onBye = isTeamOnBye(player.team)
                   const unavailable = eliminated || onBye
+                  const gameStatus = !unavailable ? getGameStatus(player.team?.id, player.team?.playoff_seed) : 'upcoming'
+                  const isLive = gameStatus === 'live'
+                  const isFinal = gameStatus === 'final'
+                  const stats = weeklyStats.get(player.id)
+                  const statsText = formatPlayerStats(stats)
                   return (
-                    <tr key={player.id} className={`transition-colors ${unavailable ? 'opacity-50' : 'hover:bg-slate-800/30'}`}>
+                    <tr key={player.id} className={`transition-colors ${
+                      isLive ? 'bg-green-500/10' :
+                      isFinal ? 'bg-slate-500/10' :
+                      unavailable ? 'opacity-50' : 'hover:bg-slate-800/30'
+                    }`}>
                       <td className="pl-4 pr-2 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <img
@@ -412,13 +494,19 @@ export default function Players() {
                             }}
                           />
                           <div className="min-w-0">
-                            <div className={`text-sm font-medium truncate ${unavailable ? 'text-slate-500' : 'text-white'}`}>{player.name}</div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-medium truncate ${unavailable ? 'text-slate-500' : 'text-white'}`}>{player.name}</span>
+                              {!unavailable && <GameStatusIndicator status={gameStatus} />}
+                            </div>
                             <div className={`text-xs truncate ${unavailable ? 'text-slate-600' : 'text-slate-500'}`}>
                               {player.team?.city} {player.team?.name}
                               {!unavailable && getOpponentDisplay(player.team) && (
                                 <span className="text-slate-600 ml-1">• {getOpponentDisplay(player.team)}</span>
                               )}
                             </div>
+                            {statsText && (
+                              <div className="text-xs text-slate-500 mt-0.5 hidden sm:block">{statsText}</div>
+                            )}
                           </div>
                         </div>
                       </td>
