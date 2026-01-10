@@ -4,15 +4,15 @@ import AdminLayout from '../../components/AdminLayout'
 import { useAdminStats, useAdminUsers, useAdminEntries } from '../../hooks/useAdmin'
 import { useLeagueSettings } from '../../hooks/useEntries'
 
-// Default payout percentages based on number of spots
+// Default payout amounts in dollars based on number of spots
 const DEFAULT_PAYOUTS: Record<number, number[]> = {
-  4: [65, 20, 10, 5],
-  5: [55, 20, 12, 8, 5],
-  6: [50, 20, 12, 8, 6, 4],
-  7: [45, 18, 12, 9, 7, 5, 4],
-  8: [40, 18, 12, 9, 7, 6, 5, 3],
-  9: [38, 17, 12, 9, 7, 6, 5, 4, 2],
-  10: [35, 16, 12, 9, 7, 6, 5, 4, 3, 3],
+  4: [650, 200, 100, 50],
+  5: [550, 200, 120, 80, 50],
+  6: [500, 200, 120, 80, 60, 40],
+  7: [450, 180, 120, 90, 70, 50, 40],
+  8: [400, 180, 120, 90, 70, 60, 50, 30],
+  9: [380, 170, 120, 90, 70, 60, 50, 40, 20],
+  10: [350, 160, 120, 90, 70, 60, 50, 40, 30, 30],
 }
 
 export default function AdminDashboard() {
@@ -23,22 +23,13 @@ export default function AdminDashboard() {
 
   // Payout calculator state
   const [commissionerFee, setCommissionerFee] = useState(0)
-  const [payoutPercentages, setPayoutPercentages] = useState<number[]>([65, 20, 10, 5])
   const [payoutDollars, setPayoutDollars] = useState<number[]>([])
-  const [useDollarMode, setUseDollarMode] = useState(() => {
-    // Load saved preference from localStorage
-    const saved = localStorage.getItem('payoutDollarMode')
-    return saved === 'true'
-  })
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   // Load saved payout settings from database
   useEffect(() => {
     if (settings) {
       setCommissionerFee(settings.commissioner_fee || 0)
-      if (settings.payout_percentages && settings.payout_percentages.length > 0) {
-        setPayoutPercentages(settings.payout_percentages)
-      }
       // Load saved dollar amounts if available
       if (settings.payout_amounts && settings.payout_amounts.length > 0) {
         setPayoutDollars(settings.payout_amounts)
@@ -70,18 +61,22 @@ export default function AdminDashboard() {
   const totalPot = stats ? stats.totalEntries * 25 : 0
   const netPrizePool = totalPot - commissionerFee
 
-  // Update payout percentages when payout spots change (only if different from saved)
+  // Initialize payout dollars when payout spots change (only if different from saved)
   useEffect(() => {
-    // Only auto-set defaults if the current percentages don't match the spot count
-    if (payoutPercentages.length !== payoutSpots) {
-      setPayoutPercentages(DEFAULT_PAYOUTS[payoutSpots] || DEFAULT_PAYOUTS[4])
+    // Only auto-set defaults if we don't have saved amounts or spot count changed
+    if (payoutDollars.length !== payoutSpots) {
+      if (settings?.payout_amounts && settings.payout_amounts.length === payoutSpots) {
+        setPayoutDollars(settings.payout_amounts)
+      } else {
+        setPayoutDollars(DEFAULT_PAYOUTS[payoutSpots] || DEFAULT_PAYOUTS[4])
+      }
     }
-  }, [payoutSpots, payoutPercentages.length])
+  }, [payoutSpots, payoutDollars.length, settings?.payout_amounts])
 
   // Auto-save payout settings when they change
-  const savePayoutSettings = useCallback(async (fee: number, percentages: number[], amounts?: number[]) => {
+  const savePayoutSettings = useCallback(async (fee: number, amounts: number[]) => {
     setSaveStatus('saving')
-    const { error } = await updatePayoutSettings(fee, percentages, amounts)
+    const { error } = await updatePayoutSettings(fee, [], amounts)
     if (error) {
       setSaveStatus('error')
       console.error('Failed to save payout settings:', error)
@@ -94,22 +89,7 @@ export default function AdminDashboard() {
   // Handle commissioner fee change
   const handleCommissionerFeeChange = (newFee: number) => {
     setCommissionerFee(newFee)
-    // Save with current dollar amounts if in dollar mode
-    savePayoutSettings(newFee, payoutPercentages, useDollarMode ? payoutDollars : undefined)
-  }
-
-  // Handle direct percentage input change
-  const handlePayoutChange = (index: number, newValue: number) => {
-    const newPercentages = [...payoutPercentages]
-    // Clamp newValue between 0 and 100
-    newValue = Math.max(0, Math.min(100, newValue))
-    newPercentages[index] = newValue
-    setPayoutPercentages(newPercentages)
-    // Also update dollar amounts to match
-    const newDollars = newPercentages.map(p => Math.round((netPrizePool * p) / 100))
-    setPayoutDollars(newDollars)
-    // Save percentages (dollars are derived)
-    savePayoutSettings(commissionerFee, newPercentages)
+    savePayoutSettings(newFee, payoutDollars)
   }
 
   // Handle dollar amount input change
@@ -117,30 +97,12 @@ export default function AdminDashboard() {
     const newDollars = [...payoutDollars]
     newDollars[index] = Math.max(0, newDollarValue)
     setPayoutDollars(newDollars)
-
-    // Calculate percentages from dollar amounts (for display purposes)
-    const newPercentages = newDollars.map(d =>
-      netPrizePool > 0 ? Math.round((d / netPrizePool) * 10000) / 100 : 0
-    )
-    setPayoutPercentages(newPercentages)
-    // Save both - dollar amounts are the source of truth in dollar mode
-    savePayoutSettings(commissionerFee, newPercentages, newDollars)
+    savePayoutSettings(commissionerFee, newDollars)
   }
 
-  // Initialize dollar amounts from percentages when netPrizePool changes
-  // But only if we don't have saved dollar amounts
-  useEffect(() => {
-    if (netPrizePool > 0 && payoutPercentages.length > 0) {
-      // Only calculate from percentages if we don't have saved dollar amounts
-      if (!settings?.payout_amounts || settings.payout_amounts.length === 0) {
-        setPayoutDollars(payoutPercentages.map(p => Math.round((netPrizePool * p) / 100)))
-      }
-    }
-  }, [netPrizePool, payoutPercentages, settings?.payout_amounts])
-
-  // Calculate total and remaining percentage
-  const totalPercentage = payoutPercentages.reduce((a, b) => a + b, 0)
-  const remainingPercentage = 100 - totalPercentage
+  // Calculate totals
+  const totalAllocated = payoutDollars.reduce((a, b) => a + b, 0)
+  const remainingDollars = netPrizePool - totalAllocated
 
   return (
     <AdminLayout>
@@ -316,64 +278,24 @@ export default function AdminDashboard() {
         {/* Payout Distribution */}
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500">Payout Distribution ({payoutSpots} spots)</span>
-              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-                <button
-                  onClick={() => {
-                    setUseDollarMode(false)
-                    localStorage.setItem('payoutDollarMode', 'false')
-                  }}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition ${
-                    !useDollarMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  %
-                </button>
-                <button
-                  onClick={() => {
-                    setUseDollarMode(true)
-                    localStorage.setItem('payoutDollarMode', 'true')
-                  }}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition ${
-                    useDollarMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  $
-                </button>
-              </div>
+            <span className="text-sm text-gray-500">Payout Distribution ({payoutSpots} spots)</span>
+            <div className={`text-sm font-medium ${
+              Math.abs(remainingDollars) < 1 ? 'text-green-600' :
+              remainingDollars > 0 ? 'text-yellow-600' : 'text-red-600'
+            }`}>
+              {Math.abs(remainingDollars) < 1 ? (
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Fully Allocated
+                </span>
+              ) : remainingDollars > 0 ? (
+                `$${remainingDollars.toLocaleString()} remaining to allocate`
+              ) : (
+                `$${Math.abs(remainingDollars).toLocaleString()} over allocation`
+              )}
             </div>
-            {(() => {
-              const totalDollars = payoutDollars.reduce((a, b) => a + b, 0)
-              const remainingDollars = netPrizePool - totalDollars
-              const isFullyAllocated = useDollarMode
-                ? Math.abs(remainingDollars) < 1
-                : Math.abs(remainingPercentage) < 0.1
-
-              return (
-                <div className={`text-sm font-medium ${
-                  isFullyAllocated ? 'text-green-600' :
-                  (useDollarMode ? remainingDollars > 0 : remainingPercentage > 0) ? 'text-yellow-600' : 'text-red-600'
-                }`}>
-                  {isFullyAllocated ? (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {useDollarMode ? 'Fully Allocated' : '100% Allocated'}
-                    </span>
-                  ) : useDollarMode ? (
-                    remainingDollars > 0
-                      ? `$${remainingDollars.toLocaleString()} remaining to allocate`
-                      : `$${Math.abs(remainingDollars).toLocaleString()} over allocation`
-                  ) : (
-                    remainingPercentage > 0
-                      ? `${remainingPercentage.toFixed(1)}% remaining to allocate`
-                      : `${Math.abs(remainingPercentage).toFixed(1)}% over allocation`
-                  )}
-                </div>
-              )
-            })()}
           </div>
 
           <div className="bg-gray-50 rounded-lg overflow-hidden">
@@ -381,17 +303,11 @@ export default function AdminDashboard() {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Place</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-600">
-                    {useDollarMode ? 'Amount' : 'Percentage'}
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-600">
-                    {useDollarMode ? 'Percentage' : 'Payout'}
-                  </th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-600">Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {payoutPercentages.map((percentage, index) => {
-                  const dollarAmount = payoutDollars[index] ?? Math.round((netPrizePool * percentage) / 100)
+                {payoutDollars.map((dollarAmount, index) => {
                   const ordinalSuffix = (n: number) => {
                     if (n === 1) return 'st'
                     if (n === 2) return 'nd'
@@ -405,39 +321,17 @@ export default function AdminDashboard() {
                         {index + 1}{ordinalSuffix(index + 1)} Place
                       </td>
                       <td className="px-4 py-3">
-                        {useDollarMode ? (
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="text-gray-500">$</span>
-                            <input
-                              type="number"
-                              value={dollarAmount}
-                              onChange={(e) => handleDollarChange(index, parseInt(e.target.value) || 0)}
-                              className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              min="0"
-                              step="1"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center gap-1">
-                            <input
-                              type="number"
-                              value={percentage}
-                              onChange={(e) => handlePayoutChange(index, parseFloat(e.target.value) || 0)}
-                              className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              min="0"
-                              max="100"
-                              step="0.1"
-                            />
-                            <span className="text-gray-500">%</span>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-green-600">
-                        {useDollarMode ? (
-                          <span className="text-gray-500">{percentage.toFixed(1)}%</span>
-                        ) : (
-                          <span>${dollarAmount.toLocaleString()}</span>
-                        )}
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-gray-500">$</span>
+                          <input
+                            type="number"
+                            value={dollarAmount}
+                            onChange={(e) => handleDollarChange(index, parseInt(e.target.value) || 0)}
+                            className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            min="0"
+                            step="1"
+                          />
+                        </div>
                       </td>
                     </tr>
                   )
@@ -445,22 +339,9 @@ export default function AdminDashboard() {
                 <tr className="bg-gray-100 font-semibold">
                   <td className="px-4 py-3 text-gray-900">Total</td>
                   <td className="px-4 py-3 text-center">
-                    {useDollarMode ? (
-                      <span className={Math.abs(payoutDollars.reduce((a, b) => a + b, 0) - netPrizePool) < 1 ? 'text-green-600' : 'text-red-600'}>
-                        ${payoutDollars.reduce((a, b) => a + b, 0).toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className={totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}>
-                        {totalPercentage.toFixed(1)}%
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right text-green-600">
-                    {useDollarMode ? (
-                      <span className="text-gray-500">{totalPercentage.toFixed(1)}%</span>
-                    ) : (
-                      <span>${netPrizePool.toLocaleString()}</span>
-                    )}
+                    <span className={Math.abs(remainingDollars) < 1 ? 'text-green-600' : 'text-red-600'}>
+                      ${totalAllocated.toLocaleString()}
+                    </span>
                   </td>
                 </tr>
               </tbody>
