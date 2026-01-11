@@ -3,6 +3,42 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+// Playoff schedule for determining live games
+const PLAYOFF_SCHEDULE = [
+  // Week 1: Wild Card Weekend
+  { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' },
+  { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T01:00:00Z' },
+  { week_id: 1, away_team_id: 'BUF', home_team_id: 'JAX', kickoff: '2026-01-11T18:00:00Z' },
+  { week_id: 1, away_team_id: 'SF', home_team_id: 'PHI', kickoff: '2026-01-11T21:30:00Z' },
+  { week_id: 1, away_team_id: 'LAC', home_team_id: 'NE', kickoff: '2026-01-12T01:00:00Z' },
+  { week_id: 1, away_team_id: 'HOU', home_team_id: 'PIT', kickoff: '2026-01-13T01:15:00Z' },
+]
+
+const GAME_DURATION_MS = 3.5 * 60 * 60 * 1000 // 3.5 hours
+
+function getTeamsWithLiveGames(weekId: number): Set<string> {
+  const now = new Date()
+  const liveTeams = new Set<string>()
+
+  for (const game of PLAYOFF_SCHEDULE) {
+    if (game.week_id !== weekId) continue
+
+    const kickoff = new Date(game.kickoff)
+    const estimatedEnd = new Date(kickoff.getTime() + GAME_DURATION_MS)
+
+    // Game is live if current time is between kickoff and estimated end
+    if (now >= kickoff && now <= estimatedEnd) {
+      liveTeams.add(game.home_team_id)
+      liveTeams.add(game.away_team_id)
+      // Add defense IDs too
+      liveTeams.add(`${game.home_team_id}_DEF`)
+      liveTeams.add(`${game.away_team_id}_DEF`)
+    }
+  }
+
+  return liveTeams
+}
+
 // Sleeper stats response type
 interface SleeperPlayerStats {
   player_id: string
@@ -201,21 +237,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Test mode uses 2023 playoff data for testing before games start
   const testMode = req.query.test === 'true'
+  // Force full update (all players) - use ?full=true
+  const forceFullUpdate = req.query.full === 'true'
 
   try {
     // Get current week
     const weeks = await supabaseRequest('/weeks?is_current=eq.true&select=id')
     const currentWeek = weeks?.[0]?.id || 1
 
-    console.log(`Updating scores for week ${currentWeek}${testMode ? ' (TEST MODE - using 2023 data)' : ''}`)
+    // Get teams with live games
+    const liveTeams = getTeamsWithLiveGames(currentWeek)
+    const hasLiveGames = liveTeams.size > 0
+
+    // If no live games and not forcing full update, skip
+    if (!hasLiveGames && !forceFullUpdate && !testMode) {
+      return res.status(200).json({
+        success: true,
+        message: 'No live games - skipping update',
+        timestamp: new Date().toISOString(),
+        week: currentWeek,
+        liveTeams: [],
+      })
+    }
+
+    console.log(`Updating scores for week ${currentWeek}${testMode ? ' (TEST MODE)' : ''}${forceFullUpdate ? ' (FULL UPDATE)' : ''}`)
+    if (hasLiveGames) {
+      console.log(`Live teams: ${Array.from(liveTeams).filter(t => !t.endsWith('_DEF')).join(', ')}`)
+    }
 
     // Fetch stats from Sleeper
     const sleeperStats = await fetchSleeperStats(currentWeek, testMode)
     console.log(`Fetched ${sleeperStats.length} player stats from Sleeper`)
 
-    // Get all players in our database with their positions
-    const players = await supabaseRequest('/players?select=id,position')
+    // Get players - only from live teams unless forcing full update
+    let playersQuery = '/players?select=id,position,team_id'
+    if (hasLiveGames && !forceFullUpdate) {
+      const teamIds = Array.from(liveTeams).filter(t => !t.endsWith('_DEF'))
+      playersQuery += `&team_id=in.(${teamIds.join(',')})`
+    }
+    const players = await supabaseRequest(playersQuery)
     const playerMap = new Map<string, string>(players.map((p: { id: string; position: string }) => [p.id, p.position]))
+
+    // Also add defense IDs to playerMap
+    if (hasLiveGames && !forceFullUpdate) {
+      for (const teamId of liveTeams) {
+        if (teamId.endsWith('_DEF')) {
+          playerMap.set(teamId, 'DEF')
+        }
+      }
+    }
 
     // Calculate points for each player and build upsert data
     const playerStats: Array<{
@@ -354,8 +424,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       timestamp: new Date().toISOString(),
       testMode,
+      fullUpdate: forceFullUpdate,
       season: testMode ? '2024' : '2025',
       week: currentWeek,
+      liveTeams: Array.from(liveTeams).filter(t => !t.endsWith('_DEF')),
       playersUpdated: playerStats.length,
       lineupsUpdated: lineupUpdates.length,
       lineupPlayersUpdated: lineupPlayerUpdates.length,
