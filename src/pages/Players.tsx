@@ -350,17 +350,13 @@ export default function Players() {
       return true
     })
 
-    // Sort: unavailable players (eliminated/bye) at the end
+    // Sort: bye week players at the end, but eliminated players mixed in normally
     result.sort((a, b) => {
-      // First sort by availability status
-      const aEliminated = isTeamEliminated(a.team)
-      const bEliminated = isTeamEliminated(b.team)
+      // Only push bye week players to the end (they'll play later)
       const aOnBye = isTeamOnBye(a.team)
       const bOnBye = isTeamOnBye(b.team)
-      const aUnavailable = aEliminated || aOnBye
-      const bUnavailable = bEliminated || bOnBye
-      if (aUnavailable && !bUnavailable) return 1
-      if (!aUnavailable && bUnavailable) return -1
+      if (aOnBye && !bOnBye) return 1
+      if (!aOnBye && bOnBye) return -1
 
       let comparison = 0
       switch (sortField) {

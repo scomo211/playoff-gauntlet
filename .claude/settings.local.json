@@ -92,7 +92,9 @@
       "Bash(__NEW_LINE__ echo \"=== Kyren Williams Stats After Update ===\")",
       "Bash(__NEW_LINE__ echo \"=== Checking playoff teams in database ===\")",
       "Bash(__NEW_LINE__ echo \"=== Checking LAR player stats ===\")",
-      "Bash(__NEW_LINE__ echo \"=== Checking lineup_players for Puka Nacua \\(9493\\) ===\")"
+      "Bash(__NEW_LINE__ echo \"=== Checking lineup_players for Puka Nacua \\(9493\\) ===\")",
+      "Bash(npm update:*)",
+      "Bash(npm audit fix:*)"
     ]
   }
 }
