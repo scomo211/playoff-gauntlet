@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../../lib/playerImages'
@@ -21,6 +22,13 @@ interface WeekStats {
   players: PlayerUsage[]
 }
 
+interface EntryWithPlayer {
+  entry_id: string
+  entry_name: string
+  display_name: string
+  lineup_points: number
+}
+
 export default function AdminPlayerStats() {
   const [weeks, setWeeks] = useState<{ id: number; name: string }[]>([])
   const [selectedWeek, setSelectedWeek] = useState<number>(1)
@@ -28,6 +36,11 @@ export default function AdminPlayerStats() {
   const [loading, setLoading] = useState(true)
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<'most_used' | 'least_used' | 'most_points' | 'least_points'>('most_used')
+
+  // Modal state for viewing entries with a player
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerUsage | null>(null)
+  const [entriesWithPlayer, setEntriesWithPlayer] = useState<EntryWithPlayer[]>([])
+  const [entriesLoading, setEntriesLoading] = useState(false)
 
   // Fetch weeks
   useEffect(() => {
@@ -169,6 +182,71 @@ export default function AdminPlayerStats() {
     if (selectedWeek) fetchStats()
   }, [selectedWeek])
 
+  // Fetch entries that used the selected player
+  useEffect(() => {
+    async function fetchEntriesWithPlayer() {
+      if (!selectedPlayer) {
+        setEntriesWithPlayer([])
+        return
+      }
+
+      setEntriesLoading(true)
+      try {
+        // Get all lineup_players for this player in this week
+        const { data: lineupPlayersData } = await supabase
+          .from('lineup_players')
+          .select(`
+            lineup_id,
+            lineup:lineups!inner(
+              id,
+              total_points,
+              week_id,
+              entry:entries!inner(
+                id,
+                entry_name,
+                is_active,
+                profile:profiles(display_name)
+              )
+            )
+          `)
+          .eq('player_id', selectedPlayer.player_id)
+
+        if (!lineupPlayersData) {
+          setEntriesWithPlayer([])
+          return
+        }
+
+        // Filter to only the selected week and active entries
+        const entries: EntryWithPlayer[] = lineupPlayersData
+          .filter(lp => {
+            const lineup = lp.lineup as any
+            return lineup?.week_id === selectedWeek && lineup?.entry?.is_active
+          })
+          .map(lp => {
+            const lineup = lp.lineup as any
+            const entry = lineup?.entry
+            const profile = entry?.profile as any
+            return {
+              entry_id: entry?.id,
+              entry_name: entry?.entry_name || 'Unknown',
+              display_name: Array.isArray(profile) ? profile[0]?.display_name : profile?.display_name || 'Unknown',
+              lineup_points: lineup?.total_points || 0,
+            }
+          })
+          .sort((a, b) => b.lineup_points - a.lineup_points)
+
+        setEntriesWithPlayer(entries)
+      } catch (err) {
+        console.error('Failed to fetch entries with player:', err)
+        setEntriesWithPlayer([])
+      } finally {
+        setEntriesLoading(false)
+      }
+    }
+
+    fetchEntriesWithPlayer()
+  }, [selectedPlayer, selectedWeek])
+
   // Filter and sort players
   const filteredPlayers = stats?.players
     .filter(p => positionFilter === 'ALL' || p.position === positionFilter)
@@ -289,7 +367,11 @@ export default function AdminPlayerStats() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPlayers.map((player, index) => (
-                <tr key={player.player_id} className="hover:bg-gray-50">
+                <tr
+                  key={player.player_id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setSelectedPlayer(player)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <span className="text-gray-400 text-sm w-6">{index + 1}.</span>
@@ -360,8 +442,90 @@ export default function AdminPlayerStats() {
       </div>
 
       <div className="mt-4 text-sm text-gray-500">
-        Showing {filteredPlayers.length} players
+        Showing {filteredPlayers.length} players • Click a player to see entries
       </div>
+
+      {/* Modal for viewing entries with selected player */}
+      {selectedPlayer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
+            {/* Modal header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={getPlayerHeadshotUrl(selectedPlayer.player_id)}
+                  alt={selectedPlayer.player_name}
+                  className="w-12 h-12 rounded-full bg-gray-200 object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
+                  }}
+                />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{selectedPlayer.player_name}</h3>
+                  <p className="text-sm text-gray-500">
+                    {selectedPlayer.team_name} • {selectedPlayer.position} • {selectedPlayer.week_points.toFixed(1)} pts
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPlayer(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="text-sm text-gray-500 mb-3">
+                {entriesWithPlayer.length} {entriesWithPlayer.length === 1 ? 'entry' : 'entries'} started this player
+              </div>
+
+              {entriesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              ) : entriesWithPlayer.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No entries found with this player
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {entriesWithPlayer.map((entry) => (
+                    <Link
+                      key={entry.entry_id}
+                      to={`/entries/${entry.entry_id}`}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                      onClick={() => setSelectedPlayer(null)}
+                    >
+                      <div>
+                        <div className="font-medium text-gray-900">{entry.entry_name}</div>
+                        <div className="text-sm text-gray-500">{entry.display_name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-gray-900">{entry.lineup_points.toFixed(1)}</div>
+                        <div className="text-xs text-gray-500">lineup pts</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+              <button
+                onClick={() => setSelectedPlayer(null)}
+                className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }
