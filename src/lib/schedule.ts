@@ -23,7 +23,7 @@ export const PLAYOFF_SCHEDULE: Game[] = [
   // Week 1: Wild Card Weekend (Jan 10-12, 2026)
   // Saturday Jan 10
   { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' }, // 4:30pm ET
-  { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T01:00:00Z' },  // 8:00pm ET Sat
+  { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T00:00:00Z' },  // 7:00pm ET Sat (adjusted for final)
   // Sunday Jan 11
   { week_id: 1, away_team_id: 'BUF', home_team_id: 'JAX', kickoff: '2026-01-11T18:00:00Z' }, // 1:00pm ET
   { week_id: 1, away_team_id: 'SF', home_team_id: 'PHI', kickoff: '2026-01-11T21:30:00Z' },  // 4:30pm ET

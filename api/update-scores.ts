@@ -7,7 +7,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const PLAYOFF_SCHEDULE = [
   // Week 1: Wild Card Weekend
   { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' },
-  { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T01:00:00Z' },
+  { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T00:00:00Z' },
   { week_id: 1, away_team_id: 'BUF', home_team_id: 'JAX', kickoff: '2026-01-11T18:00:00Z' },
   { week_id: 1, away_team_id: 'SF', home_team_id: 'PHI', kickoff: '2026-01-11T21:30:00Z' },
   { week_id: 1, away_team_id: 'LAC', home_team_id: 'NE', kickoff: '2026-01-12T01:00:00Z' },
