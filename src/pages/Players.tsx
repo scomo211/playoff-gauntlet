@@ -12,7 +12,15 @@ import PlayoffBracket from '../components/PlayoffBracket'
 import AnimatedScore from '../components/AnimatedScore'
 
 // Game status indicator component
-function GameStatusIndicator({ status }: { status: GameStatus | 'bye' }) {
+function GameStatusIndicator({ status, eliminated }: { status: GameStatus | 'bye'; eliminated?: boolean }) {
+  if (eliminated) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-900/50 text-red-400 border border-red-500/30">
+        ELIM
+      </span>
+    )
+  }
+
   if (status === 'live') {
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
@@ -21,17 +29,6 @@ function GameStatusIndicator({ status }: { status: GameStatus | 'bye' }) {
           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
         </span>
         LIVE
-      </span>
-    )
-  }
-
-  if (status === 'final') {
-    return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-500/20 text-slate-400 border border-slate-500/30">
-        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-        FINAL
       </span>
     )
   }
@@ -531,7 +528,7 @@ export default function Players() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span className={`text-sm font-medium truncate ${eliminated ? 'text-slate-300' : onBye ? 'text-slate-500' : 'text-white'}`}>{player.name}</span>
-                              {!unavailable && <GameStatusIndicator status={gameStatus} />}
+                              <GameStatusIndicator status={gameStatus} eliminated={eliminated} />
                             </div>
                             <div className={`text-xs truncate ${unavailable ? 'text-slate-500' : 'text-slate-500'}`}>
                               {player.team?.city} {player.team?.name}
@@ -550,11 +547,6 @@ export default function Players() {
                           <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-lg text-xs font-medium border ${onBye ? 'bg-slate-800 text-slate-500 border-slate-700' : eliminated ? 'bg-slate-800/50 text-slate-400 border-slate-600' : POSITION_COLORS[player.position]}`}>
                             {player.position}
                           </span>
-                          {eliminated && (
-                            <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-red-900/50 text-red-400 border border-red-500/30">
-                              ELIM
-                            </span>
-                          )}
                           {onBye && !eliminated && (
                             <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-slate-700 text-slate-400">
                               BYE
