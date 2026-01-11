@@ -156,28 +156,42 @@ async function fetchSleeperStats(week: number, testMode: boolean = false): Promi
   }))
 }
 
-async function supabaseRequest(path: string, options: RequestInit = {}) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_SERVICE_KEY!,
-      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-      'Prefer': options.method === 'POST' ? 'resolution=merge-duplicates' : 'return=minimal',
-      ...options.headers,
-    },
-  })
+async function supabaseRequest(path: string, options: RequestInit = {}, retries = 3): Promise<any> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_SERVICE_KEY!,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Prefer': options.method === 'POST' ? 'resolution=merge-duplicates' : 'return=minimal',
+          ...options.headers,
+        },
+      })
 
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`Supabase error: ${response.status} - ${text}`)
-  }
+      if (!response.ok) {
+        const text = await response.text()
+        // Retry on 502/503/504 errors (transient)
+        if ((response.status === 502 || response.status === 503 || response.status === 504) && attempt < retries) {
+          console.log(`Supabase ${response.status} error, retrying (attempt ${attempt}/${retries})...`)
+          await new Promise(r => setTimeout(r, 1000 * attempt)) // Exponential backoff
+          continue
+        }
+        throw new Error(`Supabase error: ${response.status} - ${text.slice(0, 200)}`)
+      }
 
-  const contentType = response.headers.get('content-type')
-  if (contentType?.includes('application/json')) {
-    return response.json()
+      const contentType = response.headers.get('content-type')
+      if (contentType?.includes('application/json')) {
+        return response.json()
+      }
+      return null
+    } catch (err) {
+      if (attempt === retries) throw err
+      console.log(`Request failed, retrying (attempt ${attempt}/${retries})...`)
+      await new Promise(r => setTimeout(r, 1000 * attempt))
+    }
   }
-  return null
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
