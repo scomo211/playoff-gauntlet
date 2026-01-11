@@ -362,26 +362,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Update lineup_players.points_scored for current week
-    // First get all lineups for current week
-    const lineups = await supabaseRequest(
-      `/lineups?week_id=eq.${currentWeek}&select=id,entry_id,lineup_players(id,player_id)`
-    )
+    // Create a set of player IDs that were updated (live teams only)
+    const updatedPlayerIds = new Set(playerStats.map(p => p.player_id))
 
     // Create a map of player_id -> points for quick lookup
     const pointsMap = new Map(playerStats.map(p => [p.player_id, p.total_points]))
 
-    // Batch update lineup_players - collect all updates first
+    // Get all lineups for current week
+    const lineups = await supabaseRequest(
+      `/lineups?week_id=eq.${currentWeek}&select=id,entry_id,lineup_players(id,player_id)`
+    )
+
+    // Only update lineup_players that have players from live teams
     const lineupPlayerUpdates: Array<{ id: string; points_scored: number }> = []
-    const lineupTotals: Map<string, number> = new Map()
+    const lineupsToRecalculate: Set<string> = new Set()
 
     for (const lineup of lineups || []) {
-      let lineupTotal = 0
       for (const lp of lineup.lineup_players || []) {
-        const points = pointsMap.get(lp.player_id) || 0
-        lineupPlayerUpdates.push({ id: lp.id, points_scored: points })
-        lineupTotal += points
+        // Only update if this player was in the updated set (live team)
+        if (updatedPlayerIds.has(lp.player_id)) {
+          const points = pointsMap.get(lp.player_id) || 0
+          lineupPlayerUpdates.push({ id: lp.id, points_scored: points })
+          lineupsToRecalculate.add(lineup.id)
+        }
       }
-      lineupTotals.set(lineup.id, Math.round(lineupTotal * 100) / 100)
     }
 
     // Update lineup_players in parallel batches
@@ -400,22 +404,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`Updated ${lineupPlayerUpdates.length} lineup player scores`)
 
-    // Update lineup totals in parallel batches
-    const lineupUpdates = Array.from(lineupTotals.entries()).map(([id, total_points]) => ({
-      id,
-      total_points,
-    }))
+    // Recalculate totals only for lineups that had changes
+    // Need to fetch fresh data for these lineups to get all player points
+    const lineupUpdates: Array<{ id: string; total_points: number }> = []
 
-    for (let i = 0; i < lineupUpdates.length; i += BATCH_SIZE) {
-      const batch = lineupUpdates.slice(i, i + BATCH_SIZE)
-      await Promise.all(
-        batch.map(update =>
-          supabaseRequest(`/lineups?id=eq.${update.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ total_points: update.total_points }),
-          })
-        )
+    if (lineupsToRecalculate.size > 0) {
+      const lineupIds = Array.from(lineupsToRecalculate)
+      const lineupsWithPoints = await supabaseRequest(
+        `/lineups?id=in.(${lineupIds.join(',')})&select=id,lineup_players(points_scored)`
       )
+
+      for (const lineup of lineupsWithPoints || []) {
+        const total = (lineup.lineup_players || []).reduce(
+          (sum: number, lp: { points_scored: number }) => sum + (lp.points_scored || 0),
+          0
+        )
+        lineupUpdates.push({ id: lineup.id, total_points: Math.round(total * 100) / 100 })
+      }
+
+      // Update lineup totals in parallel batches
+      for (let i = 0; i < lineupUpdates.length; i += BATCH_SIZE) {
+        const batch = lineupUpdates.slice(i, i + BATCH_SIZE)
+        await Promise.all(
+          batch.map(update =>
+            supabaseRequest(`/lineups?id=eq.${update.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ total_points: update.total_points }),
+            })
+          )
+        )
+      }
     }
 
     console.log(`Updated ${lineupUpdates.length} lineup totals`)
