@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useEntries, useLeagueSettings, useEntryCount } from '../hooks/useEntries'
 import { Entry } from '../types/database'
 import { supabase } from '../lib/supabase'
+import { getTeamGameStatus } from '../lib/schedule'
 import EntryCard from '../components/EntryCard'
 import CreateEntryModal from '../components/CreateEntryModal'
 import DeleteEntryModal from '../components/DeleteEntryModal'
@@ -89,7 +90,7 @@ export default function Dashboard() {
             id,
             entry_name,
             profile:profiles(display_name),
-            lineups(week_id, total_points, lineup_players(points_scored))
+            lineups(week_id, total_points, lineup_players(points_scored, player:players(team_id)))
           `)
           .eq('is_active', true)
 
@@ -110,15 +111,20 @@ export default function Dashboard() {
             : profile?.display_name
 
           // Get points per week
-          const lineups = entry.lineups as { week_id: number; total_points: number; lineup_players?: { points_scored: number }[] }[] || []
+          const lineups = entry.lineups as { week_id: number; total_points: number; lineup_players?: { points_scored: number; player: { team_id: string } | { team_id: string }[] | null }[] }[] || []
           const getWeekPoints = (weekId: number) =>
             lineups.find(l => l.week_id === weekId)?.total_points || 0
 
-          // Calculate players played for current week
+          // Calculate players played for current week (based on game status: live or final)
           const currentWeekLineup = lineups.find(l => l.week_id === activeWeek)
           const lineupPlayers = currentWeekLineup?.lineup_players || []
           const totalPlayers = lineupPlayers.length
-          const playersPlayed = lineupPlayers.filter(lp => (lp.points_scored || 0) > 0).length
+          const playersPlayed = lineupPlayers.filter(lp => {
+            const player = lp.player
+            const teamId = Array.isArray(player) ? player[0]?.team_id : player?.team_id
+            const status = getTeamGameStatus(teamId, activeWeek)
+            return status === 'live' || status === 'final'
+          }).length
 
           return {
             id: entry.id,

@@ -94,7 +94,9 @@
       "Bash(__NEW_LINE__ echo \"=== Checking LAR player stats ===\")",
       "Bash(__NEW_LINE__ echo \"=== Checking lineup_players for Puka Nacua \\(9493\\) ===\")",
       "Bash(npm update:*)",
-      "Bash(npm audit fix:*)"
+      "Bash(npm audit fix:*)",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" echo \"=== Projections count by team for Week 1 ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/projections?week_id=eq.1&select=team_id\" -H \"apikey: $APIKEY\")",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/projections?week_id=eq.1&select=team_id&limit=500\" -H \"apikey: $APIKEY\")"
     ]
   }
 }
