@@ -14,7 +14,7 @@ const PLAYOFF_SCHEDULE = [
   { week_id: 1, away_team_id: 'HOU', home_team_id: 'PIT', kickoff: '2026-01-13T01:15:00Z' },
 ]
 
-const GAME_DURATION_MS = 3.5 * 60 * 60 * 1000 // 3.5 hours
+const GAME_DURATION_MS = 4.5 * 60 * 60 * 1000 // 4.5 hours for playoff games
 
 function getTeamsWithLiveGames(weekId: number): Set<string> {
   const now = new Date()

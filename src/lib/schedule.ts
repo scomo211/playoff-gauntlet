@@ -56,8 +56,8 @@ export function getGameForTeam(teamId: string, weekId: number): Game | null {
 }
 
 // Determine the status of a game
-// Average NFL game is ~3 hours 12 minutes, we'll use 3.5 hours to be safe
-const GAME_DURATION_MS = 3.5 * 60 * 60 * 1000
+// Playoff games often run longer - use 4.5 hours to be safe
+const GAME_DURATION_MS = 4.5 * 60 * 60 * 1000
 
 export function getGameStatus(game: Game | null): GameStatus {
   if (!game) return 'upcoming'
