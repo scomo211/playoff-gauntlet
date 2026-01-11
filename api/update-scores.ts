@@ -166,7 +166,8 @@ function calculatePoints(stats: SleeperPlayerStats['stats'], position: string): 
 function mapPlayerId(sleeperId: string): string {
   // Sleeper uses team abbreviation for defenses (e.g., "LAR")
   // Our database uses "TEAM_DEF" format (e.g., "LAR_DEF")
-  const defenseTeams = ['LAR', 'CAR', 'DEN', 'BUF', 'PIT', 'BAL', 'LAC', 'HOU', 'GB', 'PHI', 'WAS', 'TB', 'MIN', 'DET', 'KC', 'SF']
+  // All 14 playoff teams
+  const defenseTeams = ['LAR', 'CAR', 'DEN', 'BUF', 'PIT', 'LAC', 'HOU', 'GB', 'PHI', 'SF', 'JAX', 'NE', 'CHI', 'SEA']
   if (defenseTeams.includes(sleeperId)) {
     return `${sleeperId}_DEF`
   }
