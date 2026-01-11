@@ -1,5 +1,6 @@
 // NFL Playoff Schedule 2025-2026 Season
-// Game times are in Eastern Time (ET)
+// Game times are in Eastern Time (ET), stored as UTC
+// Source: https://www.cbssports.com/nfl/news/2026-nfl-playoff-schedule-dates-times-tv-wild-card-to-super-bowl/
 
 export type GameStatus = 'upcoming' | 'live' | 'final'
 
@@ -7,26 +8,44 @@ export interface Game {
   week_id: number
   home_team_id: string
   away_team_id: string
-  kickoff: string  // ISO timestamp in ET
+  kickoff: string  // ISO timestamp in UTC
 }
 
 // 2025-2026 NFL Playoff Schedule
-// Wild Card: Jan 11-13, 2026
-// Divisional: Jan 18-19, 2026
-// Championship: Jan 26, 2026
-// Super Bowl: Feb 9, 2026
+// Wild Card: Jan 10-12, 2026
+// Divisional: Jan 17-18, 2026
+// Conference Championships: Jan 25, 2026
+// Super Bowl LX: Feb 8, 2026 at Levi's Stadium, Santa Clara
+//
+// First-round byes: Denver Broncos (AFC #1), Seattle Seahawks (NFC #1)
+
 export const PLAYOFF_SCHEDULE: Game[] = [
-  // Week 1: Wild Card Weekend (Jan 10-13, 2026)
-  // Saturday Jan 10 (ET = UTC-5)
-  { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' }, // 4:30pm ET - FINAL
+  // Week 1: Wild Card Weekend (Jan 10-12, 2026)
+  // Saturday Jan 10
+  { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' }, // 4:30pm ET
   { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T01:00:00Z' },  // 8:00pm ET Sat
   // Sunday Jan 11
-  { week_id: 1, away_team_id: 'DEN', home_team_id: 'BUF', kickoff: '2026-01-11T18:00:00Z' }, // 1:00pm ET
-  { week_id: 1, away_team_id: 'PIT', home_team_id: 'BAL', kickoff: '2026-01-11T21:30:00Z' }, // 4:30pm ET
-  { week_id: 1, away_team_id: 'LAC', home_team_id: 'HOU', kickoff: '2026-01-12T01:00:00Z' }, // 8:00pm ET
+  { week_id: 1, away_team_id: 'BUF', home_team_id: 'JAX', kickoff: '2026-01-11T18:00:00Z' }, // 1:00pm ET
+  { week_id: 1, away_team_id: 'SF', home_team_id: 'PHI', kickoff: '2026-01-11T21:30:00Z' },  // 4:30pm ET
+  { week_id: 1, away_team_id: 'LAC', home_team_id: 'NE', kickoff: '2026-01-12T01:00:00Z' },  // 8:00pm ET Sun
   // Monday Jan 12
-  { week_id: 1, away_team_id: 'WAS', home_team_id: 'TB', kickoff: '2026-01-12T18:00:00Z' },  // 1:00pm ET
-  { week_id: 1, away_team_id: 'MIN', home_team_id: 'DET', kickoff: '2026-01-13T01:15:00Z' }, // 8:15pm ET Mon
+  { week_id: 1, away_team_id: 'HOU', home_team_id: 'PIT', kickoff: '2026-01-13T01:15:00Z' }, // 8:15pm ET Mon
+
+  // Week 2: Divisional Round (Jan 17-18, 2026)
+  // Matchups TBD based on Wild Card results - DEN and SEA host as #1 seeds
+  // Saturday Jan 17
+  { week_id: 2, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-17T21:35:00Z' }, // 4:35pm ET
+  { week_id: 2, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-18T01:15:00Z' }, // 8:15pm ET Sat
+  // Sunday Jan 18
+  { week_id: 2, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-18T20:05:00Z' }, // 3:05pm ET
+  { week_id: 2, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-18T23:40:00Z' }, // 6:40pm ET
+
+  // Week 3: Conference Championships (Jan 25, 2026)
+  { week_id: 3, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-25T20:00:00Z' }, // 3:00pm ET - AFC
+  { week_id: 3, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-25T23:30:00Z' }, // 6:30pm ET - NFC
+
+  // Week 4: Super Bowl LX (Feb 8, 2026) - Levi's Stadium, Santa Clara
+  { week_id: 4, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-02-08T23:30:00Z' }, // 6:30pm ET
 ]
 
 // Get the game for a team in a specific week
