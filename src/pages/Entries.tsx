@@ -5,12 +5,16 @@ import { useEntries, useLeagueSettings } from '../hooks/useEntries'
 import { Entry, Week, Lineup } from '../types/database'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/formatTime'
+import { getTeamGameStatus } from '../lib/schedule'
 import CreateEntryModal from '../components/CreateEntryModal'
 import DeleteEntryModal from '../components/DeleteEntryModal'
+import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
 
 interface EntryWithLineups extends Entry {
   lineups: (Lineup & { week: Week })[]
   rank?: number
+  playersPlayed: number
+  totalPlayers: number
 }
 
 interface RankedEntry {
@@ -49,11 +53,11 @@ export default function Entries() {
 
         if (weeksData) setWeeks(weeksData)
 
-        // Fetch lineups for user's entries
+        // Fetch lineups for user's entries (including lineup_players for progress indicator)
         const entryIds = entries.map(e => e.id)
         const { data: lineupsData } = await supabase
           .from('lineups')
-          .select(`*, week:weeks(*)`)
+          .select(`*, week:weeks(*), lineup_players(player:players(team_id))`)
           .in('entry_id', entryIds)
 
         // Fetch all entries for ranking
@@ -83,13 +87,32 @@ export default function Entries() {
           else setPayoutSpots(4)
         }
 
+        // Get current week for progress calculation
+        const currentWeek = weeksData?.find(w => w.is_current)
+        const activeWeek = currentWeek?.id || 1
+
         // Map lineups and ranks to entries
         const mapped = entries.map(entry => {
           const entryRank = rankings.findIndex(r => r.id === entry.id) + 1
+          const entryLineups = (lineupsData || []).filter(l => l.entry_id === entry.id) as (Lineup & { week: Week; lineup_players?: { player: { team_id: string } | { team_id: string }[] | null }[] })[]
+
+          // Calculate players played for current week
+          const currentWeekLineup = entryLineups.find(l => l.week_id === activeWeek)
+          const lineupPlayers = currentWeekLineup?.lineup_players || []
+          const totalPlayers = lineupPlayers.length
+          const playersPlayed = lineupPlayers.filter(lp => {
+            const player = lp.player
+            const teamId = Array.isArray(player) ? player[0]?.team_id : player?.team_id
+            const status = getTeamGameStatus(teamId, activeWeek)
+            return status === 'live' || status === 'final'
+          }).length
+
           return {
             ...entry,
-            lineups: (lineupsData || []).filter(l => l.entry_id === entry.id) as (Lineup & { week: Week })[],
-            rank: entryRank > 0 ? entryRank : undefined
+            lineups: entryLineups as (Lineup & { week: Week })[],
+            rank: entryRank > 0 ? entryRank : undefined,
+            playersPlayed,
+            totalPlayers
           }
         })
 
@@ -156,6 +179,11 @@ export default function Entries() {
                       </p>
                     </div>
                     <div className="ml-4 flex items-center gap-3">
+                      {/* Progress indicator */}
+                      <PlayersRemainingIndicator
+                        playersPlayed={entry.playersPlayed}
+                        totalPlayers={entry.totalPlayers}
+                      />
                       {/* Rank badge */}
                       {entry.rank !== undefined && (
                         <div className={`text-center px-2.5 py-1 rounded ${inTheMoney ? 'bg-gold-500/10 border border-gold-500/20' : 'bg-slate-800'}`}>
