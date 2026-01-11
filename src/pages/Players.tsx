@@ -516,38 +516,38 @@ export default function Players() {
                     <tr key={player.id} className={`transition-colors ${
                       isLive ? 'bg-green-500/10' :
                       isFinal ? 'bg-slate-500/10' :
-                      unavailable ? 'opacity-50' : 'hover:bg-slate-800/30'
+                      onBye ? 'opacity-50' : 'hover:bg-slate-800/30'
                     }`}>
                       <td className="pl-4 pr-2 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <img
                             src={getPlayerHeadshotUrl(player.id)}
                             alt={player.name}
-                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-700 object-cover ${unavailable ? 'grayscale' : ''}`}
+                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-700 object-cover ${eliminated ? 'grayscale opacity-70' : onBye ? 'grayscale' : ''}`}
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
                             }}
                           />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className={`text-sm font-medium truncate ${unavailable ? 'text-slate-500' : 'text-white'}`}>{player.name}</span>
+                              <span className={`text-sm font-medium truncate ${eliminated ? 'text-slate-300' : onBye ? 'text-slate-500' : 'text-white'}`}>{player.name}</span>
                               {!unavailable && <GameStatusIndicator status={gameStatus} />}
                             </div>
-                            <div className={`text-xs truncate ${unavailable ? 'text-slate-600' : 'text-slate-500'}`}>
+                            <div className={`text-xs truncate ${unavailable ? 'text-slate-500' : 'text-slate-500'}`}>
                               {player.team?.city} {player.team?.name}
                               {!unavailable && getOpponentDisplay(player.team) && (
                                 <span className="text-slate-600 ml-1">• {getOpponentDisplay(player.team)}</span>
                               )}
                             </div>
                             {statsText && (
-                              <div className="text-xs text-slate-500 mt-0.5 hidden sm:block">{statsText}</div>
+                              <div className={`text-xs mt-0.5 hidden sm:block ${eliminated ? 'text-slate-400' : 'text-slate-500'}`}>{statsText}</div>
                             )}
                           </div>
                         </div>
                       </td>
                       <td className="px-1 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-1 sm:gap-1.5">
-                          <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-lg text-xs font-medium border ${unavailable ? 'bg-slate-800 text-slate-500 border-slate-700' : POSITION_COLORS[player.position]}`}>
+                          <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-lg text-xs font-medium border ${onBye ? 'bg-slate-800 text-slate-500 border-slate-700' : eliminated ? 'bg-slate-800/50 text-slate-400 border-slate-600' : POSITION_COLORS[player.position]}`}>
                             {player.position}
                           </span>
                           {eliminated && (
@@ -565,7 +565,7 @@ export default function Players() {
                       <td className="px-1 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
                         <AnimatedScore
                           value={totalPts}
-                          className={`text-sm font-medium inline-block px-1 py-0.5 rounded ${unavailable ? 'text-slate-600' : totalPts > 0 ? 'text-white' : 'text-slate-500'}`}
+                          className={`text-sm font-medium inline-block px-1 py-0.5 rounded ${eliminated ? 'text-slate-300' : onBye ? 'text-slate-600' : totalPts > 0 ? 'text-white' : 'text-slate-500'}`}
                         />
                       </td>
                       <td className="pl-1 pr-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
