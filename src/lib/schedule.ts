@@ -16,17 +16,17 @@ export interface Game {
 // Championship: Jan 26, 2026
 // Super Bowl: Feb 9, 2026
 export const PLAYOFF_SCHEDULE: Game[] = [
-  // Week 1: Wild Card Weekend (Jan 10-12, 2026)
+  // Week 1: Wild Card Weekend (Jan 10-13, 2026)
   // Saturday Jan 10 (ET = UTC-5)
-  { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' }, // 4:30pm ET
-  { week_id: 1, away_team_id: 'DEN', home_team_id: 'BUF', kickoff: '2026-01-11T01:00:00Z' }, // 8:00pm ET
+  { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' }, // 4:30pm ET - FINAL
+  { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T01:00:00Z' },  // 8:00pm ET Sat
   // Sunday Jan 11
-  { week_id: 1, away_team_id: 'PIT', home_team_id: 'BAL', kickoff: '2026-01-11T18:00:00Z' }, // 1:00pm ET
-  { week_id: 1, away_team_id: 'LAC', home_team_id: 'HOU', kickoff: '2026-01-11T21:30:00Z' }, // 4:30pm ET
-  { week_id: 1, away_team_id: 'GB', home_team_id: 'PHI', kickoff: '2026-01-11T21:30:00Z' },  // 4:30pm ET
-  { week_id: 1, away_team_id: 'WAS', home_team_id: 'TB', kickoff: '2026-01-12T01:00:00Z' },  // 8:00pm ET
+  { week_id: 1, away_team_id: 'DEN', home_team_id: 'BUF', kickoff: '2026-01-11T18:00:00Z' }, // 1:00pm ET
+  { week_id: 1, away_team_id: 'PIT', home_team_id: 'BAL', kickoff: '2026-01-11T21:30:00Z' }, // 4:30pm ET
+  { week_id: 1, away_team_id: 'LAC', home_team_id: 'HOU', kickoff: '2026-01-12T01:00:00Z' }, // 8:00pm ET
   // Monday Jan 12
-  { week_id: 1, away_team_id: 'MIN', home_team_id: 'DET', kickoff: '2026-01-13T01:15:00Z' }, // 8:15pm ET
+  { week_id: 1, away_team_id: 'WAS', home_team_id: 'TB', kickoff: '2026-01-12T18:00:00Z' },  // 1:00pm ET
+  { week_id: 1, away_team_id: 'MIN', home_team_id: 'DET', kickoff: '2026-01-13T01:15:00Z' }, // 8:15pm ET Mon
 ]
 
 // Get the game for a team in a specific week

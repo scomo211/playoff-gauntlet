@@ -85,7 +85,11 @@
       "Bash(for id in 9493 421 7694 11646 9228 7594)",
       "Bash(APIKEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE echo '=== Check for games/schedule tables ===' curl -s https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/ -H 'apikey: $APIKEY')",
       "Bash(echo:*)",
-      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" echo \"=== Stafford''''s stats \\(ID: 421\\) ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/player_weekly_stats?player_id=eq.421&week_id=eq.1&select=*\" -H \"apikey: $APIKEY\" echo \"\" echo \"=== Check Sleeper API directly for Stafford ===\" curl -s \"https://api.sleeper.com/stats/nfl/2025/1?season_type=post\")"
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" echo \"=== Stafford''''s stats \\(ID: 421\\) ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/player_weekly_stats?player_id=eq.421&week_id=eq.1&select=*\" -H \"apikey: $APIKEY\" echo \"\" echo \"=== Check Sleeper API directly for Stafford ===\" curl -s \"https://api.sleeper.com/stats/nfl/2025/1?season_type=post\")",
+      "Bash(__NEW_LINE__ echo \"=== Rams and Panthers Team IDs ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Rams and Panthers Teams ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Rams Players with Week 1 Stats ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Kyren Williams Stats After Update ===\")"
     ]
   }
 }
