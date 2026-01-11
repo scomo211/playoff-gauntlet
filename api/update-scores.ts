@@ -362,7 +362,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Update lineup_players.points_scored for current week
-    // Create a set of player IDs that were updated (live teams only)
+    // Create a set of player IDs that were updated
     const updatedPlayerIds = new Set(playerStats.map(p => p.player_id))
 
     // Create a map of player_id -> points for quick lookup
@@ -373,18 +373,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `/lineups?week_id=eq.${currentWeek}&select=id,entry_id,lineup_players(id,player_id)`
     )
 
-    // Only update lineup_players that have players from live teams
+    // Only update lineup_players for players that have new stats
+    // But always recalculate lineup totals to ensure correctness
     const lineupPlayerUpdates: Array<{ id: string; points_scored: number }> = []
-    const lineupsToRecalculate: Set<string> = new Set()
+    const lineupTotals: Map<string, number> = new Map()
 
     for (const lineup of lineups || []) {
+      let lineupTotal = 0
+      let hasUpdatedPlayer = false
+
       for (const lp of lineup.lineup_players || []) {
-        // Only update if this player was in the updated set (live team)
+        // If this player was updated, add to updates
         if (updatedPlayerIds.has(lp.player_id)) {
           const points = pointsMap.get(lp.player_id) || 0
           lineupPlayerUpdates.push({ id: lp.id, points_scored: points })
-          lineupsToRecalculate.add(lineup.id)
+          lineupTotal += points
+          hasUpdatedPlayer = true
+        } else {
+          // For non-updated players, we need to fetch their current points
+          // This will be done in a second pass for lineups that have updates
         }
+      }
+
+      // Only recalculate totals for lineups that had updated players
+      if (hasUpdatedPlayer) {
+        lineupTotals.set(lineup.id, -1) // Mark for recalculation
       }
     }
 
@@ -404,12 +417,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`Updated ${lineupPlayerUpdates.length} lineup player scores`)
 
-    // Recalculate totals only for lineups that had changes
-    // Need to fetch fresh data for these lineups to get all player points
+    // Recalculate totals for lineups that had updates
+    // Fetch fresh data AFTER the lineup_player updates are complete
     const lineupUpdates: Array<{ id: string; total_points: number }> = []
 
-    if (lineupsToRecalculate.size > 0) {
-      const lineupIds = Array.from(lineupsToRecalculate)
+    if (lineupTotals.size > 0) {
+      const lineupIds = Array.from(lineupTotals.keys())
       const lineupsWithPoints = await supabaseRequest(
         `/lineups?id=in.(${lineupIds.join(',')})&select=id,lineup_players(points_scored)`
       )
