@@ -86,9 +86,10 @@ export function ToastProvider({ children }: ToastProviderProps) {
   const [queue, setQueue] = useState<ToastNotification[]>([])
   const [currentToast, setCurrentToast] = useState<ToastNotification | null>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const [shownPlays, setShownPlays] = useState<Set<string>>(new Set())
   const [userLineupPlayerIds, setUserLineupPlayerIds] = useState<Set<string>>(new Set())
-  const [lastCheckedStats, setLastCheckedStats] = useState<Map<string, {
+  // Use refs instead of state to avoid re-triggering the useEffect
+  const shownPlaysRef = useRef<Set<string>>(new Set())
+  const lastCheckedStatsRef = useRef<Map<string, {
     pass_td: number; rush_td: number; rec_td: number;
     pass_yards: number; rush_yards: number; rec_yards: number
   }>>(new Map())
@@ -192,7 +193,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
 
         // Check for new big plays
         for (const stat of stats) {
-          const lastStats = lastCheckedStats.get(stat.player_id)
+          const lastStats = lastCheckedStatsRef.current.get(stat.player_id)
           const playerName = playerMap.get(stat.player_id) || 'Unknown'
 
           if (lastStats) {
@@ -201,7 +202,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
               const newTDs = stat.pass_td - lastStats.pass_td
               for (let i = 0; i < newTDs; i++) {
                 const playKey = `${stat.player_id}-pass-td-${stat.pass_td - i}-${weekData.id}`
-                if (!shownPlays.has(playKey)) {
+                if (!shownPlaysRef.current.has(playKey)) {
+                  shownPlaysRef.current.add(playKey)
                   const yards = Math.round(stat.pass_yards / stat.pass_td)
                   showBigPlayToast({
                     player_id: stat.player_id,
@@ -211,7 +213,6 @@ export function ToastProvider({ children }: ToastProviderProps) {
                     isTouchdown: true,
                     week_id: weekData.id
                   })
-                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
@@ -221,7 +222,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
               const newTDs = stat.rush_td - lastStats.rush_td
               for (let i = 0; i < newTDs; i++) {
                 const playKey = `${stat.player_id}-rush-td-${stat.rush_td - i}-${weekData.id}`
-                if (!shownPlays.has(playKey)) {
+                if (!shownPlaysRef.current.has(playKey)) {
+                  shownPlaysRef.current.add(playKey)
                   const yards = Math.round(stat.rush_yards / stat.rush_td)
                   showBigPlayToast({
                     player_id: stat.player_id,
@@ -231,7 +233,6 @@ export function ToastProvider({ children }: ToastProviderProps) {
                     isTouchdown: true,
                     week_id: weekData.id
                   })
-                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
@@ -241,7 +242,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
               const newTDs = stat.rec_td - lastStats.rec_td
               for (let i = 0; i < newTDs; i++) {
                 const playKey = `${stat.player_id}-rec-td-${stat.rec_td - i}-${weekData.id}`
-                if (!shownPlays.has(playKey)) {
+                if (!shownPlaysRef.current.has(playKey)) {
+                  shownPlaysRef.current.add(playKey)
                   const yards = Math.round(stat.rec_yards / stat.rec_td)
                   showBigPlayToast({
                     player_id: stat.player_id,
@@ -251,7 +253,6 @@ export function ToastProvider({ children }: ToastProviderProps) {
                     isTouchdown: true,
                     week_id: weekData.id
                   })
-                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
@@ -265,7 +266,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
               if (rushYardGain > 0) {
                 const points = calculatePlayPoints('rush', rushYardGain, false)
                 const playKey = `${stat.player_id}-rush-${stat.rush_yards}-${weekData.id}`
-                if (!shownPlays.has(playKey)) {
+                if (!shownPlaysRef.current.has(playKey)) {
+                  shownPlaysRef.current.add(playKey)
                   if (points >= BIG_PLAY_POINTS_THRESHOLD) {
                     // Big play - center screen toast with confetti
                     showBigPlayToast({
@@ -285,7 +287,6 @@ export function ToastProvider({ children }: ToastProviderProps) {
                       points
                     })
                   }
-                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
@@ -296,7 +297,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
               if (recYardGain > 0) {
                 const points = calculatePlayPoints('rec', recYardGain, false)
                 const playKey = `${stat.player_id}-rec-${stat.rec_yards}-${weekData.id}`
-                if (!shownPlays.has(playKey)) {
+                if (!shownPlaysRef.current.has(playKey)) {
+                  shownPlaysRef.current.add(playKey)
                   if (points >= BIG_PLAY_POINTS_THRESHOLD) {
                     // Big play - center screen toast with confetti
                     showBigPlayToast({
@@ -316,7 +318,6 @@ export function ToastProvider({ children }: ToastProviderProps) {
                       points
                     })
                   }
-                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
@@ -327,7 +328,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
               if (passYardGain > 0) {
                 const points = calculatePlayPoints('pass', passYardGain, false)
                 const playKey = `${stat.player_id}-pass-${stat.pass_yards}-${weekData.id}`
-                if (!shownPlays.has(playKey)) {
+                if (!shownPlaysRef.current.has(playKey)) {
+                  shownPlaysRef.current.add(playKey)
                   if (points >= BIG_PLAY_POINTS_THRESHOLD) {
                     // Big play - center screen toast with confetti
                     showBigPlayToast({
@@ -347,21 +349,20 @@ export function ToastProvider({ children }: ToastProviderProps) {
                       points
                     })
                   }
-                  setShownPlays(prev => new Set([...prev, playKey]))
                 }
               }
             }
           }
 
           // Update last checked stats
-          setLastCheckedStats(prev => new Map(prev).set(stat.player_id, {
+          lastCheckedStatsRef.current.set(stat.player_id, {
             pass_td: stat.pass_td || 0,
             rush_td: stat.rush_td || 0,
             rec_td: stat.rec_td || 0,
             pass_yards: stat.pass_yards || 0,
             rush_yards: stat.rush_yards || 0,
             rec_yards: stat.rec_yards || 0
-          }))
+          })
         }
       } catch (err) {
         console.error('Failed to check for big plays:', err)
@@ -374,7 +375,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
     // Poll every 30 seconds during games
     const interval = setInterval(checkForBigPlays, 30000)
     return () => clearInterval(interval)
-  }, [userLineupPlayerIds, lastCheckedStats, shownPlays])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLineupPlayerIds])
 
   // Process queue - show next toast when current one is done
   useEffect(() => {
