@@ -9,8 +9,8 @@ const PLAYOFF_SCHEDULE = [
   { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' },
   { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T00:00:00Z' },
   { week_id: 1, away_team_id: 'BUF', home_team_id: 'JAX', kickoff: '2026-01-11T14:30:00Z' },
-  { week_id: 1, away_team_id: 'SF', home_team_id: 'PHI', kickoff: '2026-01-11T21:30:00Z' },
-  { week_id: 1, away_team_id: 'LAC', home_team_id: 'NE', kickoff: '2026-01-12T01:00:00Z' },
+  { week_id: 1, away_team_id: 'SF', home_team_id: 'PHI', kickoff: '2026-01-11T17:00:00Z' },
+  { week_id: 1, away_team_id: 'LAC', home_team_id: 'NE', kickoff: '2026-01-11T20:30:00Z' },
   { week_id: 1, away_team_id: 'HOU', home_team_id: 'PIT', kickoff: '2026-01-13T01:15:00Z' },
 ]
 
