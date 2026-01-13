@@ -354,14 +354,44 @@ export default function AdminPlayerStats() {
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Position
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Times Used
+                <th
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  onClick={() => setSortBy(sortBy === 'most_used' ? 'least_used' : 'most_used')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Times Used
+                    {(sortBy === 'most_used' || sortBy === 'least_used') && (
+                      <span className="text-blue-600">
+                        {sortBy === 'most_used' ? '↓' : '↑'}
+                      </span>
+                    )}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Points
+                <th
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  onClick={() => setSortBy(sortBy === 'most_points' ? 'least_points' : 'most_points')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Points
+                    {(sortBy === 'most_points' || sortBy === 'least_points') && (
+                      <span className="text-blue-600">
+                        {sortBy === 'most_points' ? '↓' : '↑'}
+                      </span>
+                    )}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Usage %
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  onClick={() => setSortBy(sortBy === 'most_used' ? 'least_used' : 'most_used')}
+                >
+                  <div className="flex items-center gap-1">
+                    Usage %
+                    {(sortBy === 'most_used' || sortBy === 'least_used') && (
+                      <span className="text-blue-600">
+                        {sortBy === 'most_used' ? '↓' : '↑'}
+                      </span>
+                    )}
+                  </div>
                 </th>
               </tr>
             </thead>
