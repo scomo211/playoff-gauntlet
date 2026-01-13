@@ -16,7 +16,6 @@ import DeadManWalking from '../components/DeadManWalking'
 import ValuePlayersTable from '../components/ValuePlayersTable'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
-import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
 import FavoritesLeaderboard from '../components/FavoritesLeaderboard'
 
 interface LeaderboardEntry {

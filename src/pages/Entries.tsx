@@ -8,7 +8,6 @@ import { formatDate } from '../lib/formatTime'
 import { getTeamGameStatus } from '../lib/schedule'
 import CreateEntryModal from '../components/CreateEntryModal'
 import DeleteEntryModal from '../components/DeleteEntryModal'
-import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
 
 // Weekly winners - entry IDs that won each week's high score
 const WEEKLY_WINNERS: Record<number, string> = {

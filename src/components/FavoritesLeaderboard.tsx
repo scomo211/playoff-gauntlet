@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import { useFavorites } from '../hooks/useFavorites'
 import AnimatedScore from './AnimatedScore'
 import AnimatedLeaderboardRow from './AnimatedLeaderboardRow'
-import PlayersRemainingIndicator from './PlayersRemainingIndicator'
 
 interface FavoritesLeaderboardProps {
   currentWeek?: number
