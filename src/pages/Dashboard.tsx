@@ -649,34 +649,27 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* Wild Card Week Stats - Show Week 1 data */}
+        {/* Players of the Week (MVPs/LVPs) */}
+        <div className="mt-8">
+          <ValuePlayersTable weekId={1} />
+        </div>
+
         {/* Chalk Picks of the Week - Full Width */}
-        {currentWeek && (
-          <div className="mt-8">
-            <ChalkPicksTable weekId={currentWeek} />
-          </div>
-        )}
+        <div className="mt-6">
+          <ChalkPicksTable weekId={1} />
+        </div>
 
         {/* Bold Picks of the Week - Full Width */}
-        {currentWeek && (
-          <div className="mt-6">
-            <BoldPicksTable weekId={currentWeek} />
-          </div>
-        )}
+        <div className="mt-6">
+          <BoldPicksTable weekId={1} />
+        </div>
 
         {/* Boldest Lineups + Dead Man Walking - Side by Side */}
-        {currentWeek && (
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BoldestLineups weekId={currentWeek} />
-            <DeadManWalking weekId={currentWeek} />
-          </div>
-        )}
-
-        {/* Value Players of the Week */}
-        {currentWeek && (
-          <div className="mt-6">
-            <ValuePlayersTable weekId={currentWeek} />
-          </div>
-        )}
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <BoldestLineups weekId={1} />
+          <DeadManWalking weekId={1} />
+        </div>
       </main>
 
       {/* Modals */}
