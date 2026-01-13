@@ -197,7 +197,7 @@ export default function Dashboard() {
   const [deleteModalEntry, setDeleteModalEntry] = useState<Entry | null>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const entriesPerPage = 25
+  const entriesPerPage = 20
 
   const handleSignOut = async () => {
     await signOut()
