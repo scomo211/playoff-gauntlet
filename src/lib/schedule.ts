@@ -32,13 +32,12 @@ export const PLAYOFF_SCHEDULE: Game[] = [
   { week_id: 1, away_team_id: 'HOU', home_team_id: 'PIT', kickoff: '2026-01-13T01:15:00Z' }, // 8:15pm ET Mon
 
   // Week 2: Divisional Round (Jan 17-18, 2026)
-  // Matchups TBD based on Wild Card results - DEN and SEA host as #1 seeds
   // Saturday Jan 17
-  { week_id: 2, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-17T21:35:00Z' }, // 4:35pm ET
-  { week_id: 2, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-18T01:15:00Z' }, // 8:15pm ET Sat
+  { week_id: 2, away_team_id: 'BUF', home_team_id: 'DEN', kickoff: '2026-01-17T21:30:00Z' }, // 4:30pm ET - Bills @ Broncos
+  { week_id: 2, away_team_id: 'SF', home_team_id: 'SEA', kickoff: '2026-01-18T01:00:00Z' },  // 8:00pm ET Sat - 49ers @ Seahawks
   // Sunday Jan 18
-  { week_id: 2, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-18T20:05:00Z' }, // 3:05pm ET
-  { week_id: 2, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-18T23:40:00Z' }, // 6:40pm ET
+  { week_id: 2, away_team_id: 'HOU', home_team_id: 'NE', kickoff: '2026-01-18T20:00:00Z' },  // 3:00pm ET - Texans @ Patriots
+  { week_id: 2, away_team_id: 'LAR', home_team_id: 'CHI', kickoff: '2026-01-18T23:30:00Z' }, // 6:30pm ET - Rams @ Bears
 
   // Week 3: Conference Championships (Jan 25, 2026)
   { week_id: 3, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-01-25T20:00:00Z' }, // 3:00pm ET - AFC

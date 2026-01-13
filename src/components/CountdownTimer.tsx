@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 
-// Wild Card Weekend 2026 - First game kickoff (Saturday, January 10, 2026 at 4:30 PM ET)
-const KICKOFF_DATE = new Date('2026-01-10T16:30:00-05:00')
+// Divisional Round 2026 - First game kickoff (Saturday, January 17, 2026 at 4:30 PM ET)
+// Bills @ Broncos
+const KICKOFF_DATE = new Date('2026-01-17T16:30:00-05:00')
 
 interface TimeLeft {
   days: number
