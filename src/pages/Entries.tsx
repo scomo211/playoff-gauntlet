@@ -10,6 +10,11 @@ import CreateEntryModal from '../components/CreateEntryModal'
 import DeleteEntryModal from '../components/DeleteEntryModal'
 import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
 
+// Weekly winners - entry IDs that won each week's high score
+const WEEKLY_WINNERS: Record<number, string> = {
+  1: '14ba7ea8-1830-4fb5-ae8d-54ca3da8db5c', // Scrantonicity - Tim Meyer
+}
+
 interface EntryWithLineups extends Entry {
   lineups: (Lineup & { week: Week })[]
   rank?: number
@@ -179,11 +184,6 @@ export default function Entries() {
                       </p>
                     </div>
                     <div className="ml-4 flex items-center gap-3">
-                      {/* Progress indicator */}
-                      <PlayersRemainingIndicator
-                        playersPlayed={entry.playersPlayed}
-                        totalPlayers={entry.totalPlayers}
-                      />
                       {/* Rank badge */}
                       {entry.rank !== undefined && (
                         <div className={`text-center px-2.5 py-1 rounded ${inTheMoney ? 'bg-gold-500/10 border border-gold-500/20' : 'bg-slate-800'}`}>
@@ -212,27 +212,35 @@ export default function Entries() {
                       const isCurrent = weekNum === currentWeek?.id
                       const isLocked = week ? new Date(week.lockout_time) < new Date() : true
                       const isPending = isCurrent && !isSubmitted && !isLocked
+                      const isWeeklyWinner = WEEKLY_WINNERS[weekNum] === entry.id
 
                       return (
                         <div
                           key={weekNum}
                           className={`rounded py-2 ${
-                            isSubmitted
-                              ? 'bg-green-500/10 border border-green-500/20'
-                              : isPending
-                                ? 'bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/30'
-                                : 'bg-slate-800/50'
+                            isWeeklyWinner
+                              ? 'bg-gold-500/20 border border-gold-500/30'
+                              : isSubmitted
+                                ? 'bg-green-500/10 border border-green-500/20'
+                                : isPending
+                                  ? 'bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/30'
+                                  : 'bg-slate-800/50'
                           }`}
                         >
                           <div className={`text-xs ${
-                            isSubmitted ? 'text-green-400' : isPending ? 'text-yellow-400' : 'text-slate-500'
+                            isWeeklyWinner ? 'text-gold-400' : isSubmitted ? 'text-green-400' : isPending ? 'text-yellow-400' : 'text-slate-500'
                           }`}>
                             Wk {weekNum}
                           </div>
                           <div className={`text-sm font-medium flex items-center justify-center gap-1 ${
-                            isSubmitted ? 'text-green-400' : isPending ? 'text-yellow-400' : 'text-slate-300'
+                            isWeeklyWinner ? 'text-gold-400' : isSubmitted ? 'text-green-400' : isPending ? 'text-yellow-400' : 'text-slate-300'
                           }`}>
-                            {isSubmitted ? (
+                            {isWeeklyWinner ? (
+                              <>
+                                <span>👑</span>
+                                <span>{lineup?.total_points?.toFixed(1) || '0.0'}</span>
+                              </>
+                            ) : isSubmitted ? (
                               <>
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />

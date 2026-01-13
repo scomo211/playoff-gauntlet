@@ -51,12 +51,11 @@ export default function FavoritesLeaderboard({ currentWeek, payoutSpots = 4, pay
                 <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   Owner
                 </th>
-                <th className="px-0 sm:px-2 py-2 sm:py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  <span className="hidden sm:inline">Remaining</span>
-                  <span className="sm:hidden">Left</span>
-                </th>
                 <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                   Wk 1
+                </th>
+                <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  Wk 2
                 </th>
                 <th className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                   Total
@@ -108,14 +107,11 @@ export default function FavoritesLeaderboard({ currentWeek, payoutSpots = 4, pay
                     <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
                       <div className="text-sm text-slate-400 truncate max-w-[80px] sm:max-w-none" title={entry.display_name}>{entry.display_name}</div>
                     </td>
-                    <td className="px-0 sm:px-2 py-2 sm:py-3 whitespace-nowrap">
-                      <PlayersRemainingIndicator
-                        playersPlayed={entry.playersPlayed}
-                        totalPlayers={entry.totalPlayers}
-                      />
-                    </td>
                     <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                       {entry.week1_points > 0 ? entry.week1_points.toFixed(1) : '--'}
+                    </td>
+                    <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
+                      {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
                     </td>
                     <td className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-right">
                       <AnimatedScore
