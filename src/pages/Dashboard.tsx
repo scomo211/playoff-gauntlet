@@ -13,6 +13,7 @@ import ChalkPicksTable from '../components/ChalkPicksTable'
 import BoldPicksTable from '../components/BoldPicksTable'
 import BoldestLineups from '../components/BoldestLineups'
 import DeadManWalking from '../components/DeadManWalking'
+import ValuePlayersTable from '../components/ValuePlayersTable'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
@@ -671,6 +672,12 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Value Players of the Week */}
+        {currentWeek && (
+          <div className="mt-6">
+            <ValuePlayersTable weekId={currentWeek} />
+          </div>
+        )}
       </main>
 
       {/* Modals */}
