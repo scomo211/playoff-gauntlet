@@ -14,6 +14,7 @@ import BoldPicksTable from '../components/BoldPicksTable'
 import BoldestLineups from '../components/BoldestLineups'
 import DeadManWalking from '../components/DeadManWalking'
 import ValuePlayersTable from '../components/ValuePlayersTable'
+import PerfectLineupTable from '../components/PerfectLineupTable'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 import FavoritesLeaderboard from '../components/FavoritesLeaderboard'
@@ -653,6 +654,11 @@ export default function Dashboard() {
         {/* Players of the Week (MVPs/LVPs) */}
         <div className="mt-8">
           <ValuePlayersTable weekId={1} />
+        </div>
+
+        {/* Perfect Lineup vs Sleepers */}
+        <div className="mt-6">
+          <PerfectLineupTable weekId={1} />
         </div>
 
         {/* Chalk Picks of the Week - Full Width */}
