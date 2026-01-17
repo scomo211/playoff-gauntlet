@@ -22,6 +22,11 @@ interface SportsDataProjection {
   TwoPointConversionPasses: number
   TwoPointConversionRuns: number
   TwoPointConversionReceptions: number
+  // Kicker stats
+  FieldGoalsMade: number
+  FieldGoalsMade40to49: number
+  FieldGoalsMade50Plus: number
+  ExtraPointsMade: number
 }
 
 interface DefenseProjection {
@@ -109,9 +114,21 @@ function calculateCustomFantasyPoints(p: SportsDataProjection): number {
              (p.TwoPointConversionRuns || 0) +
              (p.TwoPointConversionReceptions || 0)) * 2
 
-  // Apply correction factor - SportsDataIO postseason projections appear inflated
-  // Based on comparison with industry consensus (FantasyPros), scale down by ~40%
-  const correctedPoints = points * 0.6
+  // Kicking
+  const fgMade = p.FieldGoalsMade || 0
+  const fg40to49 = p.FieldGoalsMade40to49 || 0
+  const fg50Plus = p.FieldGoalsMade50Plus || 0
+  const fgUnder40 = Math.max(0, fgMade - fg40to49 - fg50Plus)
+  points += fgUnder40 * 3      // 3 pts for FG under 40 yards
+  points += fg40to49 * 4       // 4 pts for FG 40-49 yards
+  points += fg50Plus * 5       // 5 pts for FG 50+ yards
+  points += (p.ExtraPointsMade || 0) * 1  // 1 pt per XP
+
+  // Apply correction factor for non-kickers only
+  // SportsDataIO postseason projections appear inflated for skill positions
+  // Kicker projections are more accurate, so don't scale them down
+  const isKicker = p.Position === 'K'
+  const correctedPoints = isKicker ? points : points * 0.6
 
   return Math.round(correctedPoints * 100) / 100 // Round to 2 decimal places
 }
