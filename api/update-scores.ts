@@ -5,13 +5,18 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 // Playoff schedule for determining live games
 const PLAYOFF_SCHEDULE = [
-  // Week 1: Wild Card Weekend
+  // Week 1: Wild Card Weekend (Jan 10-12, 2026)
   { week_id: 1, away_team_id: 'LAR', home_team_id: 'CAR', kickoff: '2026-01-10T21:30:00Z' },
   { week_id: 1, away_team_id: 'GB', home_team_id: 'CHI', kickoff: '2026-01-11T00:00:00Z' },
   { week_id: 1, away_team_id: 'BUF', home_team_id: 'JAX', kickoff: '2026-01-11T14:30:00Z' },
   { week_id: 1, away_team_id: 'SF', home_team_id: 'PHI', kickoff: '2026-01-11T17:00:00Z' },
   { week_id: 1, away_team_id: 'LAC', home_team_id: 'NE', kickoff: '2026-01-11T20:30:00Z' },
   { week_id: 1, away_team_id: 'HOU', home_team_id: 'PIT', kickoff: '2026-01-13T01:15:00Z' },
+  // Week 2: Divisional Round (Jan 17-18, 2026)
+  { week_id: 2, away_team_id: 'BUF', home_team_id: 'DEN', kickoff: '2026-01-17T21:30:00Z' },
+  { week_id: 2, away_team_id: 'SF', home_team_id: 'SEA', kickoff: '2026-01-18T01:00:00Z' },
+  { week_id: 2, away_team_id: 'HOU', home_team_id: 'NE', kickoff: '2026-01-18T20:00:00Z' },
+  { week_id: 2, away_team_id: 'LAR', home_team_id: 'CHI', kickoff: '2026-01-18T23:30:00Z' },
 ]
 
 const GAME_DURATION_MS = 4.5 * 60 * 60 * 1000 // 4.5 hours for playoff games
