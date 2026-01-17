@@ -226,7 +226,14 @@ export default function Dashboard() {
     setCurrentPage(1) // Reset to first page when sorting
   }
 
-  // Sort entries
+  // Calculate ranks based on total score (always)
+  const rankByTotalScore = new Map<string, number>()
+  const entriesByTotal = [...leaderboardEntries].sort((a, b) => b.total_points - a.total_points)
+  entriesByTotal.forEach((entry, index) => {
+    rankByTotalScore.set(entry.id, index + 1)
+  })
+
+  // Sort entries for display (based on selected column)
   const sortedEntries = [...leaderboardEntries].sort((a, b) => {
     let aValue: number, bValue: number
     switch (sortColumn) {
@@ -484,8 +491,8 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {paginatedEntries.map((entry, index) => {
-                        const rank = startIndex + index + 1
+                      {paginatedEntries.map((entry) => {
+                        const rank = rankByTotalScore.get(entry.id) || 0
                         const inTheMoney = rank <= payoutSpots
 
                         return (
