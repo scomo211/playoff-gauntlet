@@ -647,54 +647,51 @@ export default function Lineup() {
             >
               {/* Mobile Layout */}
               <div className="md:hidden flex items-center justify-between">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <span
                     onClick={canEdit ? () => setSelectingSlot(slot) : undefined}
-                    className={`px-3 py-1 rounded-lg text-sm font-semibold border ${POSITION_COLORS[slot.position]} ${canEdit ? 'cursor-pointer hover:ring-2 hover:ring-field-400/50' : ''}`}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border flex-shrink-0 ${POSITION_COLORS[slot.position]} ${canEdit ? 'cursor-pointer hover:ring-2 hover:ring-field-400/50' : ''}`}
                   >
                     {slot.slot}
                   </span>
 
                   {slot.player ? (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <img
                         src={getPlayerHeadshotUrl(slot.player.id)}
                         alt={slot.player.name}
-                        className="w-10 h-10 rounded-full bg-slate-700 object-cover"
+                        className="w-8 h-8 rounded-full bg-slate-700 object-cover flex-shrink-0"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE
                         }}
                       />
-                      <div>
-                        <div className="font-medium text-white">{slot.player.name}</div>
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                          <span>{slot.player.team?.city} {slot.player.team?.name}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-white text-sm truncate">{slot.player.name}</span>
                           <GameStatusIndicator status={gameStatus} />
                         </div>
-                        {getOpponentDisplay(slot.player.team as Team) && (
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            {getOpponentDisplay(slot.player.team as Team)}
-                          </div>
-                        )}
+                        <div className="text-xs text-slate-500 truncate">
+                          {slot.player.team?.id} {getOpponentDisplay(slot.player.team as Team)}
+                        </div>
                         {formatPlayerStats(slot.stats, slot.position) && (
-                          <div className="text-xs text-slate-500 mt-0.5">
+                          <div className="text-[11px] text-slate-500 truncate">
                             {formatPlayerStats(slot.stats, slot.position)}
                           </div>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <span className="text-slate-500 italic">Empty slot</span>
+                    <span className="text-slate-500 italic text-sm">Empty</span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {slot.player && (
-                    <span className={`text-lg font-semibold flex items-center gap-1 ${isTopScorer(slot) ? 'text-yellow-400' : 'text-field-400'}`}>
-                      {isTopScorer(slot) && <span>👑</span>}
+                    <span className={`text-base font-semibold flex items-center gap-0.5 ${isTopScorer(slot) ? 'text-yellow-400' : 'text-field-400'}`}>
+                      {isTopScorer(slot) && <span className="text-sm">👑</span>}
                       <AnimatedScore
                         value={slot.points}
-                        className="inline-block px-1 py-0.5 rounded"
+                        className="inline-block"
                       />
                     </span>
                   )}
@@ -703,15 +700,15 @@ export default function Lineup() {
                     <button
                       onClick={() => setSelectingSlot(slot)}
                       disabled={saving}
-                      className="p-1.5 text-slate-500 hover:text-field-400 hover:bg-field-500/10 rounded transition disabled:opacity-50"
+                      className="p-1 text-slate-500 hover:text-field-400 hover:bg-field-500/10 rounded transition disabled:opacity-50"
                       title={slot.player ? 'Change player' : 'Select player'}
                     >
                       {slot.player ? (
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
                       ) : (
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
                       )}
