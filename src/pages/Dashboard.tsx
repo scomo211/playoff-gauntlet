@@ -18,6 +18,7 @@ import PerfectLineupTable from '../components/PerfectLineupTable'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 import FavoritesLeaderboard from '../components/FavoritesLeaderboard'
+import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
 
 interface LeaderboardEntry {
   id: string
@@ -464,14 +465,12 @@ export default function Dashboard() {
                               {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
                             </td>
                             <td className="hidden lg:table-cell px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden min-w-[60px]">
-                                  <div
-                                    className="h-full bg-field-500 rounded-full transition-all duration-500"
-                                    style={{ width: `${entry.totalPlayers > 0 ? (entry.playersPlayed / entry.totalPlayers) * 100 : 0}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs text-slate-500 whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <PlayersRemainingIndicator
+                                  playersPlayed={entry.playersPlayed}
+                                  totalPlayers={entry.totalPlayers}
+                                />
+                                <span className="text-xs text-slate-500">
                                   {entry.playersPlayed}/{entry.totalPlayers}
                                 </span>
                               </div>
