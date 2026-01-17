@@ -407,6 +407,10 @@ export default function Dashboard() {
                         <th className="hidden lg:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Progress
                         </th>
+                        {/* Mobile-only column for Wk2 + Progress */}
+                        <th className="md:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Wk 2
+                        </th>
                         <th className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Total
                         </th>
@@ -472,6 +476,18 @@ export default function Dashboard() {
                                 />
                                 <span className="text-xs text-slate-500">
                                   {entry.playersPlayed}/{entry.totalPlayers}
+                                </span>
+                              </div>
+                            </td>
+                            {/* Mobile-only: Wk2 + Progress */}
+                            <td className="md:hidden px-1 py-2 whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <PlayersRemainingIndicator
+                                  playersPlayed={entry.playersPlayed}
+                                  totalPlayers={entry.totalPlayers}
+                                />
+                                <span className="text-xs text-slate-400">
+                                  {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
                                 </span>
                               </div>
                             </td>
