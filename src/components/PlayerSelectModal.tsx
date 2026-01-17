@@ -169,7 +169,6 @@ export default function PlayerSelectModal({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search players..."
             className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            autoFocus
           />
           <select
             value={teamFilter}
