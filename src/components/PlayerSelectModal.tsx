@@ -104,35 +104,31 @@ export default function PlayerSelectModal({
         return true
       })
       .sort((a, b) => {
-        // Sort order: available (with projections) > used/bye > eliminated > zero projections
+        // Sort order: all players by projection, with eliminated/zero-proj at the bottom
         const aOnBye = isTeamOnBye(a.team)
         const bOnBye = isTeamOnBye(b.team)
         const aEliminated = isTeamEliminated(a.team)
         const bEliminated = isTeamEliminated(b.team)
-        const aUsed = isPlayerUsed(a.id) || currentLineupPlayerIds.includes(a.id)
-        const bUsed = isPlayerUsed(b.id) || currentLineupPlayerIds.includes(b.id)
 
         // Get projections
         const aProj = (getProjection && a.team_id) ? (getProjection(a.name, a.team_id) ?? 0) : 0
         const bProj = (getProjection && b.team_id) ? (getProjection(b.name, b.team_id) ?? 0) : 0
 
         // Zero projection players go to the very end
-        const aZeroProj = aProj === 0 && !aEliminated
-        const bZeroProj = bProj === 0 && !bEliminated
+        const aZeroProj = aProj === 0 && !aEliminated && !aOnBye
+        const bZeroProj = bProj === 0 && !bEliminated && !bOnBye
         if (aZeroProj && !bZeroProj) return 1
         if (!aZeroProj && bZeroProj) return -1
 
-        // Eliminated teams go above zero projections but below available
+        // Eliminated teams go above zero projections but below others
         if (aEliminated && !bEliminated && !bZeroProj) return 1
         if (!aEliminated && bEliminated && !aZeroProj) return -1
 
-        // Used/bye players go below available
-        const aUnavailable = aUsed || aOnBye
-        const bUnavailable = bUsed || bOnBye
-        if (aUnavailable && !bUnavailable && !bEliminated) return 1
-        if (!aUnavailable && bUnavailable && !aEliminated) return -1
+        // Bye week players go above eliminated but below active
+        if (aOnBye && !bOnBye && !bEliminated && !bZeroProj) return 1
+        if (!aOnBye && bOnBye && !aEliminated && !aZeroProj) return -1
 
-        // Sort by projected points (highest first) if available
+        // Sort by projected points (highest first) - used players stay in position
         if (aProj !== bProj) return bProj - aProj
         return a.name.localeCompare(b.name)
       })
