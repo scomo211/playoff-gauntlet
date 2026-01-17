@@ -58,7 +58,7 @@ export default function Dashboard() {
   const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [amountPaid, setAmountPaid] = useState<number>(0)
-  const [sortColumn, setSortColumn] = useState<'total' | 'week2'>('total')
+  const [sortColumn, setSortColumn] = useState<'total' | 'week1' | 'week2'>('total')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Fetch current week
@@ -216,7 +216,7 @@ export default function Dashboard() {
   const entriesLocked = settings?.entries_locked ?? false
 
   // Sort handler
-  const handleSort = (column: 'total' | 'week2') => {
+  const handleSort = (column: 'total' | 'week1' | 'week2') => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')
     } else {
@@ -228,8 +228,20 @@ export default function Dashboard() {
 
   // Sort entries
   const sortedEntries = [...leaderboardEntries].sort((a, b) => {
-    const aValue = sortColumn === 'total' ? a.total_points : a.week2_points
-    const bValue = sortColumn === 'total' ? b.total_points : b.week2_points
+    let aValue: number, bValue: number
+    switch (sortColumn) {
+      case 'week1':
+        aValue = a.week1_points
+        bValue = b.week1_points
+        break
+      case 'week2':
+        aValue = a.week2_points
+        bValue = b.week2_points
+        break
+      default:
+        aValue = a.total_points
+        bValue = b.total_points
+    }
     return sortDirection === 'desc' ? bValue - aValue : aValue - bValue
   })
 
@@ -418,8 +430,16 @@ export default function Dashboard() {
                         <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Owner
                         </th>
-                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                          Wk 1
+                        <th
+                          className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                          onClick={() => handleSort('week1')}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            Wk 1
+                            {sortColumn === 'week1' && (
+                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                            )}
+                          </div>
                         </th>
                         <th
                           className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
