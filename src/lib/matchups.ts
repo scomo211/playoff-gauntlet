@@ -1,4 +1,5 @@
 import { Team } from '../types/database'
+import { getGameForTeam } from './schedule'
 
 export interface OpponentInfo {
   opponent: Team | null
@@ -59,68 +60,22 @@ export function getOpponentInfo(
     return findOpponent(oppSeed)
   }
 
-  // Week 2: Divisional
+  // Week 2: Divisional - Use hardcoded schedule
   if (weekId === 2) {
-    // Need to determine wild card winners
-    // For now, check which teams are still alive from wild card matchups
-    const wcMatchups = [
-      { high: 2, low: 7 },
-      { high: 3, low: 6 },
-      { high: 4, low: 5 },
-    ]
-
-    // Get wild card winners (alive teams that weren't on bye)
-    const wcWinners: Team[] = []
-    wcMatchups.forEach(({ high, low }) => {
-      const highTeam = getTeamBySeed(high)
-      const lowTeam = getTeamBySeed(low)
-      if (highTeam?.is_alive) wcWinners.push(highTeam)
-      else if (lowTeam?.is_alive) wcWinners.push(lowTeam)
-    })
-
-    // Sort by seed (lowest number first = highest seed)
-    wcWinners.sort((a, b) => (a.playoff_seed || 99) - (b.playoff_seed || 99))
-
-    // Seed 1 plays the lowest remaining seed (last in sorted winners)
-    if (seed === 1) {
-      const opponent = wcWinners[wcWinners.length - 1] || null
+    const game = getGameForTeam(team.id, weekId)
+    if (game) {
+      const isHome = game.home_team_id === team.id
+      const opponentId = isHome ? game.away_team_id : game.home_team_id
+      const opponent = allTeams.find(t => t.id === opponentId)
       if (opponent) {
-        return { opponent, isHome: true, isBye: false, displayText: `vs ${getTeamAbbr(opponent)}` }
-      }
-      return { opponent: null, isHome: false, isBye: false, displayText: 'TBD' }
-    }
-
-    // Check if this team is one of the WC winners
-    const thisTeamIndex = wcWinners.findIndex(t => t.id === team.id)
-    if (thisTeamIndex === -1) {
-      // Team was eliminated in wild card
-      return { opponent: null, isHome: false, isBye: false, displayText: 'ELIM' }
-    }
-
-    // Lowest seed plays 1 seed
-    if (thisTeamIndex === wcWinners.length - 1) {
-      const seed1 = getTeamBySeed(1)
-      if (seed1?.is_alive) {
-        return { opponent: seed1, isHome: false, isBye: false, displayText: `at ${getTeamAbbr(seed1)}` }
-      }
-    }
-
-    // Other two winners play each other
-    const otherWinners = wcWinners.slice(0, -1)
-    if (otherWinners.length === 2) {
-      const oppIndex = otherWinners.findIndex(t => t.id !== team.id)
-      if (oppIndex !== -1) {
-        const opponent = otherWinners[oppIndex]
-        const isHome = (team.playoff_seed || 99) < (opponent.playoff_seed || 99)
         return {
           opponent,
           isHome,
           isBye: false,
-          displayText: isHome ? `vs ${getTeamAbbr(opponent)}` : `at ${getTeamAbbr(opponent)}`
+          displayText: isHome ? `vs ${opponentId}` : `at ${opponentId}`
         }
       }
     }
-
     return { opponent: null, isHome: false, isBye: false, displayText: 'TBD' }
   }
 

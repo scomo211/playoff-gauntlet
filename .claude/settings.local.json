@@ -100,7 +100,16 @@
       "Bash(lsof:*)",
       "Bash(__NEW_LINE__ echo \"=== QBs with stats for Week 1 ===\")",
       "Bash(APIKEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE)",
-      "Bash(export APIKEY=:*)"
+      "Bash(export APIKEY=:*)",
+      "Bash(Roster That Destroyed Yours\" \\(low-owned players who outperformed\\).\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(__NEW_LINE__ echo \"=== Player Stats for Week 1 with ownership ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Player pick counts for Week 1 ===\")",
+      "Bash(node -e:*)",
+      "Bash(__NEW_LINE__ echo \"=== Jordan Love \\(6804\\) rosters ===\")",
+      "Bash(__NEW_LINE__ curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/projections?week_id=eq.2&select=player_name,team_id,fantasy_points&order=fantasy_points.desc&limit=10\" -H \"apikey: $APIKEY\")",
+      "Bash(__NEW_LINE__ echo \"=== Top Week 2 Projections ===\")",
+      "Bash(__NEW_LINE__ curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/weeks?select=*\" -H \"apikey: $APIKEY\")",
+      "Bash(xxd:*)"
     ]
   }
 }
