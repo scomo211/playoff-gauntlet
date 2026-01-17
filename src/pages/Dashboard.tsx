@@ -403,6 +403,9 @@ export default function Dashboard() {
                         <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 2
                         </th>
+                        <th className="hidden lg:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          Progress
+                        </th>
                         <th className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Total
                         </th>
@@ -459,6 +462,19 @@ export default function Dashboard() {
                             </td>
                             <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
                               {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
+                            </td>
+                            <td className="hidden lg:table-cell px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden min-w-[60px]">
+                                  <div
+                                    className="h-full bg-field-500 rounded-full transition-all duration-500"
+                                    style={{ width: `${entry.totalPlayers > 0 ? (entry.playersPlayed / entry.totalPlayers) * 100 : 0}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-slate-500 whitespace-nowrap">
+                                  {entry.playersPlayed}/{entry.totalPlayers}
+                                </span>
+                              </div>
                             </td>
                             <td className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-right">
                               <AnimatedScore
@@ -663,18 +679,18 @@ export default function Dashboard() {
 
         {/* Chalk Picks of the Week - Full Width */}
         <div className="mt-6">
-          <ChalkPicksTable weekId={1} />
+          <ChalkPicksTable weekId={2} />
         </div>
 
         {/* Bold Picks of the Week - Full Width */}
         <div className="mt-6">
-          <BoldPicksTable weekId={1} />
+          <BoldPicksTable weekId={2} />
         </div>
 
         {/* Boldest Lineups + Dead Man Walking - Side by Side */}
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <BoldestLineups weekId={1} />
-          <DeadManWalking weekId={1} />
+          <BoldestLineups weekId={2} />
+          <DeadManWalking weekId={2} />
         </div>
       </main>
 

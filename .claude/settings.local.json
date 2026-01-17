@@ -109,7 +109,13 @@
       "Bash(__NEW_LINE__ curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/projections?week_id=eq.2&select=player_name,team_id,fantasy_points&order=fantasy_points.desc&limit=10\" -H \"apikey: $APIKEY\")",
       "Bash(__NEW_LINE__ echo \"=== Top Week 2 Projections ===\")",
       "Bash(__NEW_LINE__ curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/weeks?select=*\" -H \"apikey: $APIKEY\")",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(source /Users/scottmoran/playoff-gauntlet/.env.local)",
+      "Bash(true curl -s https://api.sportsdata.io/v3/nfl/projections/json/PlayerGameProjectionStatsByWeek/2025POST/2 -H 'Ocp-Apim-Subscription-Key: $VITE_SPORTSDATA_API_KEY')",
+      "Bash(API_KEY=\"af98389d50cd428399f88c29feb8649c\":*)",
+      "Bash(for name in \"cairo santos\" \"jason myers\" \"eddy\" \"mevis\" \"borregales\" \"prater\" \"lutz\")",
+      "Bash(API_KEY=\"af98389d50cd428399f88c29feb8649c\" curl -s \"https://api.sportsdata.io/v3/nfl/projections/json/PlayerGameProjectionStatsByWeek/2025POST/2\" -H \"Ocp-Apim-Subscription-Key: $API_KEY\")",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" echo \"=== All Week 2 projections with K-sounding names ===\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/projections?week_id=eq.2&or=\\(team_id.eq.CHI,team_id.eq.SEA\\)&select=player_name,team_id,fantasy_points&order=fantasy_points.desc\" -H \"apikey: $APIKEY\")"
     ]
   }
 }
