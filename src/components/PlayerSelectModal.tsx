@@ -162,7 +162,7 @@ export default function PlayerSelectModal({
           </div>
         )}
         {/* Search and filters */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 overflow-hidden">
           <input
             type="text"
             value={searchQuery}
@@ -173,7 +173,7 @@ export default function PlayerSelectModal({
           <select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent max-w-[140px] truncate"
           >
             <option value="ALL">All Teams</option>
             {teams.map(team => (
