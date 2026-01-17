@@ -58,6 +58,8 @@ export default function Dashboard() {
   const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [amountPaid, setAmountPaid] = useState<number>(0)
+  const [sortColumn, setSortColumn] = useState<'total' | 'week2'>('total')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Fetch current week
   useEffect(() => {
@@ -213,12 +215,30 @@ export default function Dashboard() {
 
   const entriesLocked = settings?.entries_locked ?? false
 
+  // Sort handler
+  const handleSort = (column: 'total' | 'week2') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('desc')
+    }
+    setCurrentPage(1) // Reset to first page when sorting
+  }
+
+  // Sort entries
+  const sortedEntries = [...leaderboardEntries].sort((a, b) => {
+    const aValue = sortColumn === 'total' ? a.total_points : a.week2_points
+    const bValue = sortColumn === 'total' ? b.total_points : b.week2_points
+    return sortDirection === 'desc' ? bValue - aValue : aValue - bValue
+  })
+
   // Pagination logic
-  const totalPages = Math.ceil(leaderboardEntries.length / entriesPerPage)
-  const showPagination = leaderboardEntries.length >= entriesPerPage
+  const totalPages = Math.ceil(sortedEntries.length / entriesPerPage)
+  const showPagination = sortedEntries.length >= entriesPerPage
   const paginatedEntries = showPagination
-    ? leaderboardEntries.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage)
-    : leaderboardEntries
+    ? sortedEntries.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage)
+    : sortedEntries
   const startIndex = (currentPage - 1) * entriesPerPage
 
   return (
@@ -401,18 +421,45 @@ export default function Dashboard() {
                         <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Wk 1
                         </th>
-                        <th className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                          Wk 2
+                        <th
+                          className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                          onClick={() => handleSort('week2')}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            Wk 2
+                            {sortColumn === 'week2' && (
+                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                            )}
+                          </div>
                         </th>
                         <th className="hidden lg:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Progress
                         </th>
-                        {/* Mobile-only column for Wk2 + Progress */}
-                        <th className="md:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                          Wk 2
+                        {/* Mobile-only columns for Wk2 and Progress */}
+                        <th
+                          className="md:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer"
+                          onClick={() => handleSort('week2')}
+                        >
+                          <div className="flex items-center justify-center gap-0.5">
+                            Wk2
+                            {sortColumn === 'week2' && (
+                              <span className="text-field-400 text-[10px]">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                            )}
+                          </div>
                         </th>
-                        <th className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
-                          Total
+                        <th className="md:hidden lg:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+
+                        </th>
+                        <th
+                          className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                          onClick={() => handleSort('total')}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Total
+                            {sortColumn === 'total' && (
+                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                            )}
+                          </div>
                         </th>
                       </tr>
                     </thead>
@@ -479,16 +526,19 @@ export default function Dashboard() {
                                 </span>
                               </div>
                             </td>
-                            {/* Mobile-only: Wk2 + Progress */}
-                            <td className="md:hidden px-1 py-2 whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-1.5">
+                            {/* Mobile-only: Wk2 */}
+                            <td className="md:hidden px-1 py-2 whitespace-nowrap text-center">
+                              <span className="text-xs text-slate-400">
+                                {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
+                              </span>
+                            </td>
+                            {/* Mobile-only: Progress */}
+                            <td className="md:hidden lg:hidden px-1 py-2 whitespace-nowrap">
+                              <div className="flex items-center justify-center">
                                 <PlayersRemainingIndicator
                                   playersPlayed={entry.playersPlayed}
                                   totalPlayers={entry.totalPlayers}
                                 />
-                                <span className="text-xs text-slate-400">
-                                  {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
-                                </span>
                               </div>
                             </td>
                             <td className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-right">
@@ -513,7 +563,7 @@ export default function Dashboard() {
               {showPagination && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-slate-800 bg-slate-800/30">
                   <div className="text-sm text-slate-400">
-                    Showing {startIndex + 1}-{Math.min(startIndex + entriesPerPage, leaderboardEntries.length)} of {leaderboardEntries.length}
+                    Showing {startIndex + 1}-{Math.min(startIndex + entriesPerPage, sortedEntries.length)} of {sortedEntries.length}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
