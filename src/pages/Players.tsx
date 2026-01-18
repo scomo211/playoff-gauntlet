@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { Player, Team, Position } from '../types/database'
-import { createPlayerKey } from '../lib/projections'
 import { getPlayerHeadshotUrl, PLACEHOLDER_IMAGE } from '../lib/playerImages'
 import { getOpponentInfo } from '../lib/matchups'
 import { useGameStatus } from '../hooks/useGameStatus'
@@ -38,7 +37,7 @@ function GameStatusIndicator({ status, eliminated }: { status: GameStatus | 'bye
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
-type SortField = 'name' | 'totalPoints' | 'projectedPoints'
+type SortField = 'name' | 'totalPoints' | 'week1Points' | 'week2Points'
 type SortDirection = 'asc' | 'desc'
 
 interface PlayerStats {
@@ -66,11 +65,6 @@ interface PlayerStats {
   def_safety?: number
 }
 
-interface Projection {
-  player_name: string
-  team_id: string
-  fantasy_points: number
-}
 
 const POSITION_COLORS: Record<Position, string> = {
   QB: 'bg-red-500/10 text-red-400 border-red-500/20',
@@ -143,15 +137,16 @@ export default function Players() {
   const [players, setPlayers] = useState<(Player & { team: Team })[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [playerStats, setPlayerStats] = useState<Map<string, number>>(new Map())
+  const [week1Stats, setWeek1Stats] = useState<Map<string, number>>(new Map())
+  const [week2Stats, setWeek2Stats] = useState<Map<string, number>>(new Map())
   const [weeklyStats, setWeeklyStats] = useState<Map<string, PlayerStats>>(new Map())
-  const [projections, setProjections] = useState<Map<string, number>>(new Map())
   const [currentWeekId, setCurrentWeekId] = useState<number>(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPosition, setSelectedPosition] = useState<Position | 'ALL'>('ALL')
   const [selectedTeam, setSelectedTeam] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortField, setSortField] = useState<SortField>('totalPoints')
+  const [sortField, setSortField] = useState<SortField>('week2Points')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [depthChartTeam, setDepthChartTeam] = useState<Team | null>(null)
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
@@ -202,32 +197,28 @@ export default function Players() {
 
         if (statsData) {
           const statsMap = new Map<string, number>()
+          const week1Map = new Map<string, number>()
+          const week2Map = new Map<string, number>()
           const weeklyMap = new Map<string, PlayerStats>()
           statsData.forEach((stat: PlayerStats & { week_id: number }) => {
             const current = statsMap.get(stat.player_id) || 0
             statsMap.set(stat.player_id, current + stat.total_points)
+            // Store week 1 and week 2 points separately
+            if (stat.week_id === 1) {
+              week1Map.set(stat.player_id, stat.total_points)
+            }
+            if (stat.week_id === 2) {
+              week2Map.set(stat.player_id, stat.total_points)
+            }
             // Store current week's detailed stats
             if (stat.week_id === weekId) {
               weeklyMap.set(stat.player_id, stat)
             }
           })
           setPlayerStats(statsMap)
+          setWeek1Stats(week1Map)
+          setWeek2Stats(week2Map)
           setWeeklyStats(weeklyMap)
-        }
-
-        // Fetch projections for current week
-        const { data: projData } = await supabase
-          .from('projections')
-          .select('player_name, team_id, fantasy_points')
-          .eq('week_id', weekId)
-
-        if (projData) {
-          const projMap = new Map<string, number>()
-          projData.forEach((proj: Projection) => {
-            const key = `${proj.player_name}|${proj.team_id.toUpperCase()}`
-            projMap.set(key, proj.fantasy_points)
-          })
-          setProjections(projMap)
         }
 
       } catch (err) {
@@ -276,16 +267,19 @@ export default function Players() {
     fetchUsedPlayers()
   }, [user])
 
-  // Helper to get projection for a player
-  const getProjection = (player: Player & { team: Team }): number => {
-    if (!player.team_id) return 0
-    const key = createPlayerKey(player.name, player.team_id)
-    return projections.get(key) || 0
-  }
-
   // Helper to get total points for a player
   const getTotalPoints = (player: Player): number => {
     return playerStats.get(player.id) || 0
+  }
+
+  // Helper to get week 1 points for a player
+  const getWeek1Points = (player: Player): number => {
+    return week1Stats.get(player.id) || 0
+  }
+
+  // Helper to get week 2 points for a player
+  const getWeek2Points = (player: Player): number => {
+    return week2Stats.get(player.id) || 0
   }
 
   // Helper to check if team is on bye this week
@@ -363,15 +357,18 @@ export default function Players() {
         case 'totalPoints':
           comparison = getTotalPoints(a) - getTotalPoints(b)
           break
-        case 'projectedPoints':
-          comparison = getProjection(a) - getProjection(b)
+        case 'week1Points':
+          comparison = getWeek1Points(a) - getWeek1Points(b)
+          break
+        case 'week2Points':
+          comparison = getWeek2Points(a) - getWeek2Points(b)
           break
       }
       return sortDirection === 'asc' ? comparison : -comparison
     })
 
     return result
-  }, [players, selectedPosition, selectedTeam, searchQuery, sortField, sortDirection, projections, playerStats, currentWeekId])
+  }, [players, selectedPosition, selectedTeam, searchQuery, sortField, sortDirection, playerStats, week1Stats, week2Stats, currentWeekId])
 
   return (
     <Layout>
@@ -475,6 +472,28 @@ export default function Players() {
                   </th>
                   <th
                     className="px-1 sm:px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('week1Points')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      Wk1
+                      {sortField === 'week1Points' && (
+                        <span className="text-emerald-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-1 sm:px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('week2Points')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      Wk2
+                      {sortField === 'week2Points' && (
+                        <span className="text-emerald-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="pl-1 pr-4 sm:px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                     onClick={() => handleSort('totalPoints')}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -484,23 +503,11 @@ export default function Players() {
                       )}
                     </div>
                   </th>
-                  <th
-                    className="pl-1 pr-4 sm:px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
-                    onClick={() => handleSort('projectedPoints')}
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      Proj
-                      {sortField === 'projectedPoints' && (
-                        <span className="text-emerald-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </div>
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
                 {filteredPlayers.map(player => {
                   const totalPts = getTotalPoints(player)
-                  const projPts = getProjection(player)
                   const eliminated = isTeamEliminated(player.team)
                   const onBye = isTeamOnBye(player.team)
                   const unavailable = eliminated || onBye
@@ -555,22 +562,32 @@ export default function Players() {
                         </div>
                       </td>
                       <td className="px-1 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
-                        <AnimatedScore
-                          value={totalPts}
-                          className={`text-sm font-medium inline-block px-1 py-0.5 rounded ${eliminated ? 'text-slate-300' : onBye ? 'text-slate-600' : totalPts > 0 ? 'text-white' : 'text-slate-500'}`}
-                        />
+                        {(() => {
+                          const week1Pts = getWeek1Points(player)
+                          return (
+                            <AnimatedScore
+                              value={week1Pts}
+                              className={`text-sm font-medium inline-block px-1 py-0.5 rounded ${eliminated ? 'text-slate-400' : week1Pts > 0 ? 'text-slate-300' : 'text-slate-500'}`}
+                            />
+                          )
+                        })()}
+                      </td>
+                      <td className="px-1 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
+                        {(() => {
+                          const week2Pts = getWeek2Points(player)
+                          return (
+                            <AnimatedScore
+                              value={week2Pts}
+                              className={`text-sm font-medium inline-block px-1 py-0.5 rounded ${eliminated ? 'text-slate-400' : onBye ? 'text-slate-600' : week2Pts > 0 ? 'text-white' : 'text-slate-500'}`}
+                            />
+                          )
+                        })()}
                       </td>
                       <td className="pl-1 pr-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
-                        {unavailable ? (
-                          <span className="text-sm font-medium text-slate-600">—</span>
-                        ) : projPts > 0 ? (
-                          <AnimatedScore
-                            value={projPts}
-                            className="text-sm font-medium text-emerald-400 inline-block px-1 py-0.5 rounded"
-                          />
-                        ) : (
-                          <span className="text-sm font-medium text-slate-500">—</span>
-                        )}
+                        <AnimatedScore
+                          value={totalPts}
+                          className={`text-sm font-medium inline-block px-1 py-0.5 rounded ${eliminated ? 'text-slate-300' : onBye ? 'text-slate-600' : totalPts > 0 ? 'text-emerald-400' : 'text-slate-500'}`}
+                        />
                       </td>
                     </tr>
                   )
