@@ -178,6 +178,7 @@ export default function ValuePlayersTable({ weekId }: ValuePlayersTableProps) {
       const MVP_OVERRIDES: Record<number, Partial<Record<Position, string[]>>> = {
         2: {
           WR: ['9504'], // Kayshon Boutte should be WR2 for Week 2
+          K: ['17'], // Matt Prater should be K MVP for Week 2
         }
       }
 
