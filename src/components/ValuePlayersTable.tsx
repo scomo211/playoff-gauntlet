@@ -174,21 +174,46 @@ export default function ValuePlayersTable({ weekId }: ValuePlayersTableProps) {
         percentage: Math.round((p.count / lineupCount) * 100)
       }))
 
+      // Manual overrides for specific weeks/positions where we want specific players featured
+      const MVP_OVERRIDES: Record<number, Partial<Record<Position, string[]>>> = {
+        2: {
+          WR: ['9504'], // Kayshon Boutte should be WR2 for Week 2
+        }
+      }
+
       // MVPs: High points relative to ownership - true value finds
       // Calculate "value score" = points / ownership%
       // Higher = better value (scored a lot but wasn't popular)
       // Require minimum 5 points to filter out flukes
       const getMvpsByPosition = (position: Position, count: number): PlayerValue[] => {
-        return allPlayers
-          .filter(p => p.position === position && p.total_points >= 5)
+        const overrides = MVP_OVERRIDES[weekId]?.[position] || []
+        const overridePlayers: PlayerValue[] = []
+        for (const id of overrides) {
+          const player = allPlayers.find(p => p.player_id === id)
+          if (player && player.total_points >= 5) {
+            overridePlayers.push(player)
+          }
+        }
+
+        const algorithmPicks = allPlayers
+          .filter(p => p.position === position && p.total_points >= 5 && !overrides.includes(p.player_id))
           .map(p => ({
             ...p,
             // Value score: points per ownership point
             // Use max(ownership, 1) to avoid division by zero
             valueScore: p.total_points / Math.max(p.percentage, 1)
           }))
-          .sort((a, b) => b.valueScore - a.valueScore) // Highest value first
-          .slice(0, count)
+          .sort((a, b) => b.valueScore - a.valueScore)
+
+        // Combine: overrides first, then fill remaining slots with algorithm picks
+        const combined: PlayerValue[] = [...overridePlayers]
+        for (const pick of algorithmPicks) {
+          if (combined.length >= count) break
+          if (!combined.find(p => p.player_id === pick.player_id)) {
+            combined.push(pick)
+          }
+        }
+        return combined.slice(0, count)
       }
 
       // LVPs: High ownership AND bad performance - true busts
