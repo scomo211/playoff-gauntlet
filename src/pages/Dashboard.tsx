@@ -18,7 +18,6 @@ import PerfectLineupTable from '../components/PerfectLineupTable'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 import FavoritesLeaderboard from '../components/FavoritesLeaderboard'
-import PlayersRemainingIndicator from '../components/PlayersRemainingIndicator'
 
 interface LeaderboardEntry {
   id: string
@@ -459,10 +458,7 @@ export default function Dashboard() {
                             )}
                           </div>
                         </th>
-                        <th className="hidden lg:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-                          Progress
-                        </th>
-                        {/* Mobile-only columns for Wk2 and Progress */}
+                        {/* Mobile-only column for Wk2 */}
                         <th
                           className="md:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer"
                           onClick={() => handleSort('week2')}
@@ -473,9 +469,6 @@ export default function Dashboard() {
                               <span className="text-field-400 text-[10px]">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                             )}
                           </div>
-                        </th>
-                        <th className="md:hidden lg:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
-
                         </th>
                         <th
                           className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
@@ -539,34 +532,44 @@ export default function Dashboard() {
                                 </span>
                               )}
                             </td>
-                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm text-slate-400">
-                              {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
-                            </td>
-                            <td className="hidden lg:table-cell px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <PlayersRemainingIndicator
-                                  playersPlayed={entry.playersPlayed}
-                                  totalPlayers={entry.totalPlayers}
-                                />
-                                <span className="text-xs text-slate-500">
-                                  {entry.playersPlayed}/{entry.totalPlayers}
-                                </span>
-                              </div>
+                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm">
+                              {(() => {
+                                const maxWeek2 = Math.max(...leaderboardEntries.map(e => e.week2_points))
+                                const isTopWeek2 = entry.week2_points > 0 && entry.week2_points === maxWeek2
+                                if (isTopWeek2) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30">
+                                      <span>👑</span>
+                                      {entry.week2_points.toFixed(1)}
+                                    </span>
+                                  )
+                                }
+                                return (
+                                  <span className="text-slate-400">
+                                    {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
+                                  </span>
+                                )
+                              })()}
                             </td>
                             {/* Mobile-only: Wk2 */}
                             <td className="md:hidden px-1 py-2 whitespace-nowrap text-center">
-                              <span className="text-xs text-slate-400">
-                                {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
-                              </span>
-                            </td>
-                            {/* Mobile-only: Progress */}
-                            <td className="md:hidden lg:hidden px-1 py-2 whitespace-nowrap">
-                              <div className="flex items-center justify-center">
-                                <PlayersRemainingIndicator
-                                  playersPlayed={entry.playersPlayed}
-                                  totalPlayers={entry.totalPlayers}
-                                />
-                              </div>
+                              {(() => {
+                                const maxWeek2 = Math.max(...leaderboardEntries.map(e => e.week2_points))
+                                const isTopWeek2 = entry.week2_points > 0 && entry.week2_points === maxWeek2
+                                if (isTopWeek2) {
+                                  return (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
+                                      <span>👑</span>
+                                      {entry.week2_points.toFixed(1)}
+                                    </span>
+                                  )
+                                }
+                                return (
+                                  <span className="text-xs text-slate-400">
+                                    {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
+                                  </span>
+                                )
+                              })()}
                             </td>
                             <td className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-right">
                               <AnimatedScore
