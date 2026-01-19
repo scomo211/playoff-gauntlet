@@ -18,6 +18,7 @@ import PerfectLineupTable from '../components/PerfectLineupTable'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 import FavoritesLeaderboard from '../components/FavoritesLeaderboard'
+import { useRankMovement, MovementIndicator } from '../hooks/useRankMovement'
 
 interface LeaderboardEntry {
   id: string
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const { entries, loading, createEntry, deleteEntry } = useEntries()
   const { settings } = useLeagueSettings()
   const { count: totalEntries } = useEntryCount()
+  const { biggestUpMovers, biggestDownMovers, getMovement } = useRankMovement()
 
   // Leaderboard state
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
@@ -231,39 +233,6 @@ export default function Dashboard() {
   entriesByTotal.forEach((entry, index) => {
     rankByTotalScore.set(entry.id, index + 1)
   })
-
-  // Calculate ranks based on Week 1 score only (for movement calculation)
-  const rankByWeek1 = new Map<string, number>()
-  const entriesByWeek1 = [...leaderboardEntries].sort((a, b) => b.week1_points - a.week1_points)
-  entriesByWeek1.forEach((entry, index) => {
-    rankByWeek1.set(entry.id, index + 1)
-  })
-
-  // Calculate rank movement and find top/bottom 10% movers
-  const movements = leaderboardEntries.map(entry => {
-    const week1Rank = rankByWeek1.get(entry.id) || 0
-    const currentRank = rankByTotalScore.get(entry.id) || 0
-    const movement = week1Rank - currentRank // positive = moved up
-    return { id: entry.id, movement }
-  })
-
-  // Filter to only entries with actual movement
-  const upMovers = movements.filter(m => m.movement > 0).sort((a, b) => b.movement - a.movement)
-  const downMovers = movements.filter(m => m.movement < 0).sort((a, b) => a.movement - b.movement)
-
-  // Get top 10% movers (minimum 1 if there are any movers)
-  const top10PercentUp = Math.max(1, Math.ceil(upMovers.length * 0.1))
-  const top10PercentDown = Math.max(1, Math.ceil(downMovers.length * 0.1))
-
-  const biggestUpMovers = new Set(upMovers.slice(0, top10PercentUp).map(m => m.id))
-  const biggestDownMovers = new Set(downMovers.slice(0, top10PercentDown).map(m => m.id))
-
-  // Get movement for display
-  const getMovement = (entryId: string) => {
-    const week1Rank = rankByWeek1.get(entryId) || 0
-    const currentRank = rankByTotalScore.get(entryId) || 0
-    return week1Rank - currentRank
-  }
 
   // Sort entries for display (based on selected column)
   const sortedEntries = [...leaderboardEntries].sort((a, b) => {
@@ -544,20 +513,12 @@ export default function Dashboard() {
                             <td className="pl-1 pr-0 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
                               <div className="text-sm font-medium text-white sm:truncate sm:max-w-none flex items-center gap-1" title={entry.entry_name}>
                                 {/* Movement indicator */}
-                                {biggestUpMovers.has(entry.id) && (
-                                  <span className="inline-flex items-center text-green-400" title={`Up ${getMovement(entry.id)} spots`}>
-                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  </span>
-                                )}
-                                {biggestDownMovers.has(entry.id) && (
-                                  <span className="inline-flex items-center text-red-400" title={`Down ${Math.abs(getMovement(entry.id))} spots`}>
-                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  </span>
-                                )}
+                                <MovementIndicator
+                                  entryId={entry.id}
+                                  biggestUpMovers={biggestUpMovers}
+                                  biggestDownMovers={biggestDownMovers}
+                                  getMovement={getMovement}
+                                />
                                 {/* Mobile view */}
                                 <span className="sm:hidden flex items-center gap-1">
                                   {WEEKLY_WINNERS[1] === entry.id && <span>👑</span>}
@@ -724,6 +685,9 @@ export default function Dashboard() {
                     onDelete={setDeleteModalEntry}
                     entriesLocked={entriesLocked}
                     currentWeek={settings?.current_week_id ?? undefined}
+                    biggestUpMovers={biggestUpMovers}
+                    biggestDownMovers={biggestDownMovers}
+                    getMovement={getMovement}
                   />
                 ))}
               </div>

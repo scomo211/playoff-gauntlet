@@ -6,6 +6,7 @@ import { Entry, Week, Lineup } from '../types/database'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/formatTime'
 import { getTeamGameStatus } from '../lib/schedule'
+import { useRankMovement, MovementIndicator } from '../hooks/useRankMovement'
 import CreateEntryModal from '../components/CreateEntryModal'
 import DeleteEntryModal from '../components/DeleteEntryModal'
 
@@ -29,6 +30,7 @@ interface RankedEntry {
 export default function Entries() {
   const { entries, loading, createEntry, deleteEntry } = useEntries()
   const { settings } = useLeagueSettings()
+  const { biggestUpMovers, biggestDownMovers, getMovement } = useRankMovement()
   const navigate = useNavigate()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [deleteModalEntry, setDeleteModalEntry] = useState<Entry | null>(null)
@@ -175,7 +177,13 @@ export default function Entries() {
                 <Link to={`/entry/${entry.id}/lineup?week=${currentWeek?.id || 1}`} className="block p-5 hover:bg-slate-800/30 transition">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-white truncate">
+                      <h3 className="text-lg font-semibold text-white truncate flex items-center gap-1.5">
+                        <MovementIndicator
+                          entryId={entry.id}
+                          biggestUpMovers={biggestUpMovers}
+                          biggestDownMovers={biggestDownMovers}
+                          getMovement={getMovement}
+                        />
                         {entry.entry_name}
                       </h3>
                       <p className="mt-1 text-sm text-slate-500">

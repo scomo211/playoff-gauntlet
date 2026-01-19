@@ -17,6 +17,7 @@ import PlayerSelectModal from '../components/PlayerSelectModal'
 import { useToast } from '../contexts/ToastContext'
 import AnimatedScore from '../components/AnimatedScore'
 import { useFavorites } from '../hooks/useFavorites'
+import { useRankMovement, MovementIndicator } from '../hooks/useRankMovement'
 
 // Game status indicator component
 function GameStatusIndicator({ status }: { status: GameStatus | 'bye' }) {
@@ -151,6 +152,7 @@ export default function Lineup() {
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const { showToast } = useToast()
   const { isFavorite, toggleFavorite } = useFavorites()
+  const { biggestUpMovers, biggestDownMovers, getMovement } = useRankMovement()
   const [topScorersByPosition, setTopScorersByPosition] = useState<Map<Position, { playerId: string; points: number }>>(new Map())
   const [weekRank, setWeekRank] = useState<{ rank: number; total: number } | null>(null)
 
@@ -420,7 +422,13 @@ export default function Lineup() {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                <MovementIndicator
+                  entryId={entry.id}
+                  biggestUpMovers={biggestUpMovers}
+                  biggestDownMovers={biggestDownMovers}
+                  getMovement={getMovement}
+                />
                 {entry.entry_name}
               </h1>
               {/* Favorite star button - only show for other users' entries */}

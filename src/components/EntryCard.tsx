@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Entry } from '../types/database'
 import { formatDate } from '../lib/formatTime'
+import { MovementIndicator } from '../hooks/useRankMovement'
 
 interface LineupInfo {
   week_id: number
@@ -17,9 +18,12 @@ interface EntryCardProps {
   onDelete: (entry: Entry) => void
   entriesLocked: boolean
   currentWeek?: number
+  biggestUpMovers?: Set<string>
+  biggestDownMovers?: Set<string>
+  getMovement?: (id: string) => number
 }
 
-export default function EntryCard({ entry, onDelete, entriesLocked, currentWeek }: EntryCardProps) {
+export default function EntryCard({ entry, onDelete, entriesLocked, currentWeek, biggestUpMovers, biggestDownMovers, getMovement }: EntryCardProps) {
   // Helper to get lineup info for a week
   const getLineupForWeek = (weekId: number): LineupInfo | undefined => {
     return entry.lineups?.find(l => l.week_id === weekId)
@@ -30,7 +34,15 @@ export default function EntryCard({ entry, onDelete, entriesLocked, currentWeek 
       <Link to={`/entry/${entry.id}/lineup?week=${currentWeek || 1}`} className="block p-5 hover:bg-slate-800/30 transition">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-white truncate">
+            <h3 className="text-lg font-semibold text-white truncate flex items-center gap-1.5">
+              {biggestUpMovers && biggestDownMovers && getMovement && (
+                <MovementIndicator
+                  entryId={entry.id}
+                  biggestUpMovers={biggestUpMovers}
+                  biggestDownMovers={biggestDownMovers}
+                  getMovement={getMovement}
+                />
+              )}
               {entry.entry_name}
             </h3>
             <p className="mt-1 text-sm text-slate-500">
