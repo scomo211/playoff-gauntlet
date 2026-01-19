@@ -85,15 +85,15 @@ export function useRankMovement(): MovementData {
       return { id: entry.id, movement, currentRank }
     })
 
-    // Filter to entries in top 20 who moved 5+ spots
+    // Filter to entries in top 20 who moved 11+ spots
     const biggestUpMovers = new Set(
       movements
-        .filter(m => m.currentRank <= 20 && m.movement >= 5)
+        .filter(m => m.currentRank <= 20 && m.movement >= 11)
         .map(m => m.id)
     )
     const biggestDownMovers = new Set(
       movements
-        .filter(m => m.currentRank <= 20 && m.movement <= -5)
+        .filter(m => m.currentRank <= 20 && m.movement <= -11)
         .map(m => m.id)
     )
 
