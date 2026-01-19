@@ -9,12 +9,7 @@ import EntryCard from '../components/EntryCard'
 import CreateEntryModal from '../components/CreateEntryModal'
 import DeleteEntryModal from '../components/DeleteEntryModal'
 import CountdownTimer from '../components/CountdownTimer'
-import ChalkPicksTable from '../components/ChalkPicksTable'
-import BoldPicksTable from '../components/BoldPicksTable'
-import BoldestLineups from '../components/BoldestLineups'
-import DeadManWalking from '../components/DeadManWalking'
-import ValuePlayersTable from '../components/ValuePlayersTable'
-import PerfectLineupTable from '../components/PerfectLineupTable'
+import WeeklyStatsSection from '../components/WeeklyStatsSection'
 import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 import FavoritesLeaderboard from '../components/FavoritesLeaderboard'
@@ -775,31 +770,9 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Wild Card Week Stats - Show Week 1 data */}
-        {/* Players of the Week (MVPs/LVPs) */}
+        {/* Weekly Stats with Week Toggle */}
         <div className="mt-8">
-          <ValuePlayersTable weekId={1} />
-        </div>
-
-        {/* Perfect Lineup vs Sleepers */}
-        <div className="mt-6">
-          <PerfectLineupTable weekId={1} />
-        </div>
-
-        {/* Chalk Picks of the Week - Full Width */}
-        <div className="mt-6">
-          <ChalkPicksTable weekId={2} />
-        </div>
-
-        {/* Bold Picks of the Week - Full Width */}
-        <div className="mt-6">
-          <BoldPicksTable weekId={2} />
-        </div>
-
-        {/* Boldest Lineups + Dead Man Walking - Side by Side */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <BoldestLineups weekId={2} />
-          <DeadManWalking weekId={2} />
+          <WeeklyStatsSection />
         </div>
       </main>
 
