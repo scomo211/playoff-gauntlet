@@ -46,36 +46,37 @@ export default function ValuePlayersTable({ weekId }: ValuePlayersTableProps) {
     async function fetchValuePlayers() {
       setLoading(true)
 
-      // First get total submitted lineups for this week
-      const { count: lineupCount } = await supabase
+      // First get all submitted lineups for this week (matching AdminPlayerStats approach)
+      const { data: submittedLineups, error: lineupError } = await supabase
         .from('lineups')
-        .select('*', { count: 'exact', head: true })
+        .select('id')
         .eq('week_id', weekId)
         .eq('is_submitted', true)
 
-      setTotalLineups(lineupCount || 0)
-
-      if (!lineupCount || lineupCount === 0) {
+      if (lineupError || !submittedLineups || submittedLineups.length === 0) {
         setMvps([])
         setLvps([])
+        setTotalLineups(0)
         setLoading(false)
         return
       }
 
-      // Get all lineup players for submitted lineups this week with player and team info
+      const lineupIds = submittedLineups.map(l => l.id)
+      const lineupCount = submittedLineups.length
+      setTotalLineups(lineupCount)
+
+      // Get all lineup players for these specific lineups
       const { data: lineupPlayers, error: lpError } = await supabase
         .from('lineup_players')
         .select(`
           player_id,
-          lineup:lineups!inner(week_id, is_submitted),
           player:players(
             name,
             position,
             team:teams(id, name)
           )
         `)
-        .eq('lineup.week_id', weekId)
-        .eq('lineup.is_submitted', true)
+        .in('lineup_id', lineupIds)
 
       if (lpError) {
         console.error('Error fetching lineup players:', lpError)
