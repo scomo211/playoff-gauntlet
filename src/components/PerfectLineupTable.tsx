@@ -196,6 +196,7 @@ export default function PerfectLineupTable({ weekId }: PerfectLineupTableProps) 
       const SLEEPER_OVERRIDES: Record<number, Partial<Record<string, string[]>>> = {
         2: {
           QB: ['4943'], // Sam Darnold instead of Josh Allen for Week 2
+          RB: ['12534'], // Kyle Monangai as RB3 for Week 2
         }
       }
 
