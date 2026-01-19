@@ -35,6 +35,7 @@ interface ProfileData {
 // Weekly winners - entry IDs that won each week's high score
 const WEEKLY_WINNERS: Record<number, string> = {
   1: '14ba7ea8-1830-4fb5-ae8d-54ca3da8db5c', // Scrantonicity - Tim Meyer
+  2: '61c58498-19d6-40cb-b8d7-bc5c1bce077a', // KB - Kevin Brandel
 }
 
 export default function Dashboard() {
@@ -516,7 +517,7 @@ export default function Dashboard() {
                                 />
                                 {/* Mobile view */}
                                 <span className="sm:hidden flex items-center gap-1">
-                                  {WEEKLY_WINNERS[1] === entry.id && <span>👑</span>}
+                                  {(WEEKLY_WINNERS[1] === entry.id || WEEKLY_WINNERS[2] === entry.id) && <span>👑</span>}
                                   {entry.entry_name.length > 18 ? entry.entry_name.slice(0, 18) + '…' : entry.entry_name}
                                 </span>
                                 {/* Desktop view */}
@@ -539,43 +540,29 @@ export default function Dashboard() {
                               )}
                             </td>
                             <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm">
-                              {(() => {
-                                const maxWeek2 = Math.max(...leaderboardEntries.map(e => e.week2_points))
-                                const isTopWeek2 = entry.week2_points > 0 && entry.week2_points === maxWeek2
-                                if (isTopWeek2) {
-                                  return (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30">
-                                      <span>👑</span>
-                                      {entry.week2_points.toFixed(1)}
-                                    </span>
-                                  )
-                                }
-                                return (
-                                  <span className="text-slate-400">
-                                    {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
-                                  </span>
-                                )
-                              })()}
+                              {WEEKLY_WINNERS[2] === entry.id ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30">
+                                  <span>👑</span>
+                                  {entry.week2_points.toFixed(1)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">
+                                  {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
+                                </span>
+                              )}
                             </td>
                             {/* Mobile-only: Wk2 */}
                             <td className="md:hidden px-1 py-2 whitespace-nowrap text-center">
-                              {(() => {
-                                const maxWeek2 = Math.max(...leaderboardEntries.map(e => e.week2_points))
-                                const isTopWeek2 = entry.week2_points > 0 && entry.week2_points === maxWeek2
-                                if (isTopWeek2) {
-                                  return (
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
-                                      <span>👑</span>
-                                      {entry.week2_points.toFixed(1)}
-                                    </span>
-                                  )
-                                }
-                                return (
-                                  <span className="text-xs text-slate-400">
-                                    {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
-                                  </span>
-                                )
-                              })()}
+                              {WEEKLY_WINNERS[2] === entry.id ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
+                                  <span>👑</span>
+                                  {entry.week2_points.toFixed(1)}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-400">
+                                  {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
+                                </span>
+                              )}
                             </td>
                             <td className="pl-1 pr-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-right">
                               <AnimatedScore

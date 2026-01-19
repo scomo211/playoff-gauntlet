@@ -13,6 +13,7 @@ import DeleteEntryModal from '../components/DeleteEntryModal'
 // Weekly winners - entry IDs that won each week's high score
 const WEEKLY_WINNERS: Record<number, string> = {
   1: '14ba7ea8-1830-4fb5-ae8d-54ca3da8db5c', // Scrantonicity - Tim Meyer
+  2: '61c58498-19d6-40cb-b8d7-bc5c1bce077a', // KB - Kevin Brandel
 }
 
 interface EntryWithLineups extends Entry {
