@@ -77,24 +77,25 @@ export function useRankMovement(): MovementData {
       rankByTotal.set(entry.id, index + 1)
     })
 
-    // Calculate movements
+    // Calculate movements - only for entries currently in top 20 who moved 5+ spots
     const movements = entries.map(entry => {
       const week1Rank = rankByWeek1.get(entry.id) || 0
       const currentRank = rankByTotal.get(entry.id) || 0
       const movement = week1Rank - currentRank // positive = moved up
-      return { id: entry.id, movement }
+      return { id: entry.id, movement, currentRank }
     })
 
-    // Filter to only entries with actual movement
-    const upMovers = movements.filter(m => m.movement > 0).sort((a, b) => b.movement - a.movement)
-    const downMovers = movements.filter(m => m.movement < 0).sort((a, b) => a.movement - b.movement)
-
-    // Get top 20% movers (minimum 1 if there are any movers)
-    const top20PercentUp = Math.max(1, Math.ceil(upMovers.length * 0.2))
-    const top20PercentDown = Math.max(1, Math.ceil(downMovers.length * 0.2))
-
-    const biggestUpMovers = new Set(upMovers.slice(0, top20PercentUp).map(m => m.id))
-    const biggestDownMovers = new Set(downMovers.slice(0, top20PercentDown).map(m => m.id))
+    // Filter to entries in top 20 who moved 5+ spots
+    const biggestUpMovers = new Set(
+      movements
+        .filter(m => m.currentRank <= 20 && m.movement >= 5)
+        .map(m => m.id)
+    )
+    const biggestDownMovers = new Set(
+      movements
+        .filter(m => m.currentRank <= 20 && m.movement <= -5)
+        .map(m => m.id)
+    )
 
     return {
       rankByWeek1,
