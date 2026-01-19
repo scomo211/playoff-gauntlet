@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useFavorites } from '../hooks/useFavorites'
+import { useRankMovement, MovementIndicator } from '../hooks/useRankMovement'
 import AnimatedScore from './AnimatedScore'
 import AnimatedLeaderboardRow from './AnimatedLeaderboardRow'
 
@@ -12,6 +13,7 @@ interface FavoritesLeaderboardProps {
 export default function FavoritesLeaderboard({ currentWeek, payoutSpots = 4, payoutAmounts = [] }: FavoritesLeaderboardProps) {
   const navigate = useNavigate()
   const { favoriteEntries, loading, toggleFavorite } = useFavorites()
+  const { biggestUpMovers, biggestDownMovers, getMovement } = useRankMovement()
 
   // Don't render if no favorites
   if (!loading && favoriteEntries.length === 0) {
@@ -90,6 +92,12 @@ export default function FavoritesLeaderboard({ currentWeek, payoutSpots = 4, pay
                     </td>
                     <td className="pl-1 pr-0 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
+                        <MovementIndicator
+                          entryId={entry.id}
+                          biggestUpMovers={biggestUpMovers}
+                          biggestDownMovers={biggestDownMovers}
+                          getMovement={getMovement}
+                        />
                         <div className="text-sm font-medium text-white sm:truncate sm:max-w-none" title={entry.entry_name}>
                           <span className="sm:hidden">{entry.entry_name.length > 20 ? entry.entry_name.slice(0, 20) + '…' : entry.entry_name}</span>
                           <span className="hidden sm:inline">{entry.entry_name}</span>
