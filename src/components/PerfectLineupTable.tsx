@@ -192,12 +192,28 @@ export default function PerfectLineupTable({ weekId }: PerfectLineupTableProps) 
         perfect.push(...positionPlayers)
       }
 
+      // Manual overrides for sleepers lineup
+      const SLEEPER_OVERRIDES: Record<number, Partial<Record<string, string[]>>> = {
+        2: {
+          QB: ['4943'], // Sam Darnold instead of Josh Allen for Week 2
+        }
+      }
+
       // Build sleepers lineup - players who outperformed projections significantly
       // with low ownership but high actual points
       const sleepers: PlayerStats[] = []
       for (const [position, slotNames] of Object.entries(slots)) {
+        const overrideIds = SLEEPER_OVERRIDES[weekId]?.[position] || []
+        const overridePlayers: PlayerStats[] = []
+        for (const id of overrideIds) {
+          const player = allPlayers.find(p => p.player_id === id)
+          if (player && player.total_points > 0) {
+            overridePlayers.push(player)
+          }
+        }
+
         const positionPlayers = allPlayers
-          .filter(p => p.position === position && p.total_points > 0)
+          .filter(p => p.position === position && p.total_points > 0 && !overrideIds.includes(p.player_id))
           .map(p => ({
             ...p,
             // Outperformance score: actual points - projected points
@@ -214,9 +230,16 @@ export default function PerfectLineupTable({ weekId }: PerfectLineupTableProps) 
             // Sort by sleeper score - rewards high points, low ownership, and outperformance
             return b.sleeperScore - a.sleeperScore
           })
-          .slice(0, slotNames.length)
 
-        sleepers.push(...positionPlayers)
+        // Combine: overrides first, then fill remaining slots
+        const combined: PlayerStats[] = [...overridePlayers]
+        for (const pick of positionPlayers) {
+          if (combined.length >= slotNames.length) break
+          if (!combined.find(p => p.player_id === pick.player_id)) {
+            combined.push(pick)
+          }
+        }
+        sleepers.push(...combined.slice(0, slotNames.length))
       }
 
       setPerfectLineup(perfect)
