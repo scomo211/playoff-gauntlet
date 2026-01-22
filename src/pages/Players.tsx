@@ -146,7 +146,7 @@ export default function Players() {
   const [selectedPosition, setSelectedPosition] = useState<Position | 'ALL'>('ALL')
   const [selectedTeam, setSelectedTeam] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortField, setSortField] = useState<SortField>('week2Points')
+  const [sortField, setSortField] = useState<SortField>('totalPoints')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [depthChartTeam, setDepthChartTeam] = useState<Team | null>(null)
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set())
