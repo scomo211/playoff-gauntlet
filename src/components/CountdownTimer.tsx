@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 
-// Divisional Round 2026 - First game kickoff (Saturday, January 17, 2026 at 4:30 PM ET)
-// Bills @ Broncos
-const KICKOFF_DATE = new Date('2026-01-17T16:30:00-05:00')
+// Conference Championships 2026 - First game kickoff (Sunday, January 25, 2026 at 3:00 PM ET)
+// Patriots @ Broncos
+const KICKOFF_DATE = new Date('2026-01-25T15:00:00-05:00')
 
 interface TimeLeft {
   days: number
