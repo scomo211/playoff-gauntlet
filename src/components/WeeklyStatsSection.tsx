@@ -35,6 +35,16 @@ export default function WeeklyStatsSection() {
           >
             Week 2
           </button>
+          <button
+            onClick={() => setSelectedWeek(3)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+              selectedWeek === 3
+                ? 'bg-field-500 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Week 3
+          </button>
         </div>
       </div>
 

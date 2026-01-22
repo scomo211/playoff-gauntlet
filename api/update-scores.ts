@@ -17,6 +17,9 @@ const PLAYOFF_SCHEDULE = [
   { week_id: 2, away_team_id: 'SF', home_team_id: 'SEA', kickoff: '2026-01-18T01:00:00Z' },
   { week_id: 2, away_team_id: 'HOU', home_team_id: 'NE', kickoff: '2026-01-18T20:00:00Z' },
   { week_id: 2, away_team_id: 'LAR', home_team_id: 'CHI', kickoff: '2026-01-18T23:30:00Z' },
+  // Week 3: Conference Championships (Jan 25, 2026)
+  { week_id: 3, away_team_id: 'NE', home_team_id: 'DEN', kickoff: '2026-01-25T20:00:00Z' },
+  { week_id: 3, away_team_id: 'LAR', home_team_id: 'SEA', kickoff: '2026-01-25T23:30:00Z' },
 ]
 
 const GAME_DURATION_MS = 4.5 * 60 * 60 * 1000 // 4.5 hours for playoff games
