@@ -460,25 +460,14 @@ export default function Dashboard() {
                             )}
                           </div>
                         </th>
-                        <th
-                          className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
-                          onClick={() => handleSort('week3')}
-                        >
-                          <div className="flex items-center justify-center gap-1">
-                            Wk 3
-                            {sortColumn === 'week3' && (
-                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
-                            )}
-                          </div>
-                        </th>
-                        {/* Mobile-only column for current week */}
+                        {/* Mobile-only column for Wk2 */}
                         <th
                           className="md:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort('week3')}
+                          onClick={() => handleSort('week2')}
                         >
                           <div className="flex items-center justify-center gap-0.5">
-                            Wk3
-                            {sortColumn === 'week3' && (
+                            Wk2
+                            {sortColumn === 'week2' && (
                               <span className="text-field-400 text-[10px]">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                             )}
                           </div>
@@ -532,7 +521,7 @@ export default function Dashboard() {
                                 />
                                 {/* Mobile view */}
                                 <span className="sm:hidden flex items-center gap-1">
-                                  {(WEEKLY_WINNERS[1] === entry.id || WEEKLY_WINNERS[2] === entry.id || WEEKLY_WINNERS[3] === entry.id) && <span>👑</span>}
+                                  {(WEEKLY_WINNERS[1] === entry.id || WEEKLY_WINNERS[2] === entry.id) && <span>👑</span>}
                                   {entry.entry_name.length > 18 ? entry.entry_name.slice(0, 18) + '…' : entry.entry_name}
                                 </span>
                                 {/* Desktop view */}
@@ -566,28 +555,16 @@ export default function Dashboard() {
                                 </span>
                               )}
                             </td>
-                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm">
-                              {WEEKLY_WINNERS[3] === entry.id ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30">
-                                  <span>👑</span>
-                                  {entry.week3_points.toFixed(1)}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">
-                                  {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
-                                </span>
-                              )}
-                            </td>
-                            {/* Mobile-only: Wk3 */}
+                            {/* Mobile-only: Wk2 */}
                             <td className="md:hidden px-1 py-2 whitespace-nowrap text-center">
-                              {WEEKLY_WINNERS[3] === entry.id ? (
+                              {WEEKLY_WINNERS[2] === entry.id ? (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
                                   <span>👑</span>
-                                  {entry.week3_points.toFixed(1)}
+                                  {entry.week2_points.toFixed(1)}
                                 </span>
                               ) : (
                                 <span className="text-xs text-slate-400">
-                                  {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
+                                  {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
                                 </span>
                               )}
                             </td>
