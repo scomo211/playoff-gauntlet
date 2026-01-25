@@ -29,8 +29,8 @@ const HISTORICAL_RESULTS = {
     divWinners: [1, 2],   // DEN beat HOU, NE beat JAX
   },
   NFC: {
-    wcWinners: [2, 3, 5], // CHI beat GB, PHI beat SF, LAR beat CAR
-    divWinners: [1, 5],   // SEA beat CHI, LAR beat PHI
+    wcWinners: [2, 5, 6], // CHI beat GB, LAR beat CAR, SF beat PHI
+    divWinners: [1, 5],   // SEA beat SF, LAR beat CHI
   }
 }
 
