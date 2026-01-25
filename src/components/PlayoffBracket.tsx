@@ -21,6 +21,19 @@ interface PlayoffBracketProps {
   onTeamClick?: (team: Team) => void
 }
 
+// Hardcoded historical results for when both teams are eliminated
+// Format: { wcWinners: [seeds that won], divWinners: [seeds that won] }
+const HISTORICAL_RESULTS = {
+  AFC: {
+    wcWinners: [2, 3, 5], // NE beat LAC, JAX beat BUF, HOU beat PIT
+    divWinners: [1, 2],   // DEN beat HOU, NE beat JAX
+  },
+  NFC: {
+    wcWinners: [2, 3, 5], // CHI beat GB, PHI beat SF, LAR beat CAR
+    divWinners: [1, 5],   // SEA beat CHI, LAR beat PHI
+  }
+}
+
 export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,8 +57,8 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
     return teams.find(t => t.conference === conference && t.playoff_seed === seed)
   }
 
-  // Determine winner of a matchup based on eliminations
-  const getWinner = (team1: Team | null, team2: Team | null): Team | null => {
+  // Determine winner of a matchup based on eliminations or historical data
+  const getWinner = (team1: Team | null, team2: Team | null, conference?: 'AFC' | 'NFC', round?: 'wc' | 'div'): Team | null => {
     if (!team1 && !team2) return null
     if (!team1) return team2?.is_alive ? team2 : null
     if (!team2) return team1?.is_alive ? team1 : null
@@ -54,7 +67,15 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
     if (!team1.is_alive && team2.is_alive) return team2
     if (team1.is_alive && !team2.is_alive) return team1
 
-    // If both alive or both eliminated (shouldn't happen), no winner yet
+    // Both eliminated - use historical data
+    if (!team1.is_alive && !team2.is_alive && conference && round) {
+      const history = HISTORICAL_RESULTS[conference]
+      const winnerSeeds = round === 'wc' ? history.wcWinners : history.divWinners
+      if (winnerSeeds.includes(team1.playoff_seed || 0)) return team1
+      if (winnerSeeds.includes(team2.playoff_seed || 0)) return team2
+    }
+
+    // If both alive (current matchup), no winner yet
     return null
   }
 
@@ -75,10 +96,10 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
       },
     ]
 
-    // Add winners
+    // Add winners - use historical data for eliminated matchups
     return matchups.map(m => ({
       ...m,
-      winner: getWinner(m.top.team, m.bottom.team)
+      winner: getWinner(m.top.team, m.bottom.team, conference, 'wc')
     }))
   }
 
@@ -107,14 +128,14 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
     const topMatchup: Matchup = {
       top: { team: seed1 || null, seed: 1 },
       bottom: { team: lowestSeedWinner?.team || null, seed: lowestSeedWinner?.seed || null },
-      winner: seed1 && lowestSeedWinner ? getWinner(seed1, lowestSeedWinner.team) : null
+      winner: seed1 && lowestSeedWinner ? getWinner(seed1, lowestSeedWinner.team, conference, 'div') : null
     }
 
     // Bottom matchup: other two winners (higher seed on top)
     const bottomMatchup: Matchup = {
       top: { team: otherWinners[0]?.team || null, seed: otherWinners[0]?.seed || null },
       bottom: { team: otherWinners[1]?.team || null, seed: otherWinners[1]?.seed || null },
-      winner: otherWinners.length === 2 ? getWinner(otherWinners[0].team, otherWinners[1].team) : null
+      winner: otherWinners.length === 2 ? getWinner(otherWinners[0].team, otherWinners[1].team, conference, 'div') : null
     }
 
     return { top: topMatchup, bottom: bottomMatchup }
