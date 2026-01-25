@@ -24,6 +24,12 @@ const PLAYOFF_SCHEDULE = [
 
 const GAME_DURATION_MS = 4.5 * 60 * 60 * 1000 // 4.5 hours for playoff games
 
+// Player ID mappings: Sleeper ID -> Our DB ID
+// Used when our database has a different ID than Sleeper
+const PLAYER_ID_MAPPINGS: Record<string, string> = {
+  '4177': '4971', // Mack Hollins - Sleeper uses 4177, our DB has 4971
+}
+
 function getTeamsWithLiveGames(weekId: number): Set<string> {
   const now = new Date()
   const liveTeams = new Set<string>()
@@ -170,8 +176,13 @@ function calculatePoints(stats: SleeperPlayerStats['stats'], position: string): 
   return Math.round(points * 100) / 100
 }
 
-// Map Sleeper defense IDs to our database IDs
+// Map Sleeper player IDs to our database IDs
 function mapPlayerId(sleeperId: string): string {
+  // Check explicit player ID mappings first
+  if (PLAYER_ID_MAPPINGS[sleeperId]) {
+    return PLAYER_ID_MAPPINGS[sleeperId]
+  }
+
   // Sleeper uses team abbreviation for defenses (e.g., "LAR")
   // Our database uses "TEAM_DEF" format (e.g., "LAR_DEF")
   // All 14 playoff teams
