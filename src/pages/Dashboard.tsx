@@ -439,33 +439,33 @@ export default function Dashboard() {
                           Owner
                         </th>
                         <th
-                          className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                          className="hidden md:table-cell px-2 py-3 text-center text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white transition-colors"
                           onClick={() => handleSort('week1')}
                         >
-                          <div className="flex items-center justify-center gap-1">
-                            Wk 1
+                          <div className="flex items-center justify-center gap-0.5">
+                            Wk1
                             {sortColumn === 'week1' && (
                               <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                             )}
                           </div>
                         </th>
                         <th
-                          className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                          className="hidden md:table-cell px-2 py-3 text-center text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white transition-colors"
                           onClick={() => handleSort('week2')}
                         >
-                          <div className="flex items-center justify-center gap-1">
-                            Wk 2
+                          <div className="flex items-center justify-center gap-0.5">
+                            Wk2
                             {sortColumn === 'week2' && (
                               <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                             )}
                           </div>
                         </th>
                         <th
-                          className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                          className="hidden md:table-cell px-2 py-3 text-center text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white transition-colors"
                           onClick={() => handleSort('week3')}
                         >
-                          <div className="flex items-center justify-center gap-1">
-                            Wk 3
+                          <div className="flex items-center justify-center gap-0.5">
+                            Wk3
                             {sortColumn === 'week3' && (
                               <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                             )}
@@ -542,9 +542,9 @@ export default function Dashboard() {
                             <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
                               <div className="text-sm text-slate-400 truncate max-w-[80px] sm:max-w-none" title={entry.display_name}>{entry.display_name}</div>
                             </td>
-                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm">
+                            <td className="hidden md:table-cell px-2 py-3 whitespace-nowrap text-center text-sm">
                               {WEEKLY_WINNERS[1] === entry.id ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30">
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
                                   <span>👑</span>
                                   {entry.week1_points.toFixed(1)}
                                 </span>
@@ -554,9 +554,9 @@ export default function Dashboard() {
                                 </span>
                               )}
                             </td>
-                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm">
+                            <td className="hidden md:table-cell px-2 py-3 whitespace-nowrap text-center text-sm">
                               {WEEKLY_WINNERS[2] === entry.id ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30">
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
                                   <span>👑</span>
                                   {entry.week2_points.toFixed(1)}
                                 </span>
@@ -566,9 +566,9 @@ export default function Dashboard() {
                                 </span>
                               )}
                             </td>
-                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm">
+                            <td className="hidden md:table-cell px-2 py-3 whitespace-nowrap text-center text-sm">
                               {WEEKLY_WINNERS[3] === entry.id ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30">
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
                                   <span>👑</span>
                                   {entry.week3_points.toFixed(1)}
                                 </span>
