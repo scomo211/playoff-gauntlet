@@ -55,7 +55,7 @@ export default function Dashboard() {
   const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [amountPaid, setAmountPaid] = useState<number>(0)
-  const [sortColumn, setSortColumn] = useState<'total' | 'week1' | 'week2' | 'week3'>('total')
+  const [sortColumn, setSortColumn] = useState<'total' | 'week1' | 'week2' | 'week3'>('week3')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Fetch current week
@@ -460,14 +460,25 @@ export default function Dashboard() {
                             )}
                           </div>
                         </th>
-                        {/* Mobile-only column for Wk2 */}
+                        <th
+                          className="hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                          onClick={() => handleSort('week3')}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            Wk 3
+                            {sortColumn === 'week3' && (
+                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                            )}
+                          </div>
+                        </th>
+                        {/* Mobile-only column for Wk3 */}
                         <th
                           className="md:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort('week2')}
+                          onClick={() => handleSort('week3')}
                         >
                           <div className="flex items-center justify-center gap-0.5">
-                            Wk2
-                            {sortColumn === 'week2' && (
+                            Wk3
+                            {sortColumn === 'week3' && (
                               <span className="text-field-400 text-[10px]">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                             )}
                           </div>
@@ -555,16 +566,28 @@ export default function Dashboard() {
                                 </span>
                               )}
                             </td>
-                            {/* Mobile-only: Wk2 */}
+                            <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-center text-sm">
+                              {WEEKLY_WINNERS[3] === entry.id ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30">
+                                  <span>👑</span>
+                                  {entry.week3_points.toFixed(1)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">
+                                  {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
+                                </span>
+                              )}
+                            </td>
+                            {/* Mobile-only: Wk3 */}
                             <td className="md:hidden px-1 py-2 whitespace-nowrap text-center">
-                              {WEEKLY_WINNERS[2] === entry.id ? (
+                              {WEEKLY_WINNERS[3] === entry.id ? (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
                                   <span>👑</span>
-                                  {entry.week2_points.toFixed(1)}
+                                  {entry.week3_points.toFixed(1)}
                                 </span>
                               ) : (
                                 <span className="text-xs text-slate-400">
-                                  {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
+                                  {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
                                 </span>
                               )}
                             </td>
