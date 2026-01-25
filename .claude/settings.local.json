@@ -119,7 +119,15 @@
       "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s -o /dev/null -w \"%{http_code}\" \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/weeks?id=eq.2\" -X PATCH -H \"apikey: $APIKEY\" -H \"Authorization: Bearer $APIKEY\" -H \"Content-Type: application/json\" -d '{\"\"is_current\"\": false}')",
       "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/weeks?select=id,is_current&order=id\" -H \"apikey: $APIKEY\")",
       "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/teams?select=id,name,is_alive,conference&order=conference,id\" -H \"apikey: $APIKEY\")",
-      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/league_settings?select=current_week_id\" -H \"apikey: $APIKEY\")"
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/league_settings?select=current_week_id\" -H \"apikey: $APIKEY\")",
+      "Bash(SECRET_KEY=\"sb_secret_gdMbkvYa-LgRkSrOnn3D0A__sG4Oad7\":*)",
+      "Bash(__NEW_LINE__ echo \"=== Adding missing players ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Adding Mack Hollins ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Adding George Holani ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Check if players exist ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Check Cam Akers, Velus Jones, Bandy, Moore ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Check existing projections for these names ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Adding players one by one ===\")"
     ]
   }
 }

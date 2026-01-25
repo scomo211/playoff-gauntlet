@@ -517,6 +517,7 @@ export default function AdminLineupEdit() {
           weekId={weekId}
           getProjection={getProjection}
           projectionsLoading={projectionsLoading}
+          allowEliminated={true}
         />
       )}
     </AdminLayout>

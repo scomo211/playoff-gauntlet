@@ -16,6 +16,7 @@ interface PlayerSelectModalProps {
   weekId?: number
   getProjection?: (playerName: string, teamId: string) => number | null
   projectionsLoading?: boolean
+  allowEliminated?: boolean // Admin mode - allow selecting eliminated players
 }
 
 export default function PlayerSelectModal({
@@ -29,6 +30,7 @@ export default function PlayerSelectModal({
   weekId = 1,
   getProjection,
   projectionsLoading = false,
+  allowEliminated = false,
 }: PlayerSelectModalProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
@@ -188,7 +190,7 @@ export default function PlayerSelectModal({
               const isInCurrentLineup = currentLineupPlayerIds.includes(player.id)
               const onBye = isTeamOnBye(player.team)
               const eliminated = isTeamEliminated(player.team)
-              const isDisabled = isUsed || isInCurrentLineup || onBye || eliminated
+              const isDisabled = isUsed || isInCurrentLineup || onBye || (eliminated && !allowEliminated)
 
               return (
                 <button
