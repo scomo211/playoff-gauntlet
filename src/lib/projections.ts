@@ -28,8 +28,10 @@ export async function fetchProjections(weekId: number): Promise<CachedProjection
 
 // Create a lookup key from player name and team
 export function createPlayerKey(name: string, teamId: string): string {
-  // Normalize name: lowercase, remove periods, extra spaces
-  const normalizedName = name.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim()
+  // Normalize name: lowercase, remove periods, extra spaces, and common suffixes
+  let normalizedName = name.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim()
+  // Remove common suffixes (jr, sr, ii, iii, iv, v) to match projection names
+  normalizedName = normalizedName.replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '')
   return `${normalizedName}|${teamId.toUpperCase()}`
 }
 

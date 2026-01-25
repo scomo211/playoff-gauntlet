@@ -83,7 +83,11 @@ async function fetchDefenseProjectionsFromAPI(week: number): Promise<DefenseProj
 }
 
 function normalizePlayerName(name: string): string {
-  return name.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim()
+  // Lowercase, remove periods and extra spaces
+  let normalized = name.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim()
+  // Remove common suffixes (jr, sr, ii, iii, iv, v) to match our players table
+  normalized = normalized.replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '')
+  return normalized
 }
 
 // Calculate fantasy points using Playoff Gauntlet league scoring rules:
