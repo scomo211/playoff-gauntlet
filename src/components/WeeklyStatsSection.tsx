@@ -7,7 +7,7 @@ import BoldestLineups from './BoldestLineups'
 import DeadManWalking from './DeadManWalking'
 
 export default function WeeklyStatsSection() {
-  const [selectedWeek, setSelectedWeek] = useState(2) // Default to Week 2
+  const [selectedWeek, setSelectedWeek] = useState(3) // Default to Week 3
 
   return (
     <div className="space-y-6">
@@ -35,14 +35,18 @@ export default function WeeklyStatsSection() {
           >
             Week 2
           </button>
+          <button
+            onClick={() => setSelectedWeek(3)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+              selectedWeek === 3
+                ? 'bg-field-500 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Week 3
+          </button>
         </div>
       </div>
-
-      {/* Players of the Week (MVPs/LVPs) */}
-      <ValuePlayersTable weekId={selectedWeek} />
-
-      {/* Perfect Lineup vs Sleepers */}
-      <PerfectLineupTable weekId={selectedWeek} />
 
       {/* Chalk Picks of the Week */}
       <ChalkPicksTable weekId={selectedWeek} />
@@ -55,6 +59,12 @@ export default function WeeklyStatsSection() {
         <BoldestLineups weekId={selectedWeek} />
         <DeadManWalking weekId={selectedWeek} />
       </div>
+
+      {/* Players of the Week (MVPs/LVPs) */}
+      <ValuePlayersTable weekId={selectedWeek} />
+
+      {/* Perfect Lineup vs Sleepers */}
+      <PerfectLineupTable weekId={selectedWeek} />
     </div>
   )
 }

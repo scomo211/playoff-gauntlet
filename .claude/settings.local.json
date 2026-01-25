@@ -127,7 +127,8 @@
       "Bash(__NEW_LINE__ echo \"=== Check if players exist ===\")",
       "Bash(__NEW_LINE__ echo \"=== Check Cam Akers, Velus Jones, Bandy, Moore ===\")",
       "Bash(__NEW_LINE__ echo \"=== Check existing projections for these names ===\")",
-      "Bash(__NEW_LINE__ echo \"=== Adding players one by one ===\")"
+      "Bash(__NEW_LINE__ echo \"=== Adding players one by one ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Locking lineups ===\")"
     ]
   }
 }
