@@ -58,8 +58,16 @@ export function getGameForTeam(teamId: string, weekId: number): Game | null {
 // Playoff games often run longer - use 4.5 hours to be safe
 const GAME_DURATION_MS = 4.5 * 60 * 60 * 1000
 
-export function getGameStatus(game: Game | null): GameStatus {
+// Weeks that are fully complete - all games final
+const COMPLETED_WEEKS = [1, 2, 3]
+
+export function getGameStatus(game: Game | null, weekId?: number): GameStatus {
   if (!game) return 'upcoming'
+
+  // If the week is marked as complete, all games are final
+  if (weekId && COMPLETED_WEEKS.includes(weekId)) {
+    return 'final'
+  }
 
   const now = new Date()
   const kickoff = new Date(game.kickoff)
@@ -78,7 +86,7 @@ export function getGameStatus(game: Game | null): GameStatus {
 export function getTeamGameStatus(teamId: string | undefined, weekId: number): GameStatus {
   if (!teamId) return 'upcoming'
   const game = getGameForTeam(teamId, weekId)
-  return getGameStatus(game)
+  return getGameStatus(game, weekId)
 }
 
 // Check if a team has a bye week
