@@ -318,18 +318,6 @@ export default function PerfectLineupTable({ weekId }: PerfectLineupTableProps) 
     )
   }
 
-  // Week 3 - show "check back" message until games conclude
-  if (weekId === 3) {
-    return (
-      <div className="card-solid p-6">
-        <h3 className="text-lg font-bold text-white mb-4">Lineups Of The Week</h3>
-        <p className="text-slate-400 text-sm text-center py-8">
-          Check back after the conclusion of this week's games.
-        </p>
-      </div>
-    )
-  }
-
   if (totalLineups === 0) {
     return (
       <div className="card-solid p-6">
