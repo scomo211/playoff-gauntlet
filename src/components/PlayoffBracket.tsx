@@ -433,15 +433,15 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
           </div>
 
           {/* Super Bowl */}
-          <div className="flex flex-col items-center px-6">
+          <div className="flex flex-col items-center px-4">
             <div className="text-center text-xs font-medium text-gold-400 uppercase tracking-wider mb-4">Super Bowl</div>
-            <div className="bg-gradient-to-b from-gold-500/20 to-gold-600/10 border-2 border-gold-500/30 rounded-xl p-4 min-w-[160px]">
+            <div className="bg-gradient-to-b from-gold-500/20 to-gold-600/10 border-2 border-gold-500/30 rounded-xl p-3 w-[180px]">
               <div className="flex flex-col gap-2">
                 {superBowl.top.team ? (
-                  <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600">
-                    <span className="text-xs font-bold text-red-400">AFC</span>
-                    <img src={getTeamLogoUrl(superBowl.top.team.id)} alt={superBowl.top.team.name} className="w-6 h-6 object-contain" />
-                    <span className="text-sm font-medium text-white">{superBowl.top.team.name}</span>
+                  <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600 overflow-hidden">
+                    <span className="text-xs font-bold text-red-400 flex-shrink-0">AFC</span>
+                    <img src={getTeamLogoUrl(superBowl.top.team.id)} alt={superBowl.top.team.name} className="w-6 h-6 object-contain flex-shrink-0" />
+                    <span className="text-sm font-medium text-white truncate">{superBowl.top.team.name}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600">
@@ -450,10 +450,10 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
                 )}
                 <div className="text-center text-gold-400 font-bold text-xs">VS</div>
                 {superBowl.bottom.team ? (
-                  <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600">
-                    <span className="text-xs font-bold text-blue-400">NFC</span>
-                    <img src={getTeamLogoUrl(superBowl.bottom.team.id)} alt={superBowl.bottom.team.name} className="w-6 h-6 object-contain" />
-                    <span className="text-sm font-medium text-white">{superBowl.bottom.team.name}</span>
+                  <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600 overflow-hidden">
+                    <span className="text-xs font-bold text-blue-400 flex-shrink-0">NFC</span>
+                    <img src={getTeamLogoUrl(superBowl.bottom.team.id)} alt={superBowl.bottom.team.name} className="w-6 h-6 object-contain flex-shrink-0" />
+                    <span className="text-sm font-medium text-white truncate">{superBowl.bottom.team.name}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600">
@@ -640,17 +640,17 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
               <div className="text-xs font-bold text-gold-400 uppercase tracking-wider">Super Bowl</div>
               <div className="flex-1 h-px bg-gold-500/30"></div>
             </div>
-            <div className="flex items-center justify-center gap-3 px-3 py-2 rounded-lg bg-gradient-to-r from-gold-500/20 via-gold-600/10 to-gold-500/20 border border-gold-500/30">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-red-400">AFC</span>
-                <img src={getTeamLogoUrl(superBowl.top.team.id)} alt={superBowl.top.team.name} className="w-6 h-6 object-contain" />
-                <span className="text-sm font-medium text-white">{superBowl.top.team.name}</span>
+            <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-gold-500/20 via-gold-600/10 to-gold-500/20 border border-gold-500/30 overflow-hidden">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs font-bold text-red-400 flex-shrink-0">AFC</span>
+                <img src={getTeamLogoUrl(superBowl.top.team.id)} alt={superBowl.top.team.name} className="w-5 h-5 object-contain flex-shrink-0" />
+                <span className="text-xs font-medium text-white truncate">{superBowl.top.team.name}</span>
               </div>
-              <span className="text-gold-400 font-bold text-xs">VS</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-blue-400">NFC</span>
-                <img src={getTeamLogoUrl(superBowl.bottom.team.id)} alt={superBowl.bottom.team.name} className="w-6 h-6 object-contain" />
-                <span className="text-sm font-medium text-white">{superBowl.bottom.team.name}</span>
+              <span className="text-gold-400 font-bold text-xs flex-shrink-0">VS</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs font-bold text-blue-400 flex-shrink-0">NFC</span>
+                <img src={getTeamLogoUrl(superBowl.bottom.team.id)} alt={superBowl.bottom.team.name} className="w-5 h-5 object-contain flex-shrink-0" />
+                <span className="text-xs font-medium text-white truncate">{superBowl.bottom.team.name}</span>
               </div>
             </div>
           </div>
