@@ -255,6 +255,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Missing environment variables' })
   }
 
+  // Handle team elimination: ?eliminate=LAR,DEN&week=3
+  const eliminateTeams = req.query.eliminate as string | undefined
+  const eliminateWeek = parseInt(req.query.week as string) || 3
+  if (eliminateTeams) {
+    const teamIds = eliminateTeams.split(',').map(t => t.trim().toUpperCase())
+    console.log(`Eliminating teams: ${teamIds.join(', ')} in week ${eliminateWeek}`)
+
+    for (const teamId of teamIds) {
+      await supabaseRequest(`/teams?id=eq.${teamId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_alive: false, eliminated_week: eliminateWeek })
+      })
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Eliminated teams: ${teamIds.join(', ')}`,
+      eliminatedWeek: eliminateWeek
+    })
+  }
+
   // Test mode uses 2023 playoff data for testing before games start
   const testMode = req.query.test === 'true'
   // Force full update (all players) - use ?full=true

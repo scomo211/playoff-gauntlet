@@ -4,7 +4,10 @@ import { supabase } from '../lib/supabase'
 interface EntryPoints {
   id: string
   week1_points: number
+  week2_points: number
+  week3_points: number
   total_points: number
+  points_after_week2: number // Cumulative after Week 2
 }
 
 interface MovementData {
@@ -34,11 +37,17 @@ export function useRankMovement(): MovementData {
         const formatted = data.map(entry => {
           const lineups = entry.lineups as { week_id: number; total_points: number }[] || []
           const week1_points = lineups.find(l => l.week_id === 1)?.total_points || 0
+          const week2_points = lineups.find(l => l.week_id === 2)?.total_points || 0
+          const week3_points = lineups.find(l => l.week_id === 3)?.total_points || 0
           const total_points = lineups.reduce((sum, l) => sum + (l.total_points || 0), 0)
+          const points_after_week2 = week1_points + week2_points
           return {
             id: entry.id,
             week1_points,
-            total_points
+            week2_points,
+            week3_points,
+            total_points,
+            points_after_week2
           }
         })
 
@@ -56,49 +65,49 @@ export function useRankMovement(): MovementData {
   const movementData = useMemo(() => {
     if (entries.length === 0) {
       return {
-        rankByWeek1: new Map<string, number>(),
+        rankAfterWeek2: new Map<string, number>(),
         rankByTotal: new Map<string, number>(),
         biggestUpMovers: new Set<string>(),
         biggestDownMovers: new Set<string>()
       }
     }
 
-    // Calculate ranks based on Week 1 score
-    const rankByWeek1 = new Map<string, number>()
-    const entriesByWeek1 = [...entries].sort((a, b) => b.week1_points - a.week1_points)
-    entriesByWeek1.forEach((entry, index) => {
-      rankByWeek1.set(entry.id, index + 1)
+    // Calculate ranks after Week 2 (before Week 3)
+    const rankAfterWeek2 = new Map<string, number>()
+    const entriesAfterWeek2 = [...entries].sort((a, b) => b.points_after_week2 - a.points_after_week2)
+    entriesAfterWeek2.forEach((entry, index) => {
+      rankAfterWeek2.set(entry.id, index + 1)
     })
 
-    // Calculate ranks based on total score
+    // Calculate ranks based on total score (after Week 3)
     const rankByTotal = new Map<string, number>()
     const entriesByTotal = [...entries].sort((a, b) => b.total_points - a.total_points)
     entriesByTotal.forEach((entry, index) => {
       rankByTotal.set(entry.id, index + 1)
     })
 
-    // Calculate movements - only for entries currently in top 20 who moved 5+ spots
+    // Calculate movements - comparing Week 2 standings to current (Week 3) standings
     const movements = entries.map(entry => {
-      const week1Rank = rankByWeek1.get(entry.id) || 0
+      const week2Rank = rankAfterWeek2.get(entry.id) || 0
       const currentRank = rankByTotal.get(entry.id) || 0
-      const movement = week1Rank - currentRank // positive = moved up
+      const movement = week2Rank - currentRank // positive = moved up
       return { id: entry.id, movement, currentRank }
     })
 
-    // Filter to entries in top 20 who moved 11+ spots
+    // Filter to entries in top 20 who moved 8+ spots (slightly lower threshold for Week 2->3)
     const biggestUpMovers = new Set(
       movements
-        .filter(m => m.currentRank <= 20 && m.movement >= 11)
+        .filter(m => m.currentRank <= 20 && m.movement >= 8)
         .map(m => m.id)
     )
     const biggestDownMovers = new Set(
       movements
-        .filter(m => m.currentRank <= 20 && m.movement <= -11)
+        .filter(m => m.currentRank <= 20 && m.movement <= -8)
         .map(m => m.id)
     )
 
     return {
-      rankByWeek1,
+      rankAfterWeek2,
       rankByTotal,
       biggestUpMovers,
       biggestDownMovers
@@ -106,9 +115,9 @@ export function useRankMovement(): MovementData {
   }, [entries])
 
   const getMovement = (entryId: string): number => {
-    const week1Rank = movementData.rankByWeek1.get(entryId) || 0
+    const week2Rank = movementData.rankAfterWeek2.get(entryId) || 0
     const currentRank = movementData.rankByTotal.get(entryId) || 0
-    return week1Rank - currentRank
+    return week2Rank - currentRank
   }
 
   return {

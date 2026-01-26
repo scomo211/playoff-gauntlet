@@ -22,15 +22,17 @@ interface PlayoffBracketProps {
 }
 
 // Hardcoded historical results for when both teams are eliminated
-// Format: { wcWinners: [seeds that won], divWinners: [seeds that won] }
+// Format: { wcWinners: [seeds that won], divWinners: [seeds that won], champWinner: seed }
 const HISTORICAL_RESULTS = {
   AFC: {
     wcWinners: [2, 3, 5], // NE beat LAC, JAX beat BUF, HOU beat PIT
     divWinners: [1, 2],   // DEN beat HOU, NE beat JAX
+    champWinner: 2,       // NE beat DEN
   },
   NFC: {
     wcWinners: [2, 5, 6], // CHI beat GB, LAR beat CAR, SF beat PHI
     divWinners: [1, 5],   // SEA beat SF, LAR beat CHI
+    champWinner: 1,       // SEA beat LAR
   }
 }
 
@@ -157,10 +159,27 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
     // Sort by seed
     divWinners.sort((a, b) => a.seed - b.seed)
 
+    // Determine championship winner using historical data or is_alive
+    let champWinner: Team | null = null
+    if (divWinners.length === 2) {
+      const team1 = divWinners[0].team
+      const team2 = divWinners[1].team
+      // Check if one is eliminated (historical result)
+      if (team1.is_alive && !team2.is_alive) champWinner = team1
+      else if (!team1.is_alive && team2.is_alive) champWinner = team2
+      // If both eliminated or both alive, use historical champWinner
+      else {
+        const history = HISTORICAL_RESULTS[conference]
+        if (history.champWinner) {
+          champWinner = divWinners.find(w => w.seed === history.champWinner)?.team || null
+        }
+      }
+    }
+
     return {
       top: { team: divWinners[0]?.team || null, seed: divWinners[0]?.seed || null },
       bottom: { team: divWinners[1]?.team || null, seed: divWinners[1]?.seed || null },
-      winner: divWinners.length === 2 ? getWinner(divWinners[0].team, divWinners[1].team) : null
+      winner: champWinner
     }
   }
 
