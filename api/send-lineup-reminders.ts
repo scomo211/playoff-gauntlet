@@ -91,7 +91,7 @@ function generateEmailHtml(
       </p>
 
       <p style="color: #e2e8f0; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-        You have <strong style="color: #fbbf24;">${hoursRemaining} hour${hoursRemaining !== 1 ? 's' : ''}</strong> to submit your lineup${unsubmittedEntries.length !== 1 ? 's' : ''} before ${weekName} kicks off!
+        Lineups are now unlocked. Head into the app and submit your Superb Owl 🦉 lineup!
       </p>
 
       ${unsubmittedList}
@@ -295,7 +295,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await resend.emails.send({
           from: 'Playoff Gauntlet <reminders@playoffgauntlet.com>',
           to: user.email,
-          subject: `${hoursRemaining} hour${hoursRemaining !== 1 ? 's' : ''} to submit your lineup`,
+          subject: 'Submit Your Superb Owl Lineup 🏈',
           html: generateEmailHtml(
             user.display_name,
             user.entries,
