@@ -44,7 +44,8 @@ export const PLAYOFF_SCHEDULE: Game[] = [
   { week_id: 3, away_team_id: 'LAR', home_team_id: 'SEA', kickoff: '2026-01-25T23:30:00Z' }, // 6:30pm ET - NFC: Rams @ Seahawks
 
   // Week 4: Super Bowl LX (Feb 8, 2026) - Levi's Stadium, Santa Clara
-  { week_id: 4, away_team_id: 'TBD', home_team_id: 'TBD', kickoff: '2026-02-08T23:30:00Z' }, // 6:30pm ET
+  // NE (AFC Champion) vs SEA (NFC Champion, higher seed = home)
+  { week_id: 4, away_team_id: 'NE', home_team_id: 'SEA', kickoff: '2026-02-08T23:30:00Z' }, // 6:30pm ET
 ]
 
 // Get the game for a team in a specific week

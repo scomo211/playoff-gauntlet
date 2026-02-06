@@ -128,7 +128,9 @@
       "Bash(__NEW_LINE__ echo \"=== Check Cam Akers, Velus Jones, Bandy, Moore ===\")",
       "Bash(__NEW_LINE__ echo \"=== Check existing projections for these names ===\")",
       "Bash(__NEW_LINE__ echo \"=== Adding players one by one ===\")",
-      "Bash(__NEW_LINE__ echo \"=== Locking lineups ===\")"
+      "Bash(__NEW_LINE__ echo \"=== Locking lineups ===\")",
+      "Bash(APIKEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE echo '=== Current Week Settings ===' curl -s https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/league_settings?select=current_week_id,entries_locked -H 'apikey: $APIKEY' echo echo echo '=== Weeks Status ===' curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/weeks?select=id,name,is_current,deadline&order=id\" -H 'apikey: $APIKEY' echo echo echo '=== Teams Still Alive ===' curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/teams?is_alive=eq.true&select=id,name,conference\" -H 'apikey: $APIKEY' echo echo echo '=== Week 4 Lineups Count ===' curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/lineups?week_id=eq.4&select=id\" -H 'apikey: $APIKEY' -H 'Prefer: count=exact' -I)",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" echo:*)"
     ]
   }
 }
