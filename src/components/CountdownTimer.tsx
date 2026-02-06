@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 
-// Conference Championships 2026 - First game kickoff (Sunday, January 25, 2026 at 3:00 PM ET)
-// Patriots @ Broncos
-const KICKOFF_DATE = new Date('2026-01-25T15:00:00-05:00')
+// Super Bowl LX - Sunday, February 8, 2026 at 6:30 PM ET
+// Patriots vs Seahawks at Levi's Stadium, Santa Clara
+const KICKOFF_DATE = new Date('2026-02-08T18:30:00-05:00')
 
 interface TimeLeft {
   days: number
@@ -52,7 +52,7 @@ export default function CountdownTimer({ variant = 'landing' }: CountdownTimerPr
       <div className="mb-4 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-gold-500/20 via-gold-600/10 to-amber-500/20 border border-gold-500/30 shadow-lg shadow-gold-500/10">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-4">
           <div className="text-xs sm:text-sm font-semibold text-gold-400 uppercase tracking-wider whitespace-nowrap">
-            Countdown to Kickoff
+            Super Bowl LX Kickoff
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3">
             <div className="flex items-baseline gap-0.5">
@@ -85,7 +85,7 @@ export default function CountdownTimer({ variant = 'landing' }: CountdownTimerPr
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="text-center">
         <div className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">
-          Countdown to Kickoff
+          Super Bowl LX Kickoff
         </div>
         <div className="flex items-center justify-center gap-4 sm:gap-6">
           <div className="text-center">
