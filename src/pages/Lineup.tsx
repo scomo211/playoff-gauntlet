@@ -320,7 +320,8 @@ export default function Lineup() {
   // Calculate lineup stats
   const filledSlots = lineupSlots.filter(s => s.player !== null).length
   const totalSlots = lineupSlots.length
-  const isComplete = filledSlots === totalSlots
+  // Week 4 (Super Bowl) allows partial rosters - just need at least 1 player
+  const isComplete = weekId === 4 ? filledSlots >= 1 : filledSlots === totalSlots
   const totalPoints = lineupSlots.reduce((sum, s) => sum + s.points, 0)
 
   // Can edit if: owner AND not locked
