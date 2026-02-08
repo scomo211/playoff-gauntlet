@@ -56,7 +56,7 @@ export default function Dashboard() {
   const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [amountPaid, setAmountPaid] = useState<number>(0)
-  const [sortColumn, setSortColumn] = useState<'total' | 'week1' | 'week2' | 'week3'>('week3')
+  const [sortColumn, setSortColumn] = useState<'total' | 'week1' | 'week2' | 'week3' | 'week4'>('week4')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Fetch current week
@@ -214,7 +214,7 @@ export default function Dashboard() {
   const entriesLocked = settings?.entries_locked ?? false
 
   // Sort handler
-  const handleSort = (column: 'total' | 'week1' | 'week2' | 'week3') => {
+  const handleSort = (column: 'total' | 'week1' | 'week2' | 'week3' | 'week4') => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')
     } else {
@@ -246,6 +246,10 @@ export default function Dashboard() {
       case 'week3':
         aValue = a.week3_points
         bValue = b.week3_points
+        break
+      case 'week4':
+        aValue = a.week4_points
+        bValue = b.week4_points
         break
       default:
         aValue = a.total_points
@@ -472,14 +476,25 @@ export default function Dashboard() {
                             )}
                           </div>
                         </th>
-                        {/* Mobile-only column for Wk3 */}
                         <th
-                          className="md:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort('week3')}
+                          className="hidden md:table-cell px-2 py-3 text-center text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white transition-colors"
+                          onClick={() => handleSort('week4')}
                         >
                           <div className="flex items-center justify-center gap-0.5">
-                            Wk3
-                            {sortColumn === 'week3' && (
+                            Wk4
+                            {sortColumn === 'week4' && (
+                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                            )}
+                          </div>
+                        </th>
+                        {/* Mobile-only column for Wk4 */}
+                        <th
+                          className="md:hidden px-1 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer"
+                          onClick={() => handleSort('week4')}
+                        >
+                          <div className="flex items-center justify-center gap-0.5">
+                            Wk4
+                            {sortColumn === 'week4' && (
                               <span className="text-field-400 text-[10px]">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                             )}
                           </div>
@@ -579,16 +594,28 @@ export default function Dashboard() {
                                 </span>
                               )}
                             </td>
-                            {/* Mobile-only: Wk3 */}
-                            <td className="md:hidden px-1 py-2 whitespace-nowrap text-center">
-                              {WEEKLY_WINNERS[3] === entry.id ? (
+                            <td className="hidden md:table-cell px-2 py-3 whitespace-nowrap text-center text-sm">
+                              {WEEKLY_WINNERS[4] === entry.id ? (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
                                   <span>👑</span>
-                                  {entry.week3_points.toFixed(1)}
+                                  {entry.week4_points.toFixed(1)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">
+                                  {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
+                                </span>
+                              )}
+                            </td>
+                            {/* Mobile-only: Wk4 */}
+                            <td className="md:hidden px-1 py-2 whitespace-nowrap text-center">
+                              {WEEKLY_WINNERS[4] === entry.id ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
+                                  <span>👑</span>
+                                  {entry.week4_points.toFixed(1)}
                                 </span>
                               ) : (
                                 <span className="text-xs text-slate-400">
-                                  {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
+                                  {entry.week4_points > 0 ? entry.week4_points.toFixed(1) : '--'}
                                 </span>
                               )}
                             </td>
