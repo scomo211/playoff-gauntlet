@@ -20,6 +20,18 @@ import AdminSettings from './pages/admin/AdminSettings'
 import AdminPlayerStats from './pages/admin/AdminPlayerStats'
 import TestAnimations from './pages/TestAnimations'
 import ProtectedRoute from './components/ProtectedRoute'
+// Salary Cap Pages
+import SalaryCapDashboard from './pages/salarycap/SalaryCapDashboard'
+// SalaryCapMyTeam replaced by SalaryCapOffseason during offseason
+import SalaryCapTeams from './pages/salarycap/SalaryCapTeams'
+import SalaryCapTeamDetail from './pages/salarycap/SalaryCapTeamDetail'
+import SalaryCapFreeAgents from './pages/salarycap/SalaryCapFreeAgents'
+import SalaryCapRules from './pages/salarycap/SalaryCapRules'
+import SalaryCapOffseason from './pages/salarycap/SalaryCapOffseason'
+import Auction from './pages/salarycap/Auction'
+import AdminSalaryCapImport from './pages/admin/salarycap/AdminSalaryCapImport'
+import AdminSalaryCapOffseason from './pages/admin/salarycap/AdminSalaryCapOffseason'
+import AdminAuction from './pages/admin/salarycap/AdminAuction'
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -173,6 +185,96 @@ function App() {
         element={
           <ProtectedRoute>
             <AdminSettings />
+          </ProtectedRoute>
+        }
+      />
+      {/* Salary Cap Admin Routes */}
+      <Route
+        path="/admin/salarycap"
+        element={
+          <ProtectedRoute>
+            <AdminSalaryCapImport />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/salarycap/offseason"
+        element={
+          <ProtectedRoute>
+            <AdminSalaryCapOffseason />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/salarycap/auction"
+        element={
+          <ProtectedRoute>
+            <AdminAuction />
+          </ProtectedRoute>
+        }
+      />
+      {/* Salary Cap Routes */}
+      <Route
+        path="/salarycap"
+        element={
+          <ProtectedRoute>
+            <SalaryCapDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/salarycap/my-team"
+        element={
+          <ProtectedRoute>
+            <SalaryCapOffseason />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/salarycap/teams"
+        element={
+          <ProtectedRoute>
+            <SalaryCapTeams />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/salarycap/team/:ownerId"
+        element={
+          <ProtectedRoute>
+            <SalaryCapTeamDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/salarycap/free-agents"
+        element={
+          <ProtectedRoute>
+            <SalaryCapFreeAgents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/salarycap/rules"
+        element={
+          <ProtectedRoute>
+            <SalaryCapRules />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/salarycap/offseason"
+        element={
+          <ProtectedRoute>
+            <SalaryCapOffseason />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/salarycap/auction"
+        element={
+          <ProtectedRoute>
+            <Auction />
           </ProtectedRoute>
         }
       />
