@@ -7,7 +7,7 @@ import BoldestLineups from './BoldestLineups'
 import DeadManWalking from './DeadManWalking'
 
 export default function WeeklyStatsSection() {
-  const [selectedWeek, setSelectedWeek] = useState(3) // Default to Week 3
+  const [selectedWeek, setSelectedWeek] = useState(4) // Default to Week 4 (Super Bowl)
 
   return (
     <div className="space-y-6">
@@ -23,7 +23,7 @@ export default function WeeklyStatsSection() {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Week 1
+            Wk 1
           </button>
           <button
             onClick={() => setSelectedWeek(2)}
@@ -33,7 +33,7 @@ export default function WeeklyStatsSection() {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Week 2
+            Wk 2
           </button>
           <button
             onClick={() => setSelectedWeek(3)}
@@ -43,7 +43,17 @@ export default function WeeklyStatsSection() {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Week 3
+            Wk 3
+          </button>
+          <button
+            onClick={() => setSelectedWeek(4)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+              selectedWeek === 4
+                ? 'bg-field-500 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Wk 4
           </button>
         </div>
       </div>

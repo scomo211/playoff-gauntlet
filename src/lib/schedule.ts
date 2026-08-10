@@ -60,7 +60,7 @@ export function getGameForTeam(teamId: string, weekId: number): Game | null {
 const GAME_DURATION_MS = 4.5 * 60 * 60 * 1000
 
 // Weeks that are fully complete - all games final
-const COMPLETED_WEEKS = [1, 2, 3]
+const COMPLETED_WEEKS = [1, 2, 3, 4]
 
 export function getGameStatus(game: Game | null, weekId?: number): GameStatus {
   if (!game) return 'upcoming'

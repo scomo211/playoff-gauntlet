@@ -6,8 +6,9 @@ interface EntryPoints {
   week1_points: number
   week2_points: number
   week3_points: number
+  week4_points: number
   total_points: number
-  points_after_week2: number // Cumulative after Week 2
+  points_after_week3: number // Cumulative after Week 3
 }
 
 interface MovementData {
@@ -39,15 +40,17 @@ export function useRankMovement(): MovementData {
           const week1_points = lineups.find(l => l.week_id === 1)?.total_points || 0
           const week2_points = lineups.find(l => l.week_id === 2)?.total_points || 0
           const week3_points = lineups.find(l => l.week_id === 3)?.total_points || 0
+          const week4_points = lineups.find(l => l.week_id === 4)?.total_points || 0
           const total_points = lineups.reduce((sum, l) => sum + (l.total_points || 0), 0)
-          const points_after_week2 = week1_points + week2_points
+          const points_after_week3 = week1_points + week2_points + week3_points
           return {
             id: entry.id,
             week1_points,
             week2_points,
             week3_points,
+            week4_points,
             total_points,
-            points_after_week2
+            points_after_week3
           }
         })
 
@@ -65,59 +68,65 @@ export function useRankMovement(): MovementData {
   const movementData = useMemo(() => {
     if (entries.length === 0) {
       return {
-        rankAfterWeek2: new Map<string, number>(),
+        rankAfterWeek3: new Map<string, number>(),
         rankByTotal: new Map<string, number>(),
         biggestUpMovers: new Set<string>(),
-        biggestDownMovers: new Set<string>()
+        biggestDownMovers: new Set<string>(),
+        movements: new Map<string, number>()
       }
     }
 
-    // Calculate ranks after Week 2 (before Week 3)
-    const rankAfterWeek2 = new Map<string, number>()
-    const entriesAfterWeek2 = [...entries].sort((a, b) => b.points_after_week2 - a.points_after_week2)
-    entriesAfterWeek2.forEach((entry, index) => {
-      rankAfterWeek2.set(entry.id, index + 1)
+    // Calculate ranks after Week 3 (before Week 4)
+    const rankAfterWeek3 = new Map<string, number>()
+    const entriesAfterWeek3 = [...entries].sort((a, b) => b.points_after_week3 - a.points_after_week3)
+    entriesAfterWeek3.forEach((entry, index) => {
+      rankAfterWeek3.set(entry.id, index + 1)
     })
 
-    // Calculate ranks based on total score (after Week 3)
+    // Calculate ranks based on total score (after Week 4)
     const rankByTotal = new Map<string, number>()
     const entriesByTotal = [...entries].sort((a, b) => b.total_points - a.total_points)
     entriesByTotal.forEach((entry, index) => {
       rankByTotal.set(entry.id, index + 1)
     })
 
-    // Calculate movements - comparing Week 2 standings to current (Week 3) standings
-    const movements = entries.map(entry => {
-      const week2Rank = rankAfterWeek2.get(entry.id) || 0
+    // Calculate movements - comparing Week 3 standings to current (Week 4) standings
+    const movementsList = entries.map(entry => {
+      const week3Rank = rankAfterWeek3.get(entry.id) || 0
       const currentRank = rankByTotal.get(entry.id) || 0
-      const movement = week2Rank - currentRank // positive = moved up
+      const movement = week3Rank - currentRank // positive = moved up
       return { id: entry.id, movement, currentRank }
     })
 
-    // Filter to entries in top 20 who moved 8+ spots (slightly lower threshold for Week 2->3)
+    // Store all movements in a map for easy lookup
+    const movements = new Map<string, number>()
+    movementsList.forEach(m => {
+      movements.set(m.id, m.movement)
+    })
+
+    // Filter to entries who moved 3+ spots (show more movement indicators)
     const biggestUpMovers = new Set(
-      movements
-        .filter(m => m.currentRank <= 20 && m.movement >= 8)
+      movementsList
+        .filter(m => m.movement >= 3)
         .map(m => m.id)
     )
     const biggestDownMovers = new Set(
-      movements
-        .filter(m => m.currentRank <= 20 && m.movement <= -8)
+      movementsList
+        .filter(m => m.movement <= -3)
         .map(m => m.id)
     )
 
     return {
-      rankAfterWeek2,
+      rankAfterWeek3,
       rankByTotal,
       biggestUpMovers,
-      biggestDownMovers
+      biggestDownMovers,
+      movements
     }
   }, [entries])
 
   const getMovement = (entryId: string): number => {
-    const week2Rank = movementData.rankAfterWeek2.get(entryId) || 0
-    const currentRank = movementData.rankByTotal.get(entryId) || 0
-    return week2Rank - currentRank
+    return movementData.movements.get(entryId) || 0
   }
 
   return {
@@ -142,24 +151,28 @@ export function MovementIndicator({
   getMovement: (id: string) => number
   size?: 'sm' | 'xs'
 }) {
-  const sizeClass = size === 'xs' ? 'w-2.5 h-2.5' : 'w-3 h-3'
+  const movement = getMovement(entryId)
+  const textSize = size === 'xs' ? 'text-[10px]' : 'text-xs'
+  const iconSize = size === 'xs' ? 'w-2.5 h-2.5' : 'w-3 h-3'
 
   if (biggestUpMovers.has(entryId)) {
     return (
-      <span className="inline-flex items-center text-green-400" title={`Up ${getMovement(entryId)} spots`}>
-        <svg className={sizeClass} fill="currentColor" viewBox="0 0 20 20">
+      <span className={`inline-flex items-center gap-0.5 ${textSize} font-semibold text-green-400`} title={`Up ${movement} spots from Week 3`}>
+        <svg className={iconSize} fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
         </svg>
+        <span>{movement}</span>
       </span>
     )
   }
 
   if (biggestDownMovers.has(entryId)) {
     return (
-      <span className="inline-flex items-center text-red-400" title={`Down ${Math.abs(getMovement(entryId))} spots`}>
-        <svg className={sizeClass} fill="currentColor" viewBox="0 0 20 20">
+      <span className={`inline-flex items-center gap-0.5 ${textSize} font-semibold text-red-400`} title={`Down ${Math.abs(movement)} spots from Week 3`}>
+        <svg className={iconSize} fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
         </svg>
+        <span>{Math.abs(movement)}</span>
       </span>
     )
   }

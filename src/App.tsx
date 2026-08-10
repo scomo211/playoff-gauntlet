@@ -24,7 +24,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import SalaryCapDashboard from './pages/salarycap/SalaryCapDashboard'
 // SalaryCapMyTeam replaced by SalaryCapOffseason during offseason
 import SalaryCapTeams from './pages/salarycap/SalaryCapTeams'
-import SalaryCapTeamDetail from './pages/salarycap/SalaryCapTeamDetail'
+// SalaryCapTeamDetail replaced by SalaryCapOffseason (new design)
 import SalaryCapFreeAgents from './pages/salarycap/SalaryCapFreeAgents'
 import SalaryCapRules from './pages/salarycap/SalaryCapRules'
 import SalaryCapOffseason from './pages/salarycap/SalaryCapOffseason'
@@ -48,7 +48,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/salarycap" replace />
   }
 
   return <>{children}</>
@@ -242,7 +242,7 @@ function App() {
         path="/salarycap/team/:ownerId"
         element={
           <ProtectedRoute>
-            <SalaryCapTeamDetail />
+            <SalaryCapOffseason />
           </ProtectedRoute>
         }
       />

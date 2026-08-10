@@ -26,6 +26,7 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/entries', label: 'My Entries' },
     { path: '/players', label: 'Players' },
     { path: '/rules', label: 'Rules' },
+    { path: '/salarycap', label: 'Salary Cap', highlight: true },
   ]
 
   return (
@@ -49,6 +50,8 @@ export default function Layout({ children }: LayoutProps) {
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                       isActive(link.path)
                         ? 'text-white bg-slate-800'
+                        : link.highlight
+                        ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                     }`}
                   >
@@ -105,6 +108,8 @@ export default function Layout({ children }: LayoutProps) {
                   className={`block px-3 py-2 rounded-lg text-sm font-medium ${
                     isActive(link.path)
                       ? 'text-white bg-slate-800'
+                      : link.highlight
+                      ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >

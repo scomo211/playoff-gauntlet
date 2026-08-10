@@ -14,6 +14,7 @@ import AnimatedScore from '../components/AnimatedScore'
 import AnimatedLeaderboardRow from '../components/AnimatedLeaderboardRow'
 import FavoritesLeaderboard from '../components/FavoritesLeaderboard'
 import { useRankMovement, MovementIndicator } from '../hooks/useRankMovement'
+import RankProgressionChart from '../components/RankProgressionChart'
 
 interface LeaderboardEntry {
   id: string
@@ -37,6 +38,7 @@ const WEEKLY_WINNERS: Record<number, string> = {
   1: '14ba7ea8-1830-4fb5-ae8d-54ca3da8db5c', // Scrantonicity - Tim Meyer
   2: '61c58498-19d6-40cb-b8d7-bc5c1bce077a', // KB - Kevin Brandel
   3: '24657da4-69b6-402d-affb-25dd71caa525', // Joe Foeckler - Joe Foeckler
+  4: 'eda3dfe3-39b6-4c9a-8f41-395eadd08912', // Alexdguy - Alex Dominguez
 }
 
 export default function Dashboard() {
@@ -56,7 +58,7 @@ export default function Dashboard() {
   const [currentWeek, setCurrentWeek] = useState<number | undefined>(undefined)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [amountPaid, setAmountPaid] = useState<number>(0)
-  const [sortColumn, setSortColumn] = useState<'total' | 'week1' | 'week2' | 'week3' | 'week4'>('week4')
+  const [sortColumn, setSortColumn] = useState<'total' | 'week1' | 'week2' | 'week3' | 'week4'>('total')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Fetch current week
@@ -151,15 +153,8 @@ export default function Dashboard() {
         setLeaderboardEntries(formatted)
         setLastUpdated(new Date())
 
-        const count = formatted.length
-        let spots = 4
-        if (count >= 100) spots = 10
-        else if (count >= 90) spots = 9
-        else if (count >= 80) spots = 8
-        else if (count >= 70) spots = 7
-        else if (count >= 60) spots = 6
-        else if (count >= 50) spots = 5
-        setPayoutSpots(spots)
+        // Fixed at 10 payout spots for 2025 season (includes 9a/9b tie)
+        setPayoutSpots(10)
 
       } catch (err) {
         console.error('Failed to fetch leaderboard:', err)
@@ -177,6 +172,7 @@ export default function Dashboard() {
   }, [])
 
   // Default payout amounts in dollars based on number of spots
+  // 2025 season: 10 spots with 9a/9b tie for 9th place
   const DEFAULT_PAYOUTS: Record<number, number[]> = {
     4: [650, 200, 100, 50],
     5: [550, 200, 120, 80, 50],
@@ -184,7 +180,14 @@ export default function Dashboard() {
     7: [450, 180, 120, 90, 70, 50, 40],
     8: [400, 180, 120, 90, 70, 60, 50, 30],
     9: [380, 170, 120, 90, 70, 60, 50, 40, 20],
-    10: [350, 160, 120, 90, 70, 60, 50, 40, 30, 30],
+    10: [850, 400, 250, 175, 150, 125, 100, 75, 50, 50],
+  }
+
+  // Rank labels for display (9a and 9b for tied 9th place)
+  const getRankLabel = (rank: number): string => {
+    if (rank === 9) return '9a'
+    if (rank === 10) return '9b'
+    return String(rank)
   }
 
   // Use stored payout amounts or defaults
@@ -386,8 +389,13 @@ export default function Dashboard() {
           </div>
           <div className="card-solid p-2 sm:p-4 text-center sm:text-left">
             <div className="text-xs sm:text-sm text-slate-500">Payouts</div>
-            <div className="text-lg sm:text-2xl font-bold text-gold-400">Top {payoutSpots}</div>
+            <div className="text-lg sm:text-2xl font-bold text-gold-400">Top 9</div>
           </div>
+        </div>
+
+        {/* Rank Progression Chart */}
+        <div className="mb-8">
+          <RankProgressionChart />
         </div>
 
         {/* Two Column Layout: Leaderboard (2/3) | Your Entries (1/3) */}
@@ -401,7 +409,7 @@ export default function Dashboard() {
               <div>
                 <h2 className="text-xl font-bold text-white">Leaderboard</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  {leaderboardEntries.length} entries competing for top {payoutSpots} payout spots
+                  {leaderboardEntries.length} entries competing for top 9 payout spots
                 </p>
               </div>
               {lastUpdated && (
@@ -443,39 +451,7 @@ export default function Dashboard() {
                         <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                           Owner
                         </th>
-                        <th
-                          className="hidden md:table-cell px-2 py-3 text-center text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white transition-colors"
-                          onClick={() => handleSort('week1')}
-                        >
-                          <div className="flex items-center justify-center gap-0.5">
-                            Wk1
-                            {sortColumn === 'week1' && (
-                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="hidden md:table-cell px-2 py-3 text-center text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white transition-colors"
-                          onClick={() => handleSort('week2')}
-                        >
-                          <div className="flex items-center justify-center gap-0.5">
-                            Wk2
-                            {sortColumn === 'week2' && (
-                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="hidden md:table-cell px-2 py-3 text-center text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white transition-colors"
-                          onClick={() => handleSort('week3')}
-                        >
-                          <div className="flex items-center justify-center gap-0.5">
-                            Wk3
-                            {sortColumn === 'week3' && (
-                              <span className="text-field-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
-                            )}
-                          </div>
-                        </th>
+                        {/* Weeks 1-3 hidden during Super Bowl */}
                         <th
                           className="hidden md:table-cell px-2 py-3 text-center text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white transition-colors"
                           onClick={() => handleSort('week4')}
@@ -528,7 +504,7 @@ export default function Dashboard() {
                             <td className="px-1.5 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
                               <div className="flex items-center gap-1 sm:gap-2">
                                 <span className={`text-sm font-semibold ${inTheMoney ? 'text-field-400' : 'text-white'}`}>
-                                  {rank}
+                                  {getRankLabel(rank)}
                                 </span>
                                 {inTheMoney && payoutAmounts[rank - 1] !== undefined && (
                                   <span className="inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
@@ -538,62 +514,27 @@ export default function Dashboard() {
                               </div>
                             </td>
                             <td className="pl-1 pr-0 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
-                              <div className="text-sm font-medium text-white sm:truncate sm:max-w-none flex items-center gap-1" title={entry.entry_name}>
-                                {/* Movement indicator */}
+                              <div className="text-sm font-medium text-white sm:truncate sm:max-w-none flex items-center gap-1.5" title={entry.entry_name}>
+                                {/* Mobile view */}
+                                <span className="sm:hidden flex items-center gap-1">
+                                  {(WEEKLY_WINNERS[1] === entry.id || WEEKLY_WINNERS[2] === entry.id || WEEKLY_WINNERS[3] === entry.id || WEEKLY_WINNERS[4] === entry.id) && <span>👑</span>}
+                                  {entry.entry_name.length > 14 ? entry.entry_name.slice(0, 14) + '…' : entry.entry_name}
+                                </span>
+                                {/* Desktop view */}
+                                <span className="hidden sm:inline">{entry.entry_name}</span>
+                                {/* Movement indicator - to the right of name */}
                                 <MovementIndicator
                                   entryId={entry.id}
                                   biggestUpMovers={biggestUpMovers}
                                   biggestDownMovers={biggestDownMovers}
                                   getMovement={getMovement}
                                 />
-                                {/* Mobile view */}
-                                <span className="sm:hidden flex items-center gap-1">
-                                  {(WEEKLY_WINNERS[1] === entry.id || WEEKLY_WINNERS[2] === entry.id) && <span>👑</span>}
-                                  {entry.entry_name.length > 18 ? entry.entry_name.slice(0, 18) + '…' : entry.entry_name}
-                                </span>
-                                {/* Desktop view */}
-                                <span className="hidden sm:inline">{entry.entry_name}</span>
                               </div>
                             </td>
                             <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
                               <div className="text-sm text-slate-400 truncate max-w-[80px] sm:max-w-none" title={entry.display_name}>{entry.display_name}</div>
                             </td>
-                            <td className="hidden md:table-cell px-2 py-3 whitespace-nowrap text-center text-sm">
-                              {WEEKLY_WINNERS[1] === entry.id ? (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
-                                  <span>👑</span>
-                                  {entry.week1_points.toFixed(1)}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">
-                                  {entry.week1_points > 0 ? entry.week1_points.toFixed(1) : '--'}
-                                </span>
-                              )}
-                            </td>
-                            <td className="hidden md:table-cell px-2 py-3 whitespace-nowrap text-center text-sm">
-                              {WEEKLY_WINNERS[2] === entry.id ? (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
-                                  <span>👑</span>
-                                  {entry.week2_points.toFixed(1)}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">
-                                  {entry.week2_points > 0 ? entry.week2_points.toFixed(1) : '--'}
-                                </span>
-                              )}
-                            </td>
-                            <td className="hidden md:table-cell px-2 py-3 whitespace-nowrap text-center text-sm">
-                              {WEEKLY_WINNERS[3] === entry.id ? (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
-                                  <span>👑</span>
-                                  {entry.week3_points.toFixed(1)}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">
-                                  {entry.week3_points > 0 ? entry.week3_points.toFixed(1) : '--'}
-                                </span>
-                              )}
-                            </td>
+                            {/* Weeks 1-3 data cells hidden during Super Bowl */}
                             <td className="hidden md:table-cell px-2 py-3 whitespace-nowrap text-center text-sm">
                               {WEEKLY_WINNERS[4] === entry.id ? (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 font-semibold border border-gold-500/30 text-xs">
@@ -684,7 +625,7 @@ export default function Dashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-xs sm:text-sm text-slate-400 whitespace-nowrap">
-                  Highlighted = payout position (Top {payoutSpots})
+                  Highlighted = payout position (Top 9)
                 </span>
               </div>
             </div>

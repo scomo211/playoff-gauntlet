@@ -36,6 +36,9 @@ const HISTORICAL_RESULTS = {
   }
 }
 
+// Super Bowl LX Champion - Seattle Seahawks
+const SUPER_BOWL_CHAMPION = 'SEA'
+
 export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
@@ -188,10 +191,21 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
     const afcChamp = getChampionshipMatchup('AFC')
     const nfcChamp = getChampionshipMatchup('NFC')
 
+    // Determine Super Bowl winner
+    let sbWinner: Team | null = null
+    if (SUPER_BOWL_CHAMPION) {
+      // Use hardcoded champion
+      if (afcChamp.winner?.id === SUPER_BOWL_CHAMPION) sbWinner = afcChamp.winner
+      else if (nfcChamp.winner?.id === SUPER_BOWL_CHAMPION) sbWinner = nfcChamp.winner
+    } else if (afcChamp.winner && nfcChamp.winner) {
+      // Fallback to is_alive logic
+      sbWinner = getWinner(afcChamp.winner, nfcChamp.winner)
+    }
+
     return {
       top: { team: afcChamp.winner || null, seed: afcChamp.winner?.playoff_seed || null },
       bottom: { team: nfcChamp.winner || null, seed: nfcChamp.winner?.playoff_seed || null },
-      winner: afcChamp.winner && nfcChamp.winner ? getWinner(afcChamp.winner, nfcChamp.winner) : null
+      winner: sbWinner
     }
   }
 
@@ -434,14 +448,14 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
 
           {/* Super Bowl */}
           <div className="flex flex-col items-center px-4">
-            <div className="text-center text-xs font-medium text-gold-400 uppercase tracking-wider mb-4">Super Bowl</div>
+            <div className="text-center text-xs font-medium text-gold-400 uppercase tracking-wider mb-4">Super Bowl LX</div>
             <div className="bg-gradient-to-b from-gold-500/20 to-gold-600/10 border-2 border-gold-500/30 rounded-xl p-3 w-[180px]">
               <div className="flex flex-col gap-2">
                 {superBowl.top.team ? (
-                  <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600 overflow-hidden">
+                  <div className={`flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border overflow-hidden ${superBowl.winner?.id === superBowl.top.team.id ? 'border-gold-500 ring-1 ring-gold-500/50' : 'border-slate-600 opacity-50'}`}>
                     <span className="text-xs font-bold text-red-400 flex-shrink-0">AFC</span>
-                    <img src={getTeamLogoUrl(superBowl.top.team.id)} alt={superBowl.top.team.name} className="w-6 h-6 object-contain flex-shrink-0" />
-                    <span className="text-sm font-medium text-white truncate">{superBowl.top.team.name}</span>
+                    <img src={getTeamLogoUrl(superBowl.top.team.id)} alt={superBowl.top.team.name} className={`w-6 h-6 object-contain flex-shrink-0 ${superBowl.winner?.id !== superBowl.top.team.id ? 'grayscale' : ''}`} />
+                    <span className={`text-sm font-medium truncate ${superBowl.winner?.id !== superBowl.top.team.id ? 'text-slate-500 line-through' : 'text-white'}`}>{superBowl.top.team.name}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600">
@@ -450,10 +464,10 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
                 )}
                 <div className="text-center text-gold-400 font-bold text-xs">VS</div>
                 {superBowl.bottom.team ? (
-                  <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600 overflow-hidden">
+                  <div className={`flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border overflow-hidden ${superBowl.winner?.id === superBowl.bottom.team.id ? 'border-gold-500 ring-1 ring-gold-500/50' : 'border-slate-600 opacity-50'}`}>
                     <span className="text-xs font-bold text-blue-400 flex-shrink-0">NFC</span>
-                    <img src={getTeamLogoUrl(superBowl.bottom.team.id)} alt={superBowl.bottom.team.name} className="w-6 h-6 object-contain flex-shrink-0" />
-                    <span className="text-sm font-medium text-white truncate">{superBowl.bottom.team.name}</span>
+                    <img src={getTeamLogoUrl(superBowl.bottom.team.id)} alt={superBowl.bottom.team.name} className={`w-6 h-6 object-contain flex-shrink-0 ${superBowl.winner?.id !== superBowl.bottom.team.id ? 'grayscale' : ''}`} />
+                    <span className={`text-sm font-medium truncate ${superBowl.winner?.id !== superBowl.bottom.team.id ? 'text-slate-500 line-through' : 'text-white'}`}>{superBowl.bottom.team.name}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 px-2 py-2 bg-slate-900/80 rounded border border-slate-600">
@@ -461,6 +475,19 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
                   </div>
                 )}
               </div>
+              {/* Super Bowl Champion */}
+              {superBowl.winner && (
+                <div className="mt-3 pt-3 border-t border-gold-500/30">
+                  <div className="text-center text-[10px] font-medium text-gold-400 uppercase tracking-wider mb-2">Champion</div>
+                  <div className="flex flex-col items-center gap-2">
+                    <img src={getTeamLogoUrl(superBowl.winner.id)} alt={superBowl.winner.name} className="w-12 h-12 object-contain" />
+                    <div className="text-center">
+                      <div className="text-sm font-bold text-white">{superBowl.winner.city}</div>
+                      <div className="text-lg font-bold text-gold-400">{superBowl.winner.name}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -637,21 +664,35 @@ export default function PlayoffBracket({ onTeamClick }: PlayoffBracketProps) {
         {superBowl.top.team && superBowl.bottom.team && (
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <div className="text-xs font-bold text-gold-400 uppercase tracking-wider">Super Bowl</div>
+              <div className="text-xs font-bold text-gold-400 uppercase tracking-wider">Super Bowl LX</div>
               <div className="flex-1 h-px bg-gold-500/30"></div>
             </div>
-            <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-gold-500/20 via-gold-600/10 to-gold-500/20 border border-gold-500/30 overflow-hidden">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs font-bold text-red-400 flex-shrink-0">AFC</span>
-                <img src={getTeamLogoUrl(superBowl.top.team.id)} alt={superBowl.top.team.name} className="w-5 h-5 object-contain flex-shrink-0" />
-                <span className="text-xs font-medium text-white truncate">{superBowl.top.team.name}</span>
+            <div className="rounded-lg bg-gradient-to-r from-gold-500/20 via-gold-600/10 to-gold-500/20 border border-gold-500/30 overflow-hidden">
+              <div className="flex items-center justify-center gap-2 px-3 py-2">
+                <div className={`flex items-center gap-1.5 min-w-0 ${superBowl.winner?.id !== superBowl.top.team.id ? 'opacity-50' : ''}`}>
+                  <span className="text-xs font-bold text-red-400 flex-shrink-0">AFC</span>
+                  <img src={getTeamLogoUrl(superBowl.top.team.id)} alt={superBowl.top.team.name} className={`w-5 h-5 object-contain flex-shrink-0 ${superBowl.winner?.id !== superBowl.top.team.id ? 'grayscale' : ''}`} />
+                  <span className={`text-xs font-medium truncate ${superBowl.winner?.id !== superBowl.top.team.id ? 'text-slate-500 line-through' : 'text-white'}`}>{superBowl.top.team.name}</span>
+                </div>
+                <span className="text-gold-400 font-bold text-xs flex-shrink-0">VS</span>
+                <div className={`flex items-center gap-1.5 min-w-0 ${superBowl.winner?.id !== superBowl.bottom.team.id ? 'opacity-50' : ''}`}>
+                  <span className="text-xs font-bold text-blue-400 flex-shrink-0">NFC</span>
+                  <img src={getTeamLogoUrl(superBowl.bottom.team.id)} alt={superBowl.bottom.team.name} className={`w-5 h-5 object-contain flex-shrink-0 ${superBowl.winner?.id !== superBowl.bottom.team.id ? 'grayscale' : ''}`} />
+                  <span className={`text-xs font-medium truncate ${superBowl.winner?.id !== superBowl.bottom.team.id ? 'text-slate-500 line-through' : 'text-white'}`}>{superBowl.bottom.team.name}</span>
+                </div>
               </div>
-              <span className="text-gold-400 font-bold text-xs flex-shrink-0">VS</span>
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs font-bold text-blue-400 flex-shrink-0">NFC</span>
-                <img src={getTeamLogoUrl(superBowl.bottom.team.id)} alt={superBowl.bottom.team.name} className="w-5 h-5 object-contain flex-shrink-0" />
-                <span className="text-xs font-medium text-white truncate">{superBowl.bottom.team.name}</span>
-              </div>
+              {/* Super Bowl Champion - Mobile */}
+              {superBowl.winner && (
+                <div className="px-3 py-3 border-t border-gold-500/30 bg-gold-500/10">
+                  <div className="flex items-center justify-center gap-3">
+                    <img src={getTeamLogoUrl(superBowl.winner.id)} alt={superBowl.winner.name} className="w-10 h-10 object-contain" />
+                    <div className="text-center">
+                      <div className="text-[10px] font-medium text-gold-400 uppercase tracking-wider">Champion</div>
+                      <div className="text-sm font-bold text-white">{superBowl.winner.city} {superBowl.winner.name}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
