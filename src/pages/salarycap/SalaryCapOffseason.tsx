@@ -33,22 +33,22 @@ function getTagCost(position: string, previousSalary: number): number {
   return Math.max(positionAvg, previousSalary)
 }
 
-// Draft availability calendar structure - August 2025
+// Draft availability calendar structure - August 2026
 const DRAFT_CALENDAR = [
-  { day: 'Tue', date: '19', slots: [{ id: 'tue_19_pm', time: 'PM' }] },
-  { day: 'Wed', date: '20', slots: [{ id: 'wed_20_pm', time: 'PM' }] },
-  { day: 'Thu', date: '21', slots: [{ id: 'thu_21_pm', time: 'PM' }] },
-  { day: 'Fri', date: '22', slots: [{ id: 'fri_22_pm', time: 'PM' }] },
-  { day: 'Sat', date: '23', slots: [
+  { day: 'Tue', date: '18', slots: [{ id: 'tue_19_pm', time: 'PM' }] },
+  { day: 'Wed', date: '19', slots: [{ id: 'wed_20_pm', time: 'PM' }] },
+  { day: 'Thu', date: '20', slots: [{ id: 'thu_21_pm', time: 'PM' }] },
+  { day: 'Fri', date: '21', slots: [{ id: 'fri_22_pm', time: 'PM' }] },
+  { day: 'Sat', date: '22', slots: [
     { id: 'sat_23_am', time: 'AM' },
     { id: 'sat_23_mid', time: 'Mid' },
     { id: 'sat_23_pm', time: 'PM' },
   ]},
-  { day: 'Sun', date: '24', slots: [
+  { day: 'Sun', date: '23', slots: [
     { id: 'sun_24_mid', time: 'Mid' },
     { id: 'sun_24_pm', time: 'PM' },
   ]},
-  { day: 'Mon', date: '25', slots: [{ id: 'mon_25_pm', time: 'PM' }] },
+  { day: 'Mon', date: '24', slots: [{ id: 'mon_25_pm', time: 'PM' }] },
 ]
 
 // Helpers
