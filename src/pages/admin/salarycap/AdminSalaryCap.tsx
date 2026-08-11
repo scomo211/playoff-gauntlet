@@ -3,18 +3,37 @@ import { Link } from 'react-router-dom'
 import AdminLayout from '../../../components/AdminLayout'
 import { supabase } from '../../../lib/supabase'
 
-interface Owner {
+interface PendingPlayer {
   id: string
-  owner_name: string
-  sleeper_display_name: string
+  name: string
+  position: string
+  salary?: number
+  years_remaining?: number
 }
 
-interface OffseasonStatus {
+interface OwnerProgress {
   owner_id: string
-  cuts_completed: boolean
-  franchise_tag_completed: boolean
-  free_agents_completed: boolean
-  all_completed: boolean
+  owner_name: string
+  sleeper_display_name: string
+
+  // Active contracts (keep/cut)
+  active_total: number
+  active_decided: number
+  active_pending: PendingPlayer[]
+
+  // Franchise tag
+  tag_eligible_count: number
+  has_tagged: boolean
+  tag_decision: 'pending' | 'tagged' | 'skipped'
+  tag_pending_players: PendingPlayer[]
+
+  // FA pickups ($5 keepers)
+  fa_total: number
+  fa_decided: number
+  fa_pending: PendingPlayer[]
+
+  // Draft availability
+  draft_slots: string[]
 }
 
 interface ImportStats {
@@ -25,6 +44,31 @@ interface ImportStats {
   under_contract?: number
   expired_contract?: number
   free_agent_pickup?: number
+}
+
+interface ContractRow {
+  id: string
+  owner_id: string
+  contract_status: string
+  offseason_decision: string
+  is_franchise_tagged: boolean
+  salary: number
+  years_remaining: number
+  player: { id: string; name: string; position: string } | null
+}
+
+interface FAPickupRow {
+  id: string
+  owner_id: string
+  offseason_decision: string
+  player: { id: string; name: string; position: string } | null
+}
+
+interface OwnerRow {
+  id: string
+  owner_name: string
+  sleeper_display_name: string
+  franchise_tag_decision: string | null
 }
 
 // Draft availability time slots
@@ -49,9 +93,9 @@ export default function AdminSalaryCap() {
   const [finalizing, setFinalizing] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [finalizeResult, setFinalizeResult] = useState<{ success: boolean; message: string; results?: Record<string, number> } | null>(null)
-  const [owners, setOwners] = useState<Owner[]>([])
-  const [statuses, setStatuses] = useState<Record<string, OffseasonStatus>>({})
+  const [ownerProgress, setOwnerProgress] = useState<OwnerProgress[]>([])
   const [availability, setAvailability] = useState<Record<string, string[]>>({})
+  const [expandedOwner, setExpandedOwner] = useState<string | null>(null)
 
   const apiBase = import.meta.env.VITE_API_URL || ''
 
@@ -61,23 +105,45 @@ export default function AdminSalaryCap() {
 
   async function loadData() {
     try {
-      const { data: ownersData } = await supabase
+      // Fetch owners with franchise tag decision
+      const { data: ownersData, error: ownersError } = await supabase
         .from('salarycap_owners')
-        .select('id, owner_name, sleeper_display_name')
-        .order('owner_name')
+        .select('id, owner_name, sleeper_display_name, franchise_tag_decision')
+        .order('owner_name') as { data: OwnerRow[] | null; error: unknown }
 
-      setOwners(ownersData || [])
+      if (ownersError) console.error('Error fetching owners:', ownersError)
 
-      const { data: statusData } = await supabase
-        .from('salarycap_offseason_status')
-        .select('*')
+      // Fetch all contracts with player info
+      const { data: contractsData, error: contractsError } = await supabase
+        .from('salarycap_contracts')
+        .select(`
+          id,
+          owner_id,
+          contract_status,
+          offseason_decision,
+          is_franchise_tagged,
+          salary,
+          years_remaining,
+          player:salarycap_players(id, name, position)
+        `) as { data: ContractRow[] | null; error: unknown }
 
-      const statusMap: Record<string, OffseasonStatus> = {}
-      statusData?.forEach(s => {
-        statusMap[s.owner_id] = s
-      })
-      setStatuses(statusMap)
+      if (contractsError) console.error('Error fetching contracts:', contractsError)
+      console.log('Contracts loaded:', contractsData?.length || 0)
 
+      // Fetch all FA pickups with player info
+      const { data: faPickupsData, error: faError } = await supabase
+        .from('salarycap_free_agent_pickups')
+        .select(`
+          id,
+          owner_id,
+          offseason_decision,
+          player:salarycap_players(id, name, position)
+        `) as { data: FAPickupRow[] | null; error: unknown }
+
+      if (faError) console.error('Error fetching FA pickups:', faError)
+      console.log('FA pickups loaded:', faPickupsData?.length || 0)
+
+      // Fetch draft availability
       const { data: availData } = await supabase
         .from('salarycap_draft_availability')
         .select('owner_id, selected_slots')
@@ -87,6 +153,69 @@ export default function AdminSalaryCap() {
         availMap[a.owner_id] = a.selected_slots || []
       })
       setAvailability(availMap)
+
+      // Build progress for each owner
+      const progress: OwnerProgress[] = (ownersData || []).map(owner => {
+        // Active contracts (contract_status = 'active')
+        const activeContracts = (contractsData || []).filter(
+          c => c.owner_id === owner.id && c.contract_status === 'active'
+        )
+        const activeDecided = activeContracts.filter(c => c.offseason_decision !== 'pending').length
+        const activePending = activeContracts
+          .filter(c => c.offseason_decision === 'pending')
+          .map(c => ({
+            id: c.id,
+            name: c.player?.name || 'Unknown',
+            position: c.player?.position || '?',
+            salary: c.salary,
+            years_remaining: c.years_remaining
+          }))
+
+        // Expired contracts (franchise tag eligible)
+        const expiredContracts = (contractsData || []).filter(
+          c => c.owner_id === owner.id && c.contract_status === 'expired'
+        )
+        const hasTagged = expiredContracts.some(c => c.is_franchise_tagged)
+        const tagPendingPlayers = expiredContracts
+          .filter(c => !c.is_franchise_tagged)
+          .map(c => ({
+            id: c.id,
+            name: c.player?.name || 'Unknown',
+            position: c.player?.position || '?',
+            salary: c.salary,
+            years_remaining: c.years_remaining
+          }))
+
+        // FA pickups
+        const faPickups = (faPickupsData || []).filter(p => p.owner_id === owner.id)
+        const faDecided = faPickups.filter(p => p.offseason_decision !== 'pending').length
+        const faPending = faPickups
+          .filter(p => p.offseason_decision === 'pending')
+          .map(p => ({
+            id: p.id,
+            name: p.player?.name || 'Unknown',
+            position: p.player?.position || '?'
+          }))
+
+        return {
+          owner_id: owner.id,
+          owner_name: owner.owner_name,
+          sleeper_display_name: owner.sleeper_display_name,
+          active_total: activeContracts.length,
+          active_decided: activeDecided,
+          active_pending: activePending,
+          tag_eligible_count: expiredContracts.length,
+          has_tagged: hasTagged,
+          tag_decision: hasTagged ? 'tagged' : (owner.franchise_tag_decision || 'pending') as 'pending' | 'tagged' | 'skipped',
+          tag_pending_players: tagPendingPlayers,
+          fa_total: faPickups.length,
+          fa_decided: faDecided,
+          fa_pending: faPending,
+          draft_slots: availMap[owner.id] || []
+        }
+      })
+
+      setOwnerProgress(progress)
 
     } catch (err) {
       console.error('Error loading data:', err)
@@ -167,8 +296,31 @@ export default function AdminSalaryCap() {
     return { ...slot, count }
   }).sort((a, b) => b.count - a.count)
 
-  const completedCount = owners.filter(o => statuses[o.id]?.all_completed).length
+  // Calculate summary stats
+  const completedCount = ownerProgress.filter(o => {
+    const contractsComplete = o.active_total === 0 || o.active_decided === o.active_total
+    const tagComplete = o.tag_decision === 'tagged' || o.tag_decision === 'skipped' || o.tag_eligible_count === 0
+    const faComplete = o.fa_total === 0 || o.fa_decided === o.fa_total
+    const draftComplete = o.draft_slots.length > 0
+    return contractsComplete && tagComplete && faComplete && draftComplete
+  }).length
   const respondedCount = Object.keys(availability).length
+
+  // Helper function for fraction color
+  const getFractionColor = (decided: number, total: number) => {
+    if (total === 0) return 'text-gray-400'
+    if (decided === total) return 'text-emerald-600'
+    if (decided > 0) return 'text-amber-600'
+    return 'text-red-600'
+  }
+
+  // Helper function for fraction background
+  const getFractionBg = (decided: number, total: number) => {
+    if (total === 0) return 'bg-gray-50'
+    if (decided === total) return 'bg-emerald-50'
+    if (decided > 0) return 'bg-amber-50'
+    return 'bg-red-50'
+  }
 
   if (loading) {
     return (
@@ -240,11 +392,11 @@ export default function AdminSalaryCap() {
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-3xl font-bold text-emerald-600">{completedCount}/{owners.length}</div>
+            <div className="text-3xl font-bold text-emerald-600">{completedCount}/{ownerProgress.length}</div>
             <div className="text-sm text-gray-500">Offseason Complete</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-3xl font-bold text-blue-600">{respondedCount}/{owners.length}</div>
+            <div className="text-3xl font-bold text-blue-600">{respondedCount}/{ownerProgress.length}</div>
             <div className="text-sm text-gray-500">Draft Availability</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -252,7 +404,7 @@ export default function AdminSalaryCap() {
             <div className="text-sm text-gray-500">Best: {slotCounts[0]?.shortLabel || 'N/A'}</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-3xl font-bold text-amber-600">{owners.length - completedCount}</div>
+            <div className="text-3xl font-bold text-amber-600">{ownerProgress.length - completedCount}</div>
             <div className="text-sm text-gray-500">Teams Pending</div>
           </div>
         </div>
@@ -261,6 +413,7 @@ export default function AdminSalaryCap() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Team Status</h2>
+            <p className="text-sm text-gray-500 mt-1">Click a row to see pending players</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -275,57 +428,136 @@ export default function AdminSalaryCap() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {owners.map(owner => {
-                  const status = statuses[owner.id]
-                  const avail = availability[owner.id] || []
-                  const hasAvailability = avail.length > 0
+                {ownerProgress.map(owner => {
+                  const isExpanded = expandedOwner === owner.owner_id
+                  const hasPending = owner.active_pending.length > 0 ||
+                    owner.fa_pending.length > 0 ||
+                    (owner.tag_decision === 'pending' && owner.tag_eligible_count > 0)
+
+                  // Calculate overall status
+                  const contractsComplete = owner.active_total === 0 || owner.active_decided === owner.active_total
+                  const tagComplete = owner.tag_decision === 'tagged' || owner.tag_decision === 'skipped' || owner.tag_eligible_count === 0
+                  const faComplete = owner.fa_total === 0 || owner.fa_decided === owner.fa_total
+                  const draftComplete = owner.draft_slots.length > 0
+                  const allComplete = contractsComplete && tagComplete && faComplete && draftComplete
 
                   return (
-                    <tr key={owner.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{owner.owner_name}</div>
-                        <div className="text-xs text-gray-500">@{owner.sleeper_display_name}</div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {status?.cuts_completed ? (
-                          <span className="text-emerald-600 text-lg">✓</span>
-                        ) : (
-                          <span className="text-gray-300 text-lg">○</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {status?.franchise_tag_completed ? (
-                          <span className="text-emerald-600 text-lg">✓</span>
-                        ) : (
-                          <span className="text-gray-300 text-lg">○</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {status?.free_agents_completed ? (
-                          <span className="text-emerald-600 text-lg">✓</span>
-                        ) : (
-                          <span className="text-gray-300 text-lg">○</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {hasAvailability ? (
-                          <span className="text-emerald-600 text-lg">✓</span>
-                        ) : (
-                          <span className="text-gray-300 text-lg">○</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {status?.all_completed && hasAvailability ? (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                            Complete
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                            Pending
-                          </span>
-                        )}
-                      </td>
-                    </tr>
+                    <>
+                      <tr
+                        key={owner.owner_id}
+                        className={`hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-blue-50' : ''}`}
+                        onClick={() => setExpandedOwner(isExpanded ? null : owner.owner_id)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {hasPending && (
+                              <span className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                            )}
+                            <div>
+                              <div className="font-medium text-gray-900">{owner.owner_name}</div>
+                              <div className="text-xs text-gray-500">@{owner.sleeper_display_name}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {owner.active_total === 0 ? (
+                            <span className="text-gray-400">-</span>
+                          ) : (
+                            <span className={`px-2 py-1 rounded text-sm font-medium ${getFractionBg(owner.active_decided, owner.active_total)} ${getFractionColor(owner.active_decided, owner.active_total)}`}>
+                              {owner.active_decided}/{owner.active_total}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {owner.tag_eligible_count === 0 ? (
+                            <span className="text-gray-400">-</span>
+                          ) : owner.tag_decision === 'tagged' ? (
+                            <span className="px-2 py-1 rounded text-sm font-medium bg-emerald-50 text-emerald-600">Tagged</span>
+                          ) : owner.tag_decision === 'skipped' ? (
+                            <span className="px-2 py-1 rounded text-sm font-medium bg-blue-50 text-blue-600">Skipped</span>
+                          ) : (
+                            <span className="px-2 py-1 rounded text-sm font-medium bg-amber-50 text-amber-600">Pending</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {owner.fa_total === 0 ? (
+                            <span className="text-gray-400">-</span>
+                          ) : (
+                            <span className={`px-2 py-1 rounded text-sm font-medium ${getFractionBg(owner.fa_decided, owner.fa_total)} ${getFractionColor(owner.fa_decided, owner.fa_total)}`}>
+                              {owner.fa_decided}/{owner.fa_total}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {draftComplete ? (
+                            <span className="text-emerald-600 text-lg">✓</span>
+                          ) : (
+                            <span className="text-gray-300 text-lg">○</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {allComplete ? (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                              Complete
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Expanded details row */}
+                      {isExpanded && hasPending && (
+                        <tr key={`${owner.owner_id}-details`} className="bg-gray-50">
+                          <td colSpan={6} className="px-4 py-3">
+                            <div className="pl-8 space-y-3 text-sm">
+                              {owner.active_pending.length > 0 && (
+                                <div>
+                                  <div className="font-medium text-gray-700 mb-1">Pending Contract Decisions:</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {owner.active_pending.map(p => (
+                                      <span key={p.id} className="inline-flex items-center px-2 py-1 bg-white border border-gray-200 rounded text-gray-700">
+                                        <span className="text-xs text-gray-500 mr-1">{p.position}</span>
+                                        {p.name}
+                                        {p.salary && <span className="ml-1 text-xs text-gray-400">${p.salary}</span>}
+                                        {p.years_remaining && <span className="ml-1 text-xs text-gray-400">({p.years_remaining}yr)</span>}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {owner.tag_decision === 'pending' && owner.tag_pending_players.length > 0 && (
+                                <div>
+                                  <div className="font-medium text-gray-700 mb-1">Tag-Eligible Players:</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {owner.tag_pending_players.map(p => (
+                                      <span key={p.id} className="inline-flex items-center px-2 py-1 bg-white border border-amber-200 rounded text-amber-700">
+                                        <span className="text-xs text-amber-500 mr-1">{p.position}</span>
+                                        {p.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {owner.fa_pending.length > 0 && (
+                                <div>
+                                  <div className="font-medium text-gray-700 mb-1">Pending FA Pickups:</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {owner.fa_pending.map(p => (
+                                      <span key={p.id} className="inline-flex items-center px-2 py-1 bg-white border border-purple-200 rounded text-purple-700">
+                                        <span className="text-xs text-purple-500 mr-1">{p.position}</span>
+                                        {p.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   )
                 })}
               </tbody>
@@ -359,11 +591,11 @@ export default function AdminSalaryCap() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {owners.map(owner => {
-                  const ownerSlots = availability[owner.id] || []
+                {ownerProgress.map(owner => {
+                  const ownerSlots = availability[owner.owner_id] || []
 
                   return (
-                    <tr key={owner.id} className="hover:bg-gray-50">
+                    <tr key={owner.owner_id} className="hover:bg-gray-50">
                       <td className="px-3 py-2 sticky left-0 bg-white">
                         <div className="text-sm font-medium text-gray-900 whitespace-nowrap">{owner.owner_name}</div>
                       </td>
@@ -409,7 +641,7 @@ export default function AdminSalaryCap() {
                   slot.count >= 8 ? 'text-blue-600' :
                   slot.count >= 6 ? 'text-amber-600' : 'text-red-600'
                 }`}>
-                  {Math.round((slot.count / owners.length) * 100)}%
+                  {Math.round((slot.count / ownerProgress.length) * 100)}%
                 </div>
               </div>
             ))}
