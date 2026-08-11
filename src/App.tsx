@@ -29,8 +29,7 @@ import SalaryCapFreeAgents from './pages/salarycap/SalaryCapFreeAgents'
 import SalaryCapRules from './pages/salarycap/SalaryCapRules'
 import SalaryCapOffseason from './pages/salarycap/SalaryCapOffseason'
 import Auction from './pages/salarycap/Auction'
-import AdminSalaryCapImport from './pages/admin/salarycap/AdminSalaryCapImport'
-import AdminSalaryCapOffseason from './pages/admin/salarycap/AdminSalaryCapOffseason'
+import AdminSalaryCap from './pages/admin/salarycap/AdminSalaryCap'
 import AdminAuction from './pages/admin/salarycap/AdminAuction'
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -193,15 +192,7 @@ function App() {
         path="/admin/salarycap"
         element={
           <ProtectedRoute>
-            <AdminSalaryCapImport />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/salarycap/offseason"
-        element={
-          <ProtectedRoute>
-            <AdminSalaryCapOffseason />
+            <AdminSalaryCap />
           </ProtectedRoute>
         }
       />
