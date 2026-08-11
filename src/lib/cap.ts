@@ -13,17 +13,30 @@ export const CONTRACT_SLOTS = 5;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Dead cap incurred by cutting a player: 40% × salary × years remaining. */
-export function deadCapIfCut(salary: number, yearsRemaining: number): number {
+/** Dead cap per year when cutting a player: 40% × salary. */
+export function deadCapPerYear(salary: number): number {
+  return round2(DEAD_CAP_RATE * salary);
+}
+
+/**
+ * Dead cap incurred THIS YEAR by cutting a player: 40% × salary.
+ * (Future years are tracked separately in salarycap_dead_cap with years_remaining)
+ */
+export function deadCapIfCut(salary: number, _yearsRemaining?: number): number {
+  return deadCapPerYear(salary);
+}
+
+/** Total dead cap over all years: 40% × salary × years remaining. */
+export function deadCapTotal(salary: number, yearsRemaining: number): number {
   return round2(DEAD_CAP_RATE * salary * yearsRemaining);
 }
 
 /**
- * Net cap change from cutting. Positive frees money; negative means the
+ * Net cap change from cutting THIS YEAR. Positive frees money; negative means the
  * dead cap hit exceeds the salary saved and cutting actively costs you.
  */
-export function netCapFromCut(salary: number, yearsRemaining: number): number {
-  return round2(salary - deadCapIfCut(salary, yearsRemaining));
+export function netCapFromCut(salary: number, _yearsRemaining?: number): number {
+  return round2(salary - deadCapIfCut(salary));
 }
 
 /** Available = base + bonus − salaries − dead cap. */

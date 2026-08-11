@@ -1,4 +1,4 @@
-import { deadCapIfCut, money, netCapFromCut, CONTRACT_START_YEAR } from '../../lib/cap';
+import { deadCapIfCut, money, netCapFromCut } from '../../lib/cap';
 import type { Contract, ContractDecision } from '../../lib/salarycap-types';
 import { ContractDots, ContractYearLabels } from './ContractDots';
 import { PlayerAvatar, RookieBadge } from './PlayerAvatar';
@@ -76,7 +76,7 @@ export function ContractRow({ contract, onDecide }: ContractRowProps) {
           Frees <b className={net < 0 ? 'text-flag' : 'text-field-500'}>{money(salary)}</b>
           {' · '}
           <span className="text-flag">
-            {money(dead)} dead cap through {CONTRACT_START_YEAR + yearsRemaining - 1}
+            {money(dead)}/yr dead cap{yearsRemaining > 1 ? ` for ${yearsRemaining} yrs` : ''}
           </span>
           {' · net '}
           <b className={net < 0 ? 'text-flag' : 'text-field-500'}>
