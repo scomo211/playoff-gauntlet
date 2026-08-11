@@ -302,9 +302,9 @@ export default function SalaryCapOffseason() {
 
   activeContracts.forEach(c => {
     if (decisions[c.id] === 'cut') {
+      // Only add THIS YEAR's dead cap hit (future years tracked separately)
       const deadPerYear = Math.ceil(DEAD_CAP_RATE * c.salary)
-      const totalDead = deadPerYear * c.years_remaining
-      projectedDeadCap += totalDead
+      projectedDeadCap += deadPerYear
       cutCount++
     } else {
       salaries += c.salary
