@@ -290,11 +290,27 @@ export default function AdminSalaryCap() {
     }
   }
 
-  // Calculate slot popularity
+  // Calculate slot popularity (sorted by count for "Best Times" section)
   const slotCounts = DRAFT_SLOTS.map(slot => {
     const count = Object.values(availability).filter(slots => slots.includes(slot.id)).length
     return { ...slot, count }
   }).sort((a, b) => b.count - a.count)
+
+  // Calendar order (not sorted) for heat map display
+  const slotCountsCalendar = DRAFT_SLOTS.map(slot => {
+    const count = Object.values(availability).filter(slots => slots.includes(slot.id)).length
+    return { ...slot, count }
+  })
+
+  // Helper for heat map color based on count
+  const getHeatColor = (count: number) => {
+    if (count >= 10) return 'bg-emerald-500 text-white'
+    if (count >= 8) return 'bg-emerald-400 text-white'
+    if (count >= 6) return 'bg-amber-400 text-white'
+    if (count >= 4) return 'bg-amber-300 text-gray-800'
+    if (count >= 2) return 'bg-red-300 text-gray-800'
+    return 'bg-red-200 text-gray-600'
+  }
 
   // Calculate summary stats
   const completedCount = ownerProgress.filter(o => {
@@ -565,54 +581,48 @@ export default function AdminSalaryCap() {
           </div>
         </div>
 
-        {/* Draft Availability Matrix */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
+        {/* Draft Availability Heat Map */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Draft Availability</h2>
+            <p className="text-sm text-gray-500 mt-1">Calendar view - numbers show how many owners are available</p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50">Owner</th>
-                  {slotCounts.map(slot => (
-                    <th key={slot.id} className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      <div>{slot.label}</div>
-                      <div className="text-gray-400">{slot.time}</div>
-                      <div className={`mt-1 text-sm font-bold ${
-                        slot.count >= 10 ? 'text-emerald-600' :
-                        slot.count >= 8 ? 'text-blue-600' :
-                        slot.count >= 6 ? 'text-amber-600' : 'text-red-600'
-                      }`}>
-                        {slot.count}
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {ownerProgress.map(owner => {
-                  const ownerSlots = availability[owner.owner_id] || []
-
-                  return (
-                    <tr key={owner.owner_id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 sticky left-0 bg-white">
-                        <div className="text-sm font-medium text-gray-900 whitespace-nowrap">{owner.owner_name}</div>
-                      </td>
-                      {slotCounts.map(slot => (
-                        <td key={slot.id} className="px-2 py-2 text-center">
-                          {ownerSlots.includes(slot.id) ? (
-                            <span className="text-emerald-600 text-lg">✓</span>
-                          ) : (
-                            <span className="text-gray-200">-</span>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-10 gap-2">
+            {slotCountsCalendar.map(slot => (
+              <div key={slot.id} className="text-center">
+                <div className="text-xs font-medium text-gray-500 mb-1">{slot.label.split(' ')[0]}</div>
+                <div className="text-xs text-gray-400 mb-2">{slot.time}</div>
+                <div className={`w-full aspect-square rounded-lg flex items-center justify-center text-2xl font-bold ${getHeatColor(slot.count)}`}>
+                  {slot.count}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded bg-emerald-500"></div>
+              <span>10+</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded bg-emerald-400"></div>
+              <span>8-9</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded bg-amber-400"></div>
+              <span>6-7</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded bg-amber-300"></div>
+              <span>4-5</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded bg-red-300"></div>
+              <span>2-3</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded bg-red-200"></div>
+              <span>0-1</span>
+            </div>
           </div>
         </div>
 
