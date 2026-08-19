@@ -152,7 +152,7 @@ interface Contract {
 
 export default function SalaryCapPreDraft() {
   const { ownerId: routeOwnerId } = useParams<{ ownerId: string }>()
-  const { ownerId: myOwnerId } = useIsSalaryCapOwner()
+  const { ownerId: myOwnerId, loading: ownerLoading } = useIsSalaryCapOwner()
   const { settings } = useSalaryCapSettings()
 
   // Determine which owner to show
@@ -160,8 +160,11 @@ export default function SalaryCapPreDraft() {
   const isMyTeam = targetOwnerId === myOwnerId
 
   // Fetch team data
-  const { owner, contracts, deadCap, loading, error } = useSalaryCapTeam(targetOwnerId)
+  const { owner, contracts, deadCap, loading: teamLoading, error } = useSalaryCapTeam(targetOwnerId)
   const { bonusCapEntries, net2026: bonusCapTotal } = useBonusCap(targetOwnerId)
+
+  // Combined loading state
+  const loading = ownerLoading || teamLoading
 
   // Countdown timer state
   const [timeLeft, setTimeLeft] = useState(() => Math.max(0, DRAFT_DATE.getTime() - Date.now()))
