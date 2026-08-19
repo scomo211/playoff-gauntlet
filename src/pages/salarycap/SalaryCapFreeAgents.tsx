@@ -204,24 +204,29 @@ export default function SalaryCapFreeAgents() {
 
         {/* Hide rostered checkbox */}
         <label className="flex items-center gap-[10px] cursor-pointer select-none">
-          <div className="relative">
-            <input
-              type="checkbox"
-              checked={hideRostered}
-              onChange={(e) => setHideRostered(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-[18px] h-[18px] rounded-[5px] border-2 border-hairline-strong bg-surface-well peer-checked:bg-field-500 peer-checked:border-field-500 transition-colors" />
-            <svg
-              className="absolute top-[3px] left-[3px] w-[12px] h-[12px] text-[#04150c] opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={3}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={hideRostered}
+            onClick={() => setHideRostered(!hideRostered)}
+            className={`relative w-[18px] h-[18px] rounded-[5px] border-2 transition-colors flex items-center justify-center ${
+              hideRostered
+                ? 'bg-field-500 border-field-500'
+                : 'bg-surface-well border-hairline-strong'
+            }`}
+          >
+            {hideRostered && (
+              <svg
+                className="w-[12px] h-[12px] text-[#04150c]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
           <span className="text-[13px] text-fg-muted">
             Hide rostered players
           </span>
