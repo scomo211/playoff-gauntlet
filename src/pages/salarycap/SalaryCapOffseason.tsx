@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
+import SalaryCapPreDraft from './SalaryCapPreDraft'
 import {
   useSalaryCapTeam,
   useBonusCap,
@@ -173,6 +174,11 @@ export default function SalaryCapOffseason() {
   const { ownerId: routeOwnerId } = useParams<{ ownerId: string }>()
   const { ownerId: myOwnerId } = useIsSalaryCapOwner()
   const { settings } = useSalaryCapSettings()
+
+  // If offseason is finalized, show the pre-draft view instead
+  if (settings?.offseason_finalized) {
+    return <SalaryCapPreDraft />
+  }
 
   // Determine which owner to show - route param or current user's team
   const targetOwnerId = routeOwnerId || myOwnerId

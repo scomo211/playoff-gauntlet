@@ -178,38 +178,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 6. Process kept contracts - decrement years_remaining
+    // 6. Count kept contracts (do NOT decrement years_remaining - that happens at end of season)
     const { data: keptContracts, error: keepError } = await supabase
       .from('salarycap_contracts')
-      .select('id, years_remaining, salary')
+      .select('id')
       .eq('offseason_decision', 'keep')
       .eq('contract_status', 'active')
 
     if (keepError) throw keepError
 
-    for (const contract of keptContracts || []) {
-      try {
-        const newYearsRemaining = contract.years_remaining - 1
-        const newStatus = newYearsRemaining <= 0 ? 'expired' : 'active'
-        const newDeadCap = newYearsRemaining > 0
-          ? Math.ceil(contract.salary * 0.4 * newYearsRemaining)
-          : 0
-
-        await supabase
-          .from('salarycap_contracts')
-          .update({
-            years_remaining: Math.max(0, newYearsRemaining),
-            contract_status: newStatus,
-            dead_cap_if_cut: newDeadCap,
-            offseason_decision: 'pending', // Reset for next offseason
-          })
-          .eq('id', contract.id)
-
-        results.contractsKept++
-      } catch (err) {
-        results.errors.push(`Failed to update kept contract ${contract.id}: ${err}`)
-      }
-    }
+    results.contractsKept = keptContracts?.length || 0
 
     // 7. Mark offseason as finalized in settings
     await supabase
