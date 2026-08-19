@@ -71,11 +71,11 @@ function useAllPlayersWithRoster() {
 
         if (playerError) throw playerError
 
-        // Get all contracts with owner info
+        // Get all rostered contracts (active contracts + franchise-tagged players)
         const { data: contracts, error: contractError } = await supabase
           .from('salarycap_contracts')
-          .select('player_id, owner:salarycap_owners(owner_name)')
-          .eq('contract_status', 'active')
+          .select('player_id, contract_status, is_franchise_tagged, owner:salarycap_owners(owner_name)')
+          .or('contract_status.eq.active,is_franchise_tagged.eq.true')
 
         if (contractError) throw contractError
 
