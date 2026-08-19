@@ -181,7 +181,8 @@
       "Bash(ANON_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd3p4aHRzYnNhcnF3dmNsY2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzIxNTQsImV4cCI6MjA4MzIwODE1NH0.9TmGZ0mXLr74pwVB6rk7v-Bna84ZMk4JNTvo_JRFaJE\" curl -s \"https://ljwzxhtsbsarqwvclckm.supabase.co/rest/v1/salarycap_contracts?select=contract_status,offseason_decision\" -H \"apikey: $ANON_KEY\" -H \"Authorization: Bearer $ANON_KEY\")",
       "Bash(node /tmp/test-logic.js:*)",
       "Bash(source .env.local)",
-      "Bash(source .env)"
+      "Bash(source .env)",
+      "Bash(APIKEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlna3Vya21vc3F5YWFienR6aGdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUxNzE5MzMsImV4cCI6MjA1MDc0NzkzM30._dNlDk2y8euGpZYAJYHLWR3cvAqh-BF5bvPNz4TEvXg\" curl -s \"https://ygkurkmosqyaabztzhgg.supabase.co/rest/v1/salarycap_owners?select=id,owner_name&is_active=eq.true&order=owner_name\" -H \"apikey: $APIKEY\")"
     ]
   }
 }

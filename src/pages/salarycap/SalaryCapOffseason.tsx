@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
 import SalaryCapPreDraft from './SalaryCapPreDraft'
+import { CapLedgerBar } from '../../components/ui'
 import {
   useSalaryCapTeam,
   useBonusCap,
@@ -142,21 +143,6 @@ function RookieBadge() {
   )
 }
 
-// Cap bar matching renders.html
-function CapBar({ salaries, deadCap, available, total }: { salaries: number; deadCap: number; available: number; total: number }) {
-  const salPct = (salaries / total) * 100
-  const deadPct = (deadCap / total) * 100
-  const openPct = Math.max(0, (available / total) * 100)
-  const isOver = available < 0
-
-  return (
-    <div className={`h-[13px] rounded-[5px] bg-[#1b222c] flex overflow-hidden ${isOver ? 'shadow-[inset_0_0_0_1px_rgba(240,86,46,0.65)]' : ''}`}>
-      <i className="block h-full bg-salary transition-[width]" style={{ width: `${salPct}%` }} />
-      <i className="block h-full bg-flag transition-[width]" style={{ width: `${deadPct}%` }} />
-      <i className="block h-full bg-field-500 transition-[width]" style={{ width: `${openPct}%` }} />
-    </div>
-  )
-}
 
 // Types for free agent pickups
 interface FaPickup {
@@ -928,7 +914,7 @@ export default function SalaryCapOffseason() {
               </div>
 
               <div className="mt-[12px]">
-                <CapBar salaries={salaries} deadCap={projectedDeadCap} available={available} total={totalCap} />
+                <CapLedgerBar cap={{ baseCap: settings?.salary_cap || BASE_CAP, bonusCap: bonusCapTotal, salaries, deadCap: projectedDeadCap, available }} />
               </div>
 
               <div className="mt-[14px] border-t border-hairline pt-[11px] space-y-[6px]">

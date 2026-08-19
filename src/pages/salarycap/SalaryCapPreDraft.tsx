@@ -1,21 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
+import { CapLedgerBar } from '../../components/ui'
 import {
   useSalaryCapTeam,
   useBonusCap,
   useIsSalaryCapOwner,
   useSalaryCapSettings,
 } from '../../hooks/useSalaryCap'
-import { ROSTER_MAX, BASE_CAP } from '../../lib/cap'
+import { ROSTER_MAX, BASE_CAP, money } from '../../lib/cap'
 
 // Draft date: Sunday, August 23rd, 2026 at 8:00 PM ET
 const DRAFT_DATE = new Date('2026-08-23T20:00:00-04:00')
 
 // Helpers
-function money(n: number): string {
-  return n < 0 ? `−$${Math.abs(n)}` : `$${n}`
-}
 
 function initials(name: string): string {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('')
@@ -98,21 +96,6 @@ function TagBadge() {
   )
 }
 
-// Cap bar
-function CapBar({ salaries, deadCap, available, total }: { salaries: number; deadCap: number; available: number; total: number }) {
-  const salPct = (salaries / total) * 100
-  const deadPct = (deadCap / total) * 100
-  const openPct = Math.max(0, (available / total) * 100)
-  const isOver = available < 0
-
-  return (
-    <div className={`h-[13px] rounded-[5px] bg-[#1b222c] flex overflow-hidden ${isOver ? 'shadow-[inset_0_0_0_1px_rgba(240,86,46,0.65)]' : ''}`}>
-      <i className="block h-full bg-salary transition-[width]" style={{ width: `${salPct}%` }} />
-      <i className="block h-full bg-flag transition-[width]" style={{ width: `${deadPct}%` }} />
-      <i className="block h-full bg-field-500 transition-[width]" style={{ width: `${openPct}%` }} />
-    </div>
-  )
-}
 
 // Empty roster slot placeholder
 function EmptySlot() {
@@ -465,7 +448,7 @@ export default function SalaryCapPreDraft() {
               </div>
 
               <div className="mt-[12px]">
-                <CapBar salaries={salaries} deadCap={deadCapTotal} available={available} total={totalCap} />
+                <CapLedgerBar cap={{ baseCap: settings?.salary_cap || BASE_CAP, bonusCap: bonusCapTotal, salaries, deadCap: deadCapTotal, available }} />
               </div>
 
               <div className="mt-[14px] border-t border-hairline pt-[11px] space-y-[6px]">
