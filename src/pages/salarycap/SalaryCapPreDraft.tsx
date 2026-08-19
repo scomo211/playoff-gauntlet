@@ -178,27 +178,7 @@ export default function SalaryCapPreDraft() {
     return () => clearInterval(id)
   }, [timeLeft])
 
-  // Filter to only active contracts
-  const activeContracts = contracts.filter(c => c.contract_status === 'active') as Contract[]
-
-  // Group contracts by position
-  const contractsByPosition = POSITIONS.reduce((acc, pos) => {
-    acc[pos.key] = sortBySalary(activeContracts.filter(c => c.player?.position === pos.key))
-    return acc
-  }, {} as Record<string, Contract[]>)
-
-  // Calculate roster stats
-  const rosterCount = activeContracts.length
-  const emptySlots = ROSTER_MAX - rosterCount
-
-  // Calculate cap
-  const deadCapTotal = deadCap.reduce((sum, d) => sum + d.amount, 0)
-  const salaries = activeContracts.reduce((sum, c) => sum + c.salary, 0)
-  const totalCap = (settings?.salary_cap || BASE_CAP) + bonusCapTotal
-  const available = totalCap - salaries - deadCapTotal
-
-  const capHealth = available < 0 ? 'bad' : available < 50 ? 'warn' : ''
-
+  // Show loading state BEFORE any data calculations
   if (loading) {
     return (
       <SalaryCapLayout>
@@ -219,6 +199,24 @@ export default function SalaryCapPreDraft() {
       </SalaryCapLayout>
     )
   }
+
+  // Now safe to calculate - data is loaded
+  const activeContracts = (contracts || []).filter(c => c.contract_status === 'active') as Contract[]
+
+  const contractsByPosition = POSITIONS.reduce((acc, pos) => {
+    acc[pos.key] = sortBySalary(activeContracts.filter(c => c.player?.position === pos.key))
+    return acc
+  }, {} as Record<string, Contract[]>)
+
+  const rosterCount = activeContracts.length
+  const emptySlots = ROSTER_MAX - rosterCount
+
+  const deadCapTotal = (deadCap || []).reduce((sum, d) => sum + d.amount, 0)
+  const salaries = activeContracts.reduce((sum, c) => sum + c.salary, 0)
+  const totalCap = (settings?.salary_cap || BASE_CAP) + bonusCapTotal
+  const available = totalCap - salaries - deadCapTotal
+
+  const capHealth = available < 0 ? 'bad' : available < 50 ? 'warn' : ''
 
   return (
     <SalaryCapLayout>
