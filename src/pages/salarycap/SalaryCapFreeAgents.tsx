@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
-import { useSalaryCapFreeAgents } from '../../hooks/useSalaryCap'
+import { supabase } from '../../lib/supabase'
 
 const NFL_TEAMS = [
   'ALL', 'ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
@@ -17,11 +17,25 @@ const POS_COLOR: Record<string, string> = {
   TE: 'text-pos-te', K: 'text-pos-k', DEF: 'text-pos-def',
 }
 
+interface Player {
+  id: string
+  name: string
+  position: string
+  nfl_team: string | null
+  fantasy_rank: number | null
+  is_rookie: boolean
+}
+
+interface PlayerWithRoster extends Player {
+  isRostered: boolean
+  ownerName: string | null
+}
+
 // Avatar component matching SalaryCapOffseason style
-function Avatar({ name, position }: { name: string; position: string }) {
+function Avatar({ name, position, dimmed = false }: { name: string; position: string; dimmed?: boolean }) {
   const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('')
   return (
-    <div className="w-[38px] h-[38px] rounded-[10px] bg-surface-well border border-hairline-strong flex items-center justify-center font-data font-bold text-[11px] text-[#4d5766] flex-none relative overflow-hidden">
+    <div className={`w-[38px] h-[38px] rounded-[10px] bg-surface-well border border-hairline-strong flex items-center justify-center font-data font-bold text-[11px] text-[#4d5766] flex-none relative overflow-hidden ${dimmed ? 'opacity-50' : ''}`}>
       {initials}
       <span className={`absolute bottom-0 left-0 right-0 text-[6.5px] py-[1.5px] font-bold tracking-[0.1em] bg-[rgba(9,12,17,0.85)] text-center ${POS_COLOR[position] || 'text-fg-subtle'}`}>
         {position}
@@ -39,21 +53,91 @@ function RookieBadge() {
   )
 }
 
+// Custom hook to fetch all players with roster info
+function useAllPlayersWithRoster() {
+  const [players, setPlayers] = useState<PlayerWithRoster[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchPlayers() {
+      try {
+        setLoading(true)
+
+        // Get all active players
+        const { data: allPlayers, error: playerError } = await supabase
+          .from('salarycap_players')
+          .select('id, name, position, nfl_team, fantasy_rank, is_rookie')
+          .eq('is_active', true)
+
+        if (playerError) throw playerError
+
+        // Get all contracts with owner info
+        const { data: contracts, error: contractError } = await supabase
+          .from('salarycap_contracts')
+          .select('player_id, owner:salarycap_owners(owner_name)')
+          .eq('contract_status', 'active')
+
+        if (contractError) throw contractError
+
+        // Create a map of player_id -> owner_name
+        const rosterMap = new Map<string, string>()
+        for (const contract of contracts || []) {
+          // Supabase returns the joined owner as an object (not array for single relation)
+          const owner = contract.owner as unknown as { owner_name: string } | null
+          if (owner?.owner_name) {
+            rosterMap.set(contract.player_id, owner.owner_name)
+          }
+        }
+
+        // Combine players with roster info
+        const playersWithRoster: PlayerWithRoster[] = (allPlayers || []).map(player => ({
+          ...player,
+          isRostered: rosterMap.has(player.id),
+          ownerName: rosterMap.get(player.id) || null,
+        }))
+
+        // Sort by fantasy_rank (nulls at end)
+        playersWithRoster.sort((a, b) => {
+          if (a.fantasy_rank === null && b.fantasy_rank === null) return 0
+          if (a.fantasy_rank === null) return 1
+          if (b.fantasy_rank === null) return -1
+          return a.fantasy_rank - b.fantasy_rank
+        })
+
+        setPlayers(playersWithRoster)
+      } catch (err) {
+        console.error('Failed to fetch players:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPlayers()
+  }, [])
+
+  return { players, loading }
+}
+
 export default function SalaryCapFreeAgents() {
-  const { freeAgents, loading } = useSalaryCapFreeAgents()
+  const { players, loading } = useAllPlayersWithRoster()
   const [positionFilter, setPositionFilter] = useState<PositionFilter>('ALL')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
+  const [hideRostered, setHideRostered] = useState(true)
 
-  const filteredFreeAgents = useMemo(() => {
-    return freeAgents.filter((fa) => {
-      const matchesPosition = positionFilter === 'ALL' || fa.player.position === positionFilter
-      const matchesTeam = teamFilter === 'ALL' || fa.player.nfl_team === teamFilter
-      const matchesSearch = fa.player.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPlayers = useMemo(() => {
+    return players.filter((p) => {
+      // Hide rostered filter
+      if (hideRostered && p.isRostered) return false
+
+      const matchesPosition = positionFilter === 'ALL' || p.position === positionFilter
+      const matchesTeam = teamFilter === 'ALL' || p.nfl_team === teamFilter
+      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
       return matchesPosition && matchesTeam && matchesSearch
     })
-  }, [freeAgents, positionFilter, teamFilter, searchQuery])
+  }, [players, positionFilter, teamFilter, searchQuery, hideRostered])
 
+  const freeAgentCount = players.filter(p => !p.isRostered).length
   const positions: PositionFilter[] = ['ALL', 'QB', 'RB', 'WR', 'TE']
 
   return (
@@ -62,10 +146,13 @@ export default function SalaryCapFreeAgents() {
         {/* Header */}
         <div>
           <h1 className="font-display font-semibold text-[29px] tracking-[-0.02em] text-fg">
-            Free Agents
+            {hideRostered ? 'Free Agents' : 'All Players'}
           </h1>
           <p className="text-fg-muted text-[14px] mt-[5px]">
-            {freeAgents.length} players available for the draft
+            {hideRostered
+              ? `${freeAgentCount} players available for the draft`
+              : `${players.length} total players · ${freeAgentCount} free agents`
+            }
           </p>
         </div>
 
@@ -115,13 +202,46 @@ export default function SalaryCapFreeAgents() {
           </div>
         </div>
 
-        {/* Free Agents List */}
+        {/* Hide rostered checkbox */}
+        <label className="flex items-center gap-[10px] cursor-pointer select-none">
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={hideRostered}
+              onChange={(e) => setHideRostered(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-[18px] h-[18px] rounded-[5px] border-2 border-hairline-strong bg-surface-well peer-checked:bg-field-500 peer-checked:border-field-500 transition-colors" />
+            <svg
+              className="absolute top-[3px] left-[3px] w-[12px] h-[12px] text-[#04150c] opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <span className="text-[13px] text-fg-muted">
+            Hide rostered players
+          </span>
+          {!hideRostered && (
+            <span className="text-[11px] text-fg-subtle">
+              (showing {players.length - freeAgentCount} rostered)
+            </span>
+          )}
+        </label>
+
+        {/* Players List */}
         <div className="rounded-panel border border-hairline bg-surface-panel overflow-hidden">
           {/* Column Headers */}
-          <div className="grid grid-cols-[48px_42px_1fr] items-center gap-[12px] px-[16px] py-[10px] border-b border-hairline">
+          <div className={`grid ${hideRostered ? 'grid-cols-[48px_42px_1fr]' : 'grid-cols-[48px_42px_1fr_140px]'} items-center gap-[12px] px-[16px] py-[10px] border-b border-hairline`}>
             <div className="font-data text-[10px] uppercase tracking-[0.14em] text-fg-subtle">Rank</div>
             <div className="font-data text-[10px] uppercase tracking-[0.14em] text-fg-subtle"></div>
             <div className="font-data text-[10px] uppercase tracking-[0.14em] text-fg-subtle">Player</div>
+            {!hideRostered && (
+              <div className="font-data text-[10px] uppercase tracking-[0.14em] text-fg-subtle text-right">Owner</div>
+            )}
           </div>
 
           {loading ? (
@@ -134,37 +254,58 @@ export default function SalaryCapFreeAgents() {
                 </div>
               ))}
             </div>
-          ) : filteredFreeAgents.length === 0 ? (
+          ) : filteredPlayers.length === 0 ? (
             <div className="text-center py-16 text-fg-subtle">
               {searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL'
-                ? 'No free agents match your filters'
-                : 'No free agents available'}
+                ? 'No players match your filters'
+                : 'No players available'}
             </div>
           ) : (
             <div>
-              {filteredFreeAgents.map((fa) => (
+              {filteredPlayers.map((player) => (
                 <div
-                  key={fa.player.id}
-                  className="grid grid-cols-[48px_42px_1fr] items-center gap-[12px] px-[16px] py-[10px] border-b border-hairline last:border-none hover:bg-surface-well/50 transition"
+                  key={player.id}
+                  className={`grid ${hideRostered ? 'grid-cols-[48px_42px_1fr]' : 'grid-cols-[48px_42px_1fr_140px]'} items-center gap-[12px] px-[16px] py-[10px] border-b border-hairline last:border-none transition ${
+                    player.isRostered
+                      ? 'bg-surface-well/30'
+                      : 'hover:bg-surface-well/50'
+                  }`}
                 >
                   {/* Rank */}
-                  <div className="font-data text-[14px] font-bold tabular-nums text-fg-muted">
-                    {fa.player.fantasy_rank ?? '—'}
+                  <div className={`font-data text-[14px] font-bold tabular-nums ${player.isRostered ? 'text-fg-subtle' : 'text-fg-muted'}`}>
+                    {player.fantasy_rank ?? '—'}
                   </div>
 
                   {/* Avatar */}
-                  <Avatar name={fa.player.name} position={fa.player.position} />
+                  <Avatar name={player.name} position={player.position} dimmed={player.isRostered} />
 
                   {/* Player Info */}
                   <div>
                     <div className="flex items-center">
-                      <span className="text-[14px] font-semibold text-fg">{fa.player.name}</span>
-                      {fa.player.is_rookie && <RookieBadge />}
+                      <span className={`text-[14px] font-semibold ${player.isRostered ? 'text-fg-subtle' : 'text-fg'}`}>
+                        {player.name}
+                      </span>
+                      {player.is_rookie && <RookieBadge />}
                     </div>
                     <div className="font-data text-[10.5px] text-fg-subtle mt-[2px]">
-                      {fa.player.nfl_team || 'Free Agent'}
+                      {player.nfl_team || 'Free Agent'}
                     </div>
                   </div>
+
+                  {/* Owner (only shown when not hiding rostered) */}
+                  {!hideRostered && (
+                    <div className="text-right">
+                      {player.isRostered ? (
+                        <span className="font-data text-[11px] text-fg-subtle bg-hairline px-[8px] py-[3px] rounded-[4px]">
+                          {player.ownerName}
+                        </span>
+                      ) : (
+                        <span className="font-data text-[10px] text-field-500 uppercase tracking-[0.08em]">
+                          Available
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -172,9 +313,9 @@ export default function SalaryCapFreeAgents() {
         </div>
 
         {/* Count footer */}
-        {!loading && filteredFreeAgents.length > 0 && (
+        {!loading && filteredPlayers.length > 0 && (
           <div className="text-center font-data text-[11px] text-fg-subtle">
-            Showing {filteredFreeAgents.length} of {freeAgents.length} free agents
+            Showing {filteredPlayers.length} of {hideRostered ? freeAgentCount : players.length} {hideRostered ? 'free agents' : 'players'}
           </div>
         )}
       </div>
