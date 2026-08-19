@@ -13,6 +13,20 @@ import { ROSTER_MAX, BASE_CAP, money } from '../../lib/cap'
 // Draft date: Sunday, August 23rd, 2026 at 8:00 PM ET
 const DRAFT_DATE = new Date('2026-08-23T20:00:00-04:00')
 
+// 2026 Franchise tag costs by position
+const TAG_COST_BY_POSITION: Record<string, number> = {
+  QB: 40,
+  RB: 99,
+  WR: 74,
+  TE: 22,
+}
+
+// Calculate franchise tag cost: MAX(position average, player's previous salary)
+function getTagCost(position: string, previousSalary: number): number {
+  const positionAvg = TAG_COST_BY_POSITION[position] || 0
+  return Math.max(positionAvg, previousSalary)
+}
+
 // Helpers
 
 function initials(name: string): string {
@@ -33,10 +47,6 @@ const POSITIONS = [
   { key: 'TE', label: 'Tight Ends' },
 ]
 
-// Sort by salary descending within position
-function sortBySalary<T extends { salary: number }>(items: T[]): T[] {
-  return [...items].sort((a, b) => b.salary - a.salary)
-}
 
 // Avatar component
 function Avatar({ name, position, size = 'md' }: { name: string; position: string; size?: 'sm' | 'md' }) {
@@ -184,18 +194,38 @@ export default function SalaryCapPreDraft() {
   }
 
   // Now safe to calculate - data is loaded
-  const activeContracts = (contracts || []).filter(c => c.contract_status === 'active') as Contract[]
+  // Include both active contracts AND franchise-tagged players (who have expired status but are still on roster)
+  const rosterContracts = (contracts || []).filter(c =>
+    c.contract_status === 'active' || c.is_franchise_tagged
+  ) as Contract[]
+
+  // Helper to get effective salary (tag cost for tagged players, regular salary otherwise)
+  const getEffectiveSalary = (contract: Contract): number => {
+    if (contract.is_franchise_tagged) {
+      return getTagCost(contract.player?.position || '', contract.salary)
+    }
+    return contract.salary
+  }
+
+  // For sorting, we need contracts with their effective salary
+  const contractsWithEffectiveSalary = rosterContracts.map(c => ({
+    ...c,
+    effectiveSalary: getEffectiveSalary(c)
+  }))
 
   const contractsByPosition = POSITIONS.reduce((acc, pos) => {
-    acc[pos.key] = sortBySalary(activeContracts.filter(c => c.player?.position === pos.key))
+    const posContracts = contractsWithEffectiveSalary.filter(c => c.player?.position === pos.key)
+    // Sort by effective salary descending
+    acc[pos.key] = posContracts.sort((a, b) => b.effectiveSalary - a.effectiveSalary)
     return acc
-  }, {} as Record<string, Contract[]>)
+  }, {} as Record<string, (Contract & { effectiveSalary: number })[]>)
 
-  const rosterCount = activeContracts.length
+  const rosterCount = rosterContracts.length
   const emptySlots = ROSTER_MAX - rosterCount
 
   const deadCapTotal = (deadCap || []).reduce((sum, d) => sum + d.amount, 0)
-  const salaries = activeContracts.reduce((sum, c) => sum + c.salary, 0)
+  // Sum effective salaries (using tag cost for franchise-tagged players)
+  const salaries = contractsWithEffectiveSalary.reduce((sum, c) => sum + c.effectiveSalary, 0)
   const totalCap = (settings?.salary_cap || BASE_CAP) + bonusCapTotal
   const available = totalCap - salaries - deadCapTotal
 
@@ -306,14 +336,18 @@ export default function SalaryCapPreDraft() {
                           </div>
                           <div className="font-data text-[10.5px] text-fg-subtle mt-[2px]">
                             {contract.player?.nfl_team || 'FA'}
-                            {contract.acquisition_year && ` · signed ${contract.acquisition_year}`}
+                            {contract.is_franchise_tagged
+                              ? ' · franchise tag'
+                              : contract.acquisition_year && ` · signed ${contract.acquisition_year}`
+                            }
                           </div>
                         </div>
 
-                        <Dots years={contract.years_remaining} isTag={contract.is_franchise_tagged} />
+                        {/* Franchise tags are 1-year deals */}
+                        <Dots years={contract.is_franchise_tagged ? 1 : contract.years_remaining} isTag={contract.is_franchise_tagged} />
 
                         <div className={`text-right font-data font-bold text-[17px] tabular-nums ${contract.is_franchise_tagged ? 'text-gold-500' : 'text-fg'}`}>
-                          ${contract.salary}
+                          ${contract.effectiveSalary}
                         </div>
                       </div>
                     ))}
@@ -430,7 +464,7 @@ export default function SalaryCapPreDraft() {
             )}
 
             {/* Empty state */}
-            {activeContracts.length === 0 && (
+            {rosterContracts.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-fg-muted">No contracts found for this team.</p>
               </div>

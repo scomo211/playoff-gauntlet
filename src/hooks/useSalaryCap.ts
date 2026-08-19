@@ -396,15 +396,36 @@ export function useSalaryCapAllTeams() {
         // Table might not exist yet
       }
 
+      // 2026 Franchise tag costs by position
+      const TAG_COST_BY_POSITION: Record<string, number> = {
+        QB: 40, RB: 99, WR: 74, TE: 22,
+      }
+
+      // Calculate franchise tag cost: MAX(position average, player's previous salary)
+      const getTagCost = (position: string, previousSalary: number): number => {
+        const positionAvg = TAG_COST_BY_POSITION[position] || 0
+        return Math.max(positionAvg, previousSalary)
+      }
+
       // Build team summaries
       const teamSummaries: TeamCapSummary[] = (owners || []).map(owner => {
         const ownerContracts = (contracts || []).filter(c => c.owner_id === owner.id)
         const ownerDeadCap = (allDeadCap || []).filter(d => d.owner_id === owner.id)
         const ownerBonusCap = allBonusCap.filter(b => b.owner_id === owner.id)
 
-        // Only count active contracts toward salary cap (not expired or free agent pickups)
-        const activeContracts = ownerContracts.filter(c => c.contract_status === 'active')
-        const totalSalary = activeContracts.reduce((sum, c) => sum + c.salary, 0)
+        // Count active contracts AND franchise-tagged players toward salary cap
+        const rosterContracts = ownerContracts.filter(c =>
+          c.contract_status === 'active' || c.is_franchise_tagged
+        )
+
+        // Calculate total salary with tag costs for franchise-tagged players
+        const totalSalary = rosterContracts.reduce((sum, c) => {
+          if (c.is_franchise_tagged) {
+            return sum + getTagCost(c.player?.position || '', c.salary)
+          }
+          return sum + c.salary
+        }, 0)
+
         const totalDeadCapAmount = ownerDeadCap.reduce((sum, d) => sum + d.amount, 0)
         // Sum bonus cap for current year (2026)
         const totalBonusCapAmount = ownerBonusCap.reduce((sum, b) => sum + (b.amount_2026 || 0), 0)
@@ -422,7 +443,7 @@ export function useSalaryCapAllTeams() {
           totalDeadCap: totalDeadCapAmount,
           totalBonusCap: totalBonusCapAmount,
           capSpace,
-          playerCount: activeContracts.length,
+          playerCount: rosterContracts.length,
         }
       })
 
