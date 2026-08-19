@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bobby 3-Stix — v6</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117; --panel:#151b24; --hair:#232b36; --hair-2:#2f3846; --well:#1e2530;
+  --text:#EAEEF3; --text-2:#8E99A8; --text-3:#59626F;
+  --field:#2E9E63; --gold:#E8B437; --flag:#F0562E; --amber:#E0A32E;
+  --qb:#E0685E; --rb:#6B9BE0; --wr:#4FC08A; --te:#E0B45E; --k:#A98CE0; --def:#8E99A8;
+  --display:'Fraunces',Georgia,serif; --body:'Inter',system-ui,sans-serif; --data:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased;line-height:1.5}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.num{font-family:var(--data);font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer} input,select{font-family:inherit}
+:focus-visible{outline:2px solid var(--field);outline-offset:2px}
+
+.switch{position:sticky;top:0;z-index:60;display:flex;gap:6px;padding:12px 20px;background:rgba(13,17,23,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--hair);flex-wrap:wrap}
+.switch button{font-family:var(--data);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);background:none;border:1px solid var(--hair);padding:7px 14px;border-radius:99px}
+.switch button.active{background:var(--field);color:#04150c;border-color:var(--field);font-weight:700}
+.screen{display:none;max-width:1120px;margin:0 auto;padding:26px 20px 80px}
+.screen.active{display:block}
+.label{font-family:var(--data);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3)}
+h1{font-family:var(--display);font-weight:600;font-size:29px;letter-spacing:-.02em}
+.head{margin-bottom:20px} .head .sub{color:var(--text-2);font-size:14px;margin-top:5px}
+.back{background:none;border:none;color:var(--text-3);font-family:var(--data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:0 0 10px}
+.back:hover{color:var(--field)}
+
+/* ===== TICKER ===== */
+.ticker{position:relative;display:flex;justify-content:space-between;align-items:center;gap:16px;
+  background:var(--panel);border:1px solid var(--hair);border-radius:13px;padding:15px 18px;
+  margin-bottom:26px;overflow:hidden;flex-wrap:wrap}
+.ticker::after{content:"";position:absolute;left:0;bottom:0;height:2px;background:var(--field);
+  width:var(--pg,42%);transition:width .5s,background .3s}
+.ticker.warn::after{background:var(--amber)} .ticker.crit::after{background:var(--flag)}
+.tk-l .lbl{font-family:var(--data);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3)}
+.tk-l .when{font-size:12.5px;color:var(--text-2);margin-top:4px}
+.tk-r{font-family:var(--data);font-weight:700;font-size:26px;letter-spacing:-.01em;display:flex;gap:11px;align-items:baseline}
+.tk-r u{text-decoration:none;font-size:11px;font-weight:600;color:var(--text-3);margin-left:2px}
+.ticker.warn .tk-r{color:var(--amber)} .ticker.crit .tk-r{color:var(--flag)}
+.ticker.crit .tk-r{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.45}}
+.tkdemo{display:flex;gap:6px;margin:-14px 0 24px;flex-wrap:wrap}
+.tkdemo button{font-family:var(--data);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:none;
+  border:1px dashed var(--hair-2);color:var(--text-3);padding:5px 10px;border-radius:99px}
+
+/* avatar */
+.av{width:42px;height:42px;border-radius:11px;background:var(--well);border:1px solid var(--hair-2);
+  display:flex;align-items:center;justify-content:center;font-family:var(--data);font-size:12.5px;font-weight:700;
+  color:#4d5766;flex:none;position:relative;overflow:hidden}
+.av .pos{position:absolute;bottom:0;left:0;right:0;font-size:7.5px;letter-spacing:.1em;font-weight:700;
+  background:rgba(9,12,17,.85);text-align:center;padding:2px 0}
+.av.sm{width:30px;height:30px;border-radius:8px;font-size:10.5px}
+.av.sm .pos{font-size:6px;padding:1px 0}
+.av.big{width:84px;height:84px;border-radius:20px;font-size:25px}
+.av.big .pos{font-size:10px;letter-spacing:.14em;padding:4px 0}
+.p-QB{color:var(--qb)} .p-RB{color:var(--rb)} .p-WR{color:var(--wr)}
+.p-TE{color:var(--te)} .p-K{color:var(--k)} .p-DEF{color:var(--def)}
+.rk{display:inline-block;font-family:var(--data);font-size:9px;font-weight:700;color:var(--gold);
+  background:rgba(232,180,55,.16);padding:1px 5px;border-radius:4px;margin-left:6px}
+
+.bar{height:13px;border-radius:5px;background:#1b222c;display:flex;overflow:hidden}
+.bar i{display:block;height:100%;transition:width .25s}
+.s-sal{background:#39485c} .s-dead{background:var(--flag)} .s-open{background:var(--field)}
+.bar.over{box-shadow:inset 0 0 0 1px rgba(240,86,46,.65)}
+
+/* dashboard */
+.trow{display:grid;grid-template-columns:30px 160px 1fr 74px 50px;gap:15px;align-items:center;
+  padding:12px 10px;border-bottom:1px solid var(--hair);cursor:pointer;border-radius:8px;margin:0 -10px}
+.trow:hover{background:rgba(255,255,255,.028)}
+.trow.you{background:linear-gradient(90deg,rgba(46,158,99,.09),transparent 70%)}
+.mark{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--data);font-size:10.5px;font-weight:700;color:#0d1117;background:var(--text-2)}
+.tname{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.towner{font-family:var(--data);font-size:10.5px;color:var(--text-3);margin-top:1px}
+.tavail{font-family:var(--data);font-weight:700;font-size:16px;text-align:right}
+.tavail.over{color:var(--flag)} .tavail.tight{color:var(--amber)}
+.tros{font-family:var(--data);font-size:11.5px;color:var(--text-3);text-align:right}
+.legend{display:flex;gap:16px;margin-top:22px;flex-wrap:wrap}
+.lg{display:flex;align-items:center;gap:6px;font-family:var(--data);font-size:10.5px;color:var(--text-3)}
+.lg i{width:9px;height:9px;border-radius:3px}
+@media(max-width:640px){.trow{grid-template-columns:28px 1fr 68px}.trow .bar{grid-column:1/-1}.tros{display:none}}
+
+/* cap widget */
+.capw{background:var(--panel);border:1px solid var(--hair);border-radius:14px;padding:16px 18px}
+.capw .cw-n{font-family:var(--data);font-weight:700;font-size:30px;color:var(--field);letter-spacing:-.02em;line-height:1}
+.capw .cw-n.warn{color:var(--amber)} .capw .cw-n.bad{color:var(--flag)}
+.lines{margin-top:14px;border-top:1px solid var(--hair);padding-top:11px}
+.ln{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-family:var(--data);font-size:11.5px;color:var(--text-2)}
+.ln .v{font-weight:700;color:var(--text)}
+.ln .k{display:flex;align-items:center;gap:6px}
+.ln .k i{width:8px;height:8px;border-radius:2px;display:block}
+.ln.jump{cursor:pointer} .ln.jump:hover .k{color:var(--text)} .ln.jump .k::after{content:"→";color:var(--text-3);font-size:10px}
+.ln.tot{border-top:1px solid var(--hair);margin-top:7px;padding-top:9px}
+.ln.tot .v{color:var(--field);font-size:13px}
+
+/* sections */
+.sec{margin-top:34px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:10px;border-bottom:1px solid var(--hair-2);margin-bottom:3px}
+.sec-h h2{font-family:var(--display);font-weight:600;font-size:18px}
+.sec-h .rule{font-size:11.5px;color:var(--text-3);margin-top:3px}
+.sec-h .ct{font-family:var(--data);font-size:10.5px;color:var(--text-3);letter-spacing:.1em}
+.grid{display:grid;grid-template-columns:42px 1fr 112px 54px 126px;gap:13px;align-items:center}
+.yearhdr{padding:8px 0 2px}
+.yearhdr .yrs{display:flex;gap:9px}
+.yearhdr .yrs span{width:11px;text-align:center;font-family:var(--data);font-size:9px;color:var(--text-3)}
+.row{padding:12px 0;border-bottom:1px solid var(--hair)}
+.row:last-child{border:none}
+.pn{font-size:14px;font-weight:600}
+.pm{font-family:var(--data);font-size:10.5px;color:var(--text-3);margin-top:2px}
+.psal{font-family:var(--data);font-weight:700;font-size:17px;text-align:right}
+.dots{display:flex;gap:9px}
+.dots i{width:11px;height:11px;border-radius:50%;background:#242c37;border:1px solid #2c3542;display:block}
+.dots i.on{background:var(--field);border-color:var(--field)}
+.dots i.tag{background:var(--gold);border-color:var(--gold)}
+.dots i.now{border-color:var(--amber);border-style:dashed}
+.dots.dim i.on,.dots.dim i.tag{background:#2c3542;border-color:#2c3542}
+.dec{display:flex;gap:6px;justify-content:flex-end}
+.dec button{background:none;border:1px solid var(--hair-2);color:var(--text-3);font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px}
+.dec button:hover{color:var(--text);border-color:var(--text-3)}
+.dec button.on.keep,.dec button.on.sign{background:var(--field);border-color:var(--field);color:#04150c}
+.dec button.on.cut{background:var(--flag);border-color:var(--flag);color:#fff}
+.dec button.on.rel{background:var(--hair-2);border-color:var(--hair-2);color:var(--text)}
+.state{font-family:var(--data);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-align:right;color:var(--text-3)}
+.state.keep{color:var(--field)} .state.cut{color:var(--flag)} .state.tag{color:var(--gold)}
+.radio{display:flex;align-items:center;gap:8px;justify-content:flex-end;font-family:var(--data);font-size:11.5px;color:var(--text-3)}
+.radio .rb{width:18px;height:18px;border-radius:50%;border:2px solid var(--hair-2);flex:none}
+.row.tagged .rb{border-color:var(--gold);background:radial-gradient(circle,var(--gold) 42%,transparent 45%)}
+.row.tagged .radio{color:var(--gold)}
+.row.tagged{background:linear-gradient(90deg,rgba(232,180,55,.07),transparent 70%);margin:0 -12px;padding:12px;border-radius:9px}
+.row.dimmed{opacity:.4} .row.released{opacity:.45}
+.row.cutting .pn{text-decoration:line-through;color:var(--text-3)}
+.row.cutting .psal{color:var(--text-3)}
+.impact{grid-column:2/-1;font-family:var(--data);font-size:11px;color:var(--text-2);padding-top:9px;display:none}
+.row.cutting .impact{display:block}
+.impact b{color:var(--field)} .impact i{color:var(--flag);font-style:normal}
+.impact.bad b{color:var(--flag)}
+.none{display:flex;justify-content:space-between;align-items:center;padding:12px 0;font-size:12.5px;color:var(--text-3);cursor:pointer}
+.subbar{position:sticky;bottom:14px;background:rgba(21,27,36,.97);backdrop-filter:blur(14px);border:1px solid var(--hair-2);
+  border-radius:14px;padding:14px 18px;margin-top:30px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.subbar .t{font-size:12.5px;color:var(--text-2)} .subbar .t b{color:var(--text)}
+.go{background:var(--field);color:#04150c;border:none;font-weight:700;font-size:13.5px;padding:11px 22px;border-radius:99px}
+.mtwrap{display:grid;grid-template-columns:1fr 268px;gap:26px;align-items:start}
+@media(max-width:900px){.mtwrap{grid-template-columns:1fr}}
+.stick{position:sticky;top:64px}
+
+/* ledger sections (dead / bonus) */
+.ledgrid{display:grid;grid-template-columns:1fr 78px 68px 78px 74px;gap:12px;align-items:center}
+.ledgrid.hdr{padding:9px 0 8px;border-bottom:1px solid var(--hair)}
+.ledgrid.hdr span{font-family:var(--data);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
+.ledgrid.hdr span:not(:first-child){text-align:right}
+.ledrow{padding:11px 0;border-bottom:1px solid var(--hair)}
+.ledrow:last-child{border:none}
+.ledrow .who{font-size:13.5px;font-weight:600}
+.ledrow .sub2{font-family:var(--data);font-size:10.5px;color:var(--text-3);margin-top:2px}
+.ledrow .c{font-family:var(--data);font-size:12.5px;text-align:right;color:var(--text-2)}
+.ledrow .c.big{font-weight:700;font-size:14px;color:var(--text)}
+.ledrow .c.neg{color:var(--flag)} .ledrow .c.pos{color:var(--field)}
+.ledtot{display:flex;justify-content:space-between;padding:13px 0 0;font-family:var(--data);font-size:12px;color:var(--text-2)}
+.ledtot b{font-size:15px}
+@media(max-width:700px){
+  .grid{grid-template-columns:38px 1fr 62px;gap:11px}
+  .dots{grid-column:2;margin-top:6px}
+  .dec,.radio,.state{grid-column:1/-1;justify-content:flex-start;text-align:left;margin-top:7px}
+  .yearhdr{display:none} .impact{grid-column:1/-1} .stick{position:static}
+  .ledgrid{grid-template-columns:1fr 74px 74px} .ledgrid.hdr span:nth-child(4),.ledgrid.hdr span:nth-child(5){display:none}
+  .ledrow .c:nth-of-type(3),.ledrow .c:nth-of-type(4){display:none}
+}
+
+/* ===== AUCTION ===== */
+.aucwrap{display:grid;grid-template-columns:1fr 272px;gap:22px;align-items:start}
+@media(max-width:940px){.aucwrap{grid-template-columns:1fr}}
+.stage{background:var(--panel);border:1px solid var(--hair);border-radius:18px;padding:20px 22px}
+.st-row{display:grid;grid-template-columns:84px 1fr auto;gap:18px;align-items:center}
+.st-info .who{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:-.01em}
+.st-info .whom{font-family:var(--data);font-size:11.5px;color:var(--text-3);margin-top:4px}
+.lastbids{font-family:var(--data);font-size:10.5px;color:var(--text-3);margin-top:9px}
+.lastbids b{color:var(--text-2)} .lastbids em{color:var(--gold);font-style:normal}
+.st-bid{text-align:right}
+.bid{font-family:var(--data);font-weight:700;font-size:58px;letter-spacing:-.04em;line-height:.95}
+.bid.bump{animation:bump .3s ease}
+@keyframes bump{40%{transform:scale(1.06)}}
+.holder{font-size:12px;color:var(--text-2);margin-top:5px} .holder b{color:var(--gold)}
+.clockrow{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;margin-top:18px}
+.cbar{height:7px;border-radius:99px;background:var(--hair);overflow:hidden}
+.cbar i{display:block;height:100%;background:var(--field);border-radius:99px;transition:width .9s linear,background .25s}
+.cbar.warn i{background:var(--amber)} .cbar.crit i{background:var(--flag)}
+.cnum{font-family:var(--data);font-weight:700;font-size:19px;color:var(--field);min-width:118px;text-align:right}
+.cnum.warn{color:var(--amber)} .cnum.crit{color:var(--flag);animation:blink .55s infinite}
+.actrow{display:flex;gap:9px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.plus{flex:1;min-width:180px;background:var(--field);color:#04150c;border:none;font-family:var(--data);
+  font-weight:700;font-size:17px;padding:17px;border-radius:13px}
+.plus:hover{background:#37b873}
+.custom{width:76px;background:var(--well);border:1px solid var(--hair-2);color:var(--text);font-family:var(--data);
+  font-weight:700;font-size:16px;text-align:center;border-radius:13px;padding:16px 4px}
+.alt{background:none;border:1px solid var(--hair-2);color:var(--text-2);font-family:var(--data);font-weight:600;
+  font-size:12.5px;padding:16px 15px;border-radius:13px}
+.underbid{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-family:var(--data);font-size:11px;color:var(--text-3)}
+.underbid b{color:var(--text-2);font-weight:700} .underbid .mx b{color:var(--gold)}
+@media(max-width:600px){
+  .st-row{grid-template-columns:60px 1fr;row-gap:12px}
+  .st-bid{grid-column:1/-1;text-align:left} .bid{font-size:50px}
+  .av.big{width:60px;height:60px;font-size:19px}
+}
+.demo{display:flex;gap:7px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.demo button{font-family:var(--data);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:none;
+  border:1px dashed var(--hair-2);color:var(--text-3);padding:6px 11px;border-radius:99px}
+
+.blk{margin-top:22px}
+.blk-h{display:flex;justify-content:space-between;align-items:center;padding-bottom:9px;border-bottom:1px solid var(--hair-2);margin-bottom:4px}
+.blk-h h3{font-size:13px;font-weight:600}
+.blk-h .label{font-size:9.5px}
+.filters{display:flex;gap:8px;margin:12px 0 8px;align-items:center;flex-wrap:wrap}
+.filters input{flex:1;min-width:130px;background:var(--well);border:1px solid var(--hair-2);color:var(--text);
+  font-size:12.5px;padding:9px 12px;border-radius:9px}
+.filters input::placeholder{color:var(--text-3)}
+.filters select{background:var(--well);border:1px solid var(--hair-2);color:var(--text-2);font-family:var(--data);
+  font-size:10px;padding:9px 8px;border-radius:9px}
+.seg{display:flex;border:1px solid var(--hair-2);border-radius:9px;overflow:hidden;flex:none}
+.seg button{background:var(--well);border:none;border-right:1px solid var(--hair-2);color:var(--text-3);
+  font-family:var(--data);font-size:10px;padding:9px 9px}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--field);color:#04150c;font-weight:700}
+.rkbtn{font-family:var(--data);font-size:10px;padding:9px 11px;border-radius:9px;background:var(--well);
+  border:1px solid var(--hair-2);color:var(--text-3);flex:none}
+.rkbtn.on{background:var(--gold);color:#1a1405;border-color:var(--gold);font-weight:700}
+.twocol{display:grid;grid-template-columns:1.45fr 1fr;gap:20px;align-items:start;margin-top:6px}
+@media(max-width:780px){.twocol{grid-template-columns:1fr}}
+.plist,.sold{max-height:320px;overflow:auto}
+.frow{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:9px 0;
+  border-bottom:1px solid var(--hair);font-size:12.5px}
+.frow:last-child{border:none}
+.frow .amt{font-family:var(--data);font-weight:700;color:var(--gold);font-size:12.5px}
+.frow .sm{font-family:var(--data);font-size:9.5px;color:var(--text-3);margin-top:1px}
+.frow.mine{background:linear-gradient(90deg,rgba(46,158,99,.09),transparent 70%);margin:0 -8px;padding:9px 8px;border-radius:7px}
+.frow.mine .sm{color:var(--field)}
+.empty{padding:22px 0;text-align:center;color:var(--text-3);font-size:12.5px}
+.rail{background:var(--panel);border:1px solid var(--hair);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.rail h3{font-size:12.5px;font-weight:600;margin-bottom:11px;display:flex;justify-content:space-between;align-items:center}
+.rail h3 span{font-family:var(--data);font-size:10px;color:var(--text-3);letter-spacing:.08em}
+.mini3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.m3{background:var(--well);border-radius:9px;padding:9px 10px}
+.m3 .v{font-family:var(--data);font-weight:700;font-size:15px;margin-top:3px}
+.m3.hi .v{color:var(--field)} .m3.gd .v{color:var(--gold)}
+.m3 .label{font-size:9px;letter-spacing:.1em}
+.scrollist{max-height:230px;overflow:auto}
+.orow{display:grid;grid-template-columns:26px 1fr auto;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
+.orow:last-child{border:none}
+.orow .oc{font-family:var(--data);font-size:10px;color:var(--text-3);margin-top:1px}
+.orow .oa{font-family:var(--data);font-weight:700;font-size:12.5px}
+.orow.low .oa{color:var(--amber)}
+</style>
+</head>
+<body>
+
+<div class="switch">
+  <button class="active" onclick="show(0,this)">Dashboard</button>
+  <button onclick="show(1,this)">My Team</button>
+  <button onclick="show(3,this)">Auction</button>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div class="screen active">
+  <div class="head"><h1>Where everyone stands</h1>
+    <div class="sub">All twelve teams on one $400 scale. Tap any owner to see their roster.</div></div>
+
+  <div class="ticker" id="tk1" style="--pg:42%">
+    <div class="tk-l"><div class="lbl">Rosters lock in</div><div class="when">Aug 10, 2026 · 11:59 PM ET</div></div>
+    <div class="tk-r" id="tkv1"></div>
+  </div>
+  <div class="tkdemo">
+    <button onclick="tkState(0)">13 days out</button>
+    <button onclick="tkState(1)">2 days out</button>
+    <button onclick="tkState(2)">4 hours out</button>
+  </div>
+
+  <div id="league"></div>
+  <div class="legend">
+    <div class="lg"><i style="background:#39485c"></i>Salaries</div>
+    <div class="lg"><i style="background:var(--flag)"></i>Dead cap</div>
+    <div class="lg"><i style="background:var(--field)"></i>Available</div>
+  </div>
+</div>
+
+<!-- ============ MY TEAM ============ -->
+<div class="screen">
+  <div class="head"><h1>My Team</h1><div class="sub">Turf Daddies</div></div>
+  <div class="ticker" id="tk2" style="--pg:42%">
+    <div class="tk-l"><div class="lbl">Rosters lock in</div><div class="when">Aug 10, 2026 · 11:59 PM ET</div></div>
+    <div class="tk-r" id="tkv2"></div>
+  </div>
+
+  <div class="mtwrap">
+    <div>
+      <div class="sec" style="margin-top:0">
+        <div class="sec-h"><div><h2>Under contract</h2><div class="rule">Keep at current salary, or cut and take the dead cap hit.</div></div><div class="ct" id="ct1"></div></div>
+        <div class="grid yearhdr"><div></div><div></div>
+          <div class="yrs"><span>'26</span><span>'27</span><span>'28</span><span>'29</span><span>'30</span></div><div></div><div></div></div>
+        <div id="g1"></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><div><h2>Franchise tag</h2><div class="rule">Contracts expired. Tag one for a year at the tag price — the rest hit free agency.</div></div><div class="ct">PICK ONE</div></div>
+        <div id="g2"></div>
+        <div class="none" onclick="setTag(null)"><span>Tag nobody — let all three go</span><span class="radio"><span class="rb" id="noneRb"></span></span></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><div><h2>Free agent pickups</h2><div class="rule">Signed off waivers last season. Keep for $5 on a one-year deal, or release.</div></div><div class="ct" id="ct3"></div></div>
+        <div id="g3"></div>
+      </div>
+
+      <div class="subbar"><div class="t" id="sumTxt"></div><button class="go">Review &amp; submit</button></div>
+
+      <!-- LEDGER SECTIONS -->
+      <div class="sec" id="secDead">
+        <div class="sec-h"><div><h2>Dead cap</h2><div class="rule">Players you cut whose salary still counts against you. Nothing to decide — this is history.</div></div><div class="ct">2 CARRIED</div></div>
+        <div class="ledgrid hdr"><span>Player</span><span>Cut</span><span>Per year</span><span>Through</span><span>Remaining</span></div>
+        <div class="ledgrid ledrow">
+          <div><div class="who">Zay Flowers</div><div class="sub2">WR · 3 yrs left at cut</div></div>
+          <div class="c">2025</div><div class="c neg">$9</div><div class="c">2026</div><div class="c big neg">$9</div>
+        </div>
+        <div class="ledgrid ledrow">
+          <div><div class="who">Dameon Pierce</div><div class="sub2">RB · 2 yrs left at cut</div></div>
+          <div class="c">2024</div><div class="c neg">$7</div><div class="c">2026</div><div class="c big neg">$7</div>
+        </div>
+        <div class="ledtot"><span>Counting against 2026 cap</span><b class="num" style="color:var(--flag)">−$16</b></div>
+      </div>
+
+      <div class="sec" id="secBonus">
+        <div class="sec-h"><div><h2>Bonus cap</h2><div class="rule">Cap traded to or from other owners in past years, spread over five seasons.</div></div><div class="ct">2 ACTIVE</div></div>
+        <div class="ledgrid hdr"><span>Counterparty</span><span>Traded</span><span>Per year</span><span>Through</span><span>2026</span></div>
+        <div class="ledgrid ledrow">
+          <div><div class="who">From Tim · Wright Side</div><div class="sub2">for 2026 2nd-round pick</div></div>
+          <div class="c">Aug 2025</div><div class="c pos">+$4</div><div class="c">2030</div><div class="c big pos">+$4</div>
+        </div>
+        <div class="ledgrid ledrow">
+          <div><div class="who">From Devon · Cellar Dwellers</div><div class="sub2">for Zay Flowers</div></div>
+          <div class="c">Mar 2026</div><div class="c pos">+$8</div><div class="c">2030</div><div class="c big pos">+$8</div>
+        </div>
+        <div class="ledtot"><span>Added to 2026 cap</span><b class="num" style="color:var(--field)">+$12</b></div>
+      </div>
+    </div>
+
+    <div class="stick">
+      <div class="capw">
+        <div class="label">Available cap</div>
+        <div class="cw-n num" id="capN">$213</div>
+        <div class="bar" id="capBar" style="margin-top:12px"></div>
+        <div class="lines">
+          <div class="ln"><span class="k">Base cap</span><span class="v num">$400</span></div>
+          <div class="ln jump" onclick="jump('secBonus')"><span class="k">Bonus cap</span><span class="v num" style="color:var(--field)">+$12</span></div>
+          <div class="ln"><span class="k"><i style="background:#39485c"></i>Salaries</span><span class="v num" id="lnSal">−$183</span></div>
+          <div class="ln jump" onclick="jump('secDead')"><span class="k"><i style="background:var(--flag)"></i>Dead cap</span><span class="v num" id="lnDead" style="color:var(--flag)">−$16</span></div>
+          <div class="ln tot"><span class="k">Available</span><span class="v num" id="lnAvail">$213</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ OWNER (READ ONLY) ============ -->
+<div class="screen">
+  <button class="back" onclick="show(0,document.querySelectorAll('.switch button')[0])">← Back to dashboard</button>
+  <div class="head"><h1 id="ownTeam">Gronk Life</h1><div class="sub" id="ownSub">Marcus · view only</div></div>
+  <div class="mtwrap">
+    <div>
+      <div class="sec" style="margin-top:0">
+        <div class="sec-h"><div><h2>Under contract</h2><div class="rule">Decisions submitted 3 days ago.</div></div><div class="ct">5 KEPT · 1 CUT</div></div>
+        <div class="grid yearhdr"><div></div><div></div>
+          <div class="yrs"><span>'26</span><span>'27</span><span>'28</span><span>'29</span><span>'30</span></div><div></div><div></div></div>
+        <div id="o1"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-h"><div><h2>Franchise tag</h2><div class="rule">One tag used.</div></div><div class="ct">TAGGED</div></div>
+        <div id="o2"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-h"><div><h2>Free agent pickups</h2><div class="rule">Kept at $5 each or released.</div></div><div class="ct">2 OF 3 KEPT</div></div>
+        <div id="o3"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-h"><div><h2>Dead cap</h2><div class="rule">Carried from previous cuts.</div></div><div class="ct">2 CARRIED</div></div>
+        <div class="ledgrid hdr"><span>Player</span><span>Cut</span><span>Per year</span><span>Through</span><span>Remaining</span></div>
+        <div class="ledgrid ledrow"><div><div class="who">Kyren Williams</div><div class="sub2">RB</div></div>
+          <div class="c">2025</div><div class="c neg">$18</div><div class="c">2027</div><div class="c big neg">$36</div></div>
+        <div class="ledgrid ledrow"><div><div class="who">Gabe Davis</div><div class="sub2">WR</div></div>
+          <div class="c">2025</div><div class="c neg">$6</div><div class="c">2026</div><div class="c big neg">$6</div></div>
+        <div class="ledtot"><span>Counting against 2026 cap</span><b class="num" style="color:var(--flag)">−$24</b></div>
+      </div>
+    </div>
+    <div class="stick">
+      <div class="capw">
+        <div class="label">Available cap</div>
+        <div class="cw-n num warn">$47</div>
+        <div class="bar" style="margin-top:12px"><i class="s-sal" style="width:82%"></i><i class="s-dead" style="width:6%"></i><i class="s-open" style="width:12%"></i></div>
+        <div class="lines">
+          <div class="ln"><span class="k">Base cap</span><span class="v num">$400</span></div>
+          <div class="ln"><span class="k">Bonus cap</span><span class="v num" style="color:var(--flag)">−$20</span></div>
+          <div class="ln"><span class="k"><i style="background:#39485c"></i>Salaries</span><span class="v num">−$309</span></div>
+          <div class="ln"><span class="k"><i style="background:var(--flag)"></i>Dead cap</span><span class="v num" style="color:var(--flag)">−$24</span></div>
+          <div class="ln tot"><span class="k">Available</span><span class="v num" style="color:var(--amber)">$47</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AUCTION ============ -->
+<div class="screen">
+  <div class="ticker" style="--pg:6.6%">
+    <div class="tk-l"><div class="lbl">Draft in progress</div><div class="when">Round 2 · Bobby 3-Stix Memorial</div></div>
+    <div class="tk-r"><span class="num">19</span><u>of 288 filled</u></div>
+  </div>
+
+  <div class="aucwrap">
+    <div>
+      <div class="stage">
+        <div class="st-row">
+          <div class="av big">SB<span class="pos p-RB">RB</span></div>
+          <div class="st-info">
+            <div class="who">Saquon Barkley</div>
+            <div class="whom">PHI · age 27 · market $46</div>
+            <div class="lastbids" id="last3"></div>
+          </div>
+          <div class="st-bid"><div class="bid num" id="bidN">$52</div><div class="holder" id="hold">Marcus leads</div></div>
+        </div>
+        <div class="clockrow">
+          <div class="cbar" id="cB"><i id="cF" style="width:60%"></i></div>
+          <div class="cnum num" id="cN">0:12</div>
+        </div>
+        <div class="actrow">
+          <button class="plus" onclick="bid(1)">Bid <span id="nx">$53</span></button>
+          <input class="custom num" id="cust" value="60" aria-label="Custom bid">
+          <button class="alt" onclick="bidCustom()">Place</button>
+        </div>
+        <div class="underbid">
+          <span class="mx">Max bid <b class="num">$200</b></span>
+          <span>Cap left <b class="num">$217</b></span>
+          <span>Roster <b class="num">6/24</b></span>
+          <span>Slots open <b class="num">18</b></span>
+        </div>
+        <div class="demo">
+          <button onclick="setS('live')">Live</button><button onclick="setS('once')">Going once</button>
+          <button onclick="setS('twice')">Going twice</button><button onclick="setS('sold')">Sold</button>
+        </div>
+      </div>
+
+      <div class="blk">
+        <div class="filters">
+          <input id="q" placeholder="Search players…" oninput="drawPlayers()">
+          <div class="seg">
+            <button class="on" onclick="setPos('ALL',this)">ALL</button>
+            <button onclick="setPos('QB',this)">QB</button>
+            <button onclick="setPos('RB',this)">RB</button>
+            <button onclick="setPos('WR',this)">WR</button>
+            <button onclick="setPos('TE',this)">TE</button>
+          </div>
+          <select id="teamF" onchange="drawPlayers()"><option value="ALL">All teams</option></select>
+          <button class="rkbtn" onclick="tglRk(this)">Rookies</button>
+        </div>
+
+        <div class="twocol">
+          <div>
+            <div class="blk-h"><h3>Available</h3><span class="label" id="pcount"></span></div>
+            <div class="plist" id="plist"></div>
+          </div>
+          <div>
+            <div class="blk-h"><h3>Sold</h3><span class="label" id="scount"></span></div>
+            <div class="sold" id="sold"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="rail">
+        <h3>My roster <span>6 / 24</span></h3>
+        <div class="mini3">
+          <div class="m3"><div class="label">Spent</div><div class="v num">$183</div></div>
+          <div class="m3 hi"><div class="label">Left</div><div class="v num">$217</div></div>
+          <div class="m3 gd"><div class="label">Max</div><div class="v num">$200</div></div>
+        </div>
+        <div class="scrollist" id="myros"></div>
+      </div>
+      <div class="rail">
+        <h3>Cap detail <span>view only</span></h3>
+        <div class="lines" style="margin-top:0;border-top:none;padding-top:0">
+          <div class="ln"><span class="k">Base cap</span><span class="v num">$400</span></div>
+          <div class="ln"><span class="k">Bonus cap</span><span class="v num" style="color:var(--field)">+$12</span></div>
+          <div class="ln"><span class="k"><i style="background:#39485c"></i>Salaries</span><span class="v num">−$183</span></div>
+          <div class="ln"><span class="k"><i style="background:var(--flag)"></i>Dead cap</span><span class="v num" style="color:var(--flag)">−$12</span></div>
+          <div class="ln tot"><span class="k">Available</span><span class="v num">$217</span></div>
+        </div>
+      </div>
+      <div class="rail">
+        <h3>Owners <span>cap left</span></h3>
+        <div class="scrollist" id="owners"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(i,b){document.querySelectorAll('.screen').forEach(function(s,x){s.classList.toggle('active',x===i);});
+ if(b){document.querySelectorAll('.switch button').forEach(function(x){x.classList.remove('active');});b.classList.add('active');}
+ scrollTo({top:0});}
+function ini(n){return n.split(' ').map(function(w){return w[0];}).slice(0,2).join('');}
+function av(n,pos,cls){return '<div class="av '+(cls||'')+'">'+ini(n)+'<span class="pos p-'+pos+'">'+pos+'</span></div>';}
+function dots(y,kind,dim){var h='<div class="dots'+(dim?' dim':'')+'">';
+ for(var i=0;i<5;i++)h+='<i class="'+(i<y?(kind||'on'):(i===0&&y===0?'now':''))+'"></i>';return h+'</div>';}
+function jump(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});}
+
+/* ---------- TICKER ---------- */
+var TK=[13*86400+6*3600+24*60+18, 2*86400+4*3600+11*60+9, 4*3600+12*60+40];
+var tkIdx=0, tkLeft=TK[0];
+function pad(n){return (n<10?'0':'')+n;}
+function tkRender(){
+ var d=Math.floor(tkLeft/86400),h=Math.floor(tkLeft%86400/3600),m=Math.floor(tkLeft%3600/60),s=tkLeft%60;
+ var html=(d>0?'<span class="num">'+d+'<u>d</u></span>':'')+
+  '<span class="num">'+pad(h)+'<u>h</u></span><span class="num">'+pad(m)+'<u>m</u></span><span class="num">'+pad(s)+'<u>s</u></span>';
+ ['tkv1','tkv2'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML=html;});
+ var cls=tkLeft<86400?'crit':(tkLeft<3*86400?'warn':'');
+ var pg=Math.min(99,100-(tkLeft/(30*86400)*100));
+ ['tk1','tk2'].forEach(function(id){var e=document.getElementById(id);if(!e)return;
+  e.className='ticker '+cls; e.style.setProperty('--pg',pg.toFixed(1)+'%');});}
+function tkState(i){tkIdx=i;tkLeft=TK[i];tkRender();}
+setInterval(function(){if(tkLeft>0){tkLeft--;tkRender();}},1000);
+tkRender();
+
+/* ---------- DASHBOARD ---------- */
+var T=[
+ {n:"Turf Daddies",o:"Scott",i:"SC",a:213,r:18,sal:46,dead:4,you:1,f:"2nd"},
+ {n:"Cellar Dwellers",o:"Devon",i:"DV",a:212,r:14,sal:45,dead:2,f:"11th"},
+ {n:"Wright Side",o:"Tim",i:"TW",a:144,r:17,sal:64,dead:0,f:"7th"},
+ {n:"Blitz Kittens",o:"Priya",i:"PR",a:138,r:16,sal:62,dead:3,f:"5th"},
+ {n:"Hail Marys",o:"Andre",i:"AN",a:121,r:19,sal:65,dead:5,f:"6th"},
+ {n:"Sack Religious",o:"Nate",i:"NT",a:98,r:20,sal:73,dead:2,f:"3rd"},
+ {n:"Pylon Patrol",o:"Erin",i:"ER",a:84,r:19,sal:73,dead:6,f:"8th"},
+ {n:"Fourth & Long",o:"Greg",i:"GR",a:63,r:21,sal:81,dead:3,f:"10th"},
+ {n:"Gronk Life",o:"Marcus",i:"MC",a:47,r:22,sal:82,dead:6,f:"1st"},
+ {n:"Johnny Rockets",o:"Johnny",i:"JR",a:41,r:21,sal:81,dead:9,f:"9th"},
+ {n:"End Zone Militia",o:"Luis",i:"LU",a:12,r:23,sal:93,dead:4,f:"12th"},
+ {n:"Kayla's Krew",o:"Kayla",i:"KL",a:-18,r:23,sal:86,dead:14,over:1,f:"4th"}];
+document.getElementById('league').innerHTML=T.map(function(t){
+ var cls=t.a<0?'over':(t.a<50?'tight':''), open=Math.max(0,100-t.sal-t.dead);
+ return '<div class="trow '+(t.you?'you':'')+'" onclick="openOwner(\''+t.n+'\',\''+t.o+'\',\''+t.f+'\')">'+
+ '<div class="mark">'+t.i+'</div>'+
+ '<div><div class="tname">'+t.n+'</div><div class="towner">'+t.o+(t.you?' · you':'')+' · '+t.f+' in \'25</div></div>'+
+ '<div class="bar '+(t.over?'over':'')+'"><i class="s-sal" style="width:'+t.sal+'%"></i><i class="s-dead" style="width:'+t.dead+'%"></i><i class="s-open" style="width:'+open+'%"></i></div>'+
+ '<div class="tavail num '+cls+'">'+(t.a<0?'−$'+Math.abs(t.a):'$'+t.a)+'</div>'+
+ '<div class="tros num">'+t.r+'/24</div></div>';}).join('');
+function openOwner(team,owner,fin){
+ document.getElementById('ownTeam').textContent=team;
+ document.getElementById('ownSub').textContent=owner+' · '+fin+' in 2025 · view only';
+ show(2,null);}
+
+/* ---------- MY TEAM ---------- */
+var BASE=400,BONUS=12,DEAD_BASE=16;
+var G1=[{n:"Jalen Hurts",p:"QB",t:"PHI",s:41,y:2},{n:"Najee Harris",p:"RB",t:"PIT",s:28,y:1,cut:1},
+ {n:"DK Metcalf",p:"WR",t:"SEA",s:24,y:1},{n:"Chris Godwin",p:"WR",t:"TB",s:22,y:2},
+ {n:"Sam LaPorta",p:"TE",t:"DET",s:18,y:3},{n:"Rome Odunze",p:"WR",t:"CHI",s:12,y:4,rk:1},
+ {n:"Jake Ferguson",p:"TE",t:"DAL",s:8,y:1}];
+var G2=[{n:"Breece Hall",p:"RB",t:"NYJ",cost:48,last:33},{n:"J. Smith-Njigba",p:"WR",t:"SEA",cost:39,last:26},
+ {n:"Tyler Warren",p:"TE",t:"IND",cost:22,last:15,rk:1}];
+var G3=[{n:"Jauan Jennings",p:"WR",t:"SF",sign:1},{n:"Tyjae Spears",p:"RB",t:"TEN",sign:1},{n:"Cade Otton",p:"TE",t:"TB",sign:1}];
+var tag=null;
+document.getElementById('g1').innerHTML=G1.map(function(r,x){
+ var dead=+(0.4*r.s*r.y).toFixed(2),net=+(r.s-dead).toFixed(2);
+ return '<div class="grid row '+(r.cut?'cutting':'')+'" id="a'+x+'" data-sal="'+r.s+'" data-dead="'+dead+'">'+
+ av(r.n,r.p)+'<div><div class="pn">'+r.n+(r.rk?'<span class="rk">R</span>':'')+'</div><div class="pm">'+r.t+' · signed '+(2026-r.y)+'</div></div>'+
+ dots(r.y)+'<div class="psal num">$'+r.s+'</div>'+
+ '<div class="dec"><button class="keep '+(r.cut?'':'on')+'" onclick="dec('+x+',0)">Keep</button><button class="cut '+(r.cut?'on':'')+'" onclick="dec('+x+',1)">Cut</button></div>'+
+ '<div class="impact '+(net<0?'bad':'')+'">Frees <b>$'+r.s+'</b> · <i>$'+dead+' dead cap through '+(2025+r.y)+'</i> · net <b>'+(net<0?'−$'+Math.abs(net):'+$'+net)+'</b></div></div>';}).join('');
+document.getElementById('g2').innerHTML=G2.map(function(r,x){
+ return '<div class="grid row" id="b'+x+'" onclick="setTag('+x+')" style="cursor:pointer">'+
+ av(r.n,r.p)+'<div><div class="pn">'+r.n+(r.rk?'<span class="rk">R</span>':'')+'</div><div class="pm">'+r.t+' · made $'+r.last+' last year</div></div>'+
+ dots(1,'tag',1)+'<div class="psal num" style="color:var(--gold)">$'+r.cost+'</div>'+
+ '<div class="radio"><span>tag</span><span class="rb"></span></div></div>';}).join('');
+document.getElementById('g3').innerHTML=G3.map(function(r,x){
+ return '<div class="grid row" id="c'+x+'">'+av(r.n,r.p)+
+ '<div><div class="pn">'+r.n+'</div><div class="pm">'+r.t+' · picked up wk 9</div></div>'+dots(1)+
+ '<div class="psal num">$5</div>'+
+ '<div class="dec"><button class="sign on" onclick="fa('+x+',1)">Sign</button><button class="rel" onclick="fa('+x+',0)">Release</button></div></div>';}).join('');
+function dec(x,cut){var el=document.getElementById('a'+x);
+ el.classList.toggle('cutting',!!cut);
+ el.querySelector('.keep').classList.toggle('on',!cut);
+ el.querySelector('.cut').classList.toggle('on',!!cut);
+ el.querySelector('.dots').classList.toggle('dim',!!cut);calc();}
+function setTag(x){tag=(tag===x)?null:x;
+ G2.forEach(function(_,i){var el=document.getElementById('b'+i);
+  el.classList.toggle('tagged',tag===i);el.classList.toggle('dimmed',tag!==null&&tag!==i);
+  el.querySelector('.dots').classList.toggle('dim',tag!==i);});
+ var rb=document.getElementById('noneRb');
+ rb.style.borderColor=(tag===null)?'var(--field)':'';
+ rb.style.background=(tag===null)?'radial-gradient(circle,var(--field) 42%,transparent 45%)':'';
+ calc();}
+function fa(x,s){G3[x].sign=s;var el=document.getElementById('c'+x);
+ el.querySelector('.sign').classList.toggle('on',!!s);
+ el.querySelector('.rel').classList.toggle('on',!s);
+ el.classList.toggle('released',!s);
+ el.querySelector('.dots').classList.toggle('dim',!s);calc();}
+function calc(){var sal=0,dead=DEAD_BASE,cuts=0,keeps=0;
+ document.querySelectorAll('#g1 .row').forEach(function(r){
+  if(r.classList.contains('cutting')){dead+=parseFloat(r.dataset.dead);cuts++;}
+  else{sal+=parseFloat(r.dataset.sal);keeps++;}});
+ if(tag!==null)sal+=G2[tag].cost;
+ var signed=G3.filter(function(f){return f.sign;}).length;sal+=signed*5;
+ var avail=+(BASE+BONUS-sal-dead).toFixed(2);
+ var cn=document.getElementById('capN');
+ cn.textContent=(avail<0?'−$':'$')+Math.abs(avail);
+ cn.className='cw-n num'+(avail<50?' warn':'')+(avail<0?' bad':'');
+ var TT=BASE+BONUS;
+ document.getElementById('capBar').innerHTML='<i class="s-sal" style="width:'+(sal/TT*100)+'%"></i><i class="s-dead" style="width:'+(dead/TT*100)+'%"></i><i class="s-open" style="width:'+Math.max(0,avail/TT*100)+'%"></i>';
+ document.getElementById('lnSal').textContent='−$'+sal;
+ document.getElementById('lnDead').textContent='−$'+dead;
+ document.getElementById('lnAvail').textContent='$'+avail;
+ document.getElementById('ct1').textContent=keeps+' KEPT · '+cuts+' CUT';
+ document.getElementById('ct3').textContent=signed+' OF 3 KEPT';
+ document.getElementById('sumTxt').innerHTML='<b>'+cuts+'</b> cut · '+(tag!==null?'tagging <b>'+G2[tag].n+'</b> at $'+G2[tag].cost:'<b>no</b> franchise tag')+' · <b>'+signed+'</b> of 3 free agents kept';}
+setTag(null);
+
+/* ---------- OWNER READ-ONLY ---------- */
+var O1=[{n:"Ja'Marr Chase",p:"WR",t:"CIN",s:71,y:1,st:"KEPT"},{n:"Josh Allen",p:"QB",t:"BUF",s:58,y:2,st:"KEPT"},
+ {n:"Kyren Williams",p:"RB",t:"LAR",s:31,y:2,st:"CUT"},{n:"Garrett Wilson",p:"WR",t:"NYJ",s:29,y:1,st:"KEPT"},
+ {n:"Trey McBride",p:"TE",t:"ARI",s:24,y:3,st:"KEPT"},{n:"Jayden Daniels",p:"QB",t:"WAS",s:19,y:4,rk:1,st:"KEPT"}];
+document.getElementById('o1').innerHTML=O1.map(function(r){
+ return '<div class="grid row '+(r.st==='CUT'?'cutting':'')+'">'+av(r.n,r.p)+
+ '<div><div class="pn">'+r.n+(r.rk?'<span class="rk">R</span>':'')+'</div><div class="pm">'+r.t+'</div></div>'+
+ dots(r.y,'on',r.st==='CUT')+'<div class="psal num">$'+r.s+'</div>'+
+ '<div class="state '+(r.st==='CUT'?'cut':'keep')+'">'+r.st+'</div></div>';}).join('');
+document.getElementById('o2').innerHTML=
+ '<div class="grid row tagged">'+av("Nico Collins","WR")+'<div><div class="pn">Nico Collins</div><div class="pm">HOU · made $38 last year</div></div>'+
+ dots(1,'tag')+'<div class="psal num" style="color:var(--gold)">$46</div><div class="state tag">TAGGED</div></div>'+
+ '<div class="grid row dimmed">'+av("Zach Charbonnet","RB")+'<div><div class="pn">Zach Charbonnet</div><div class="pm">SEA · made $17 last year</div></div>'+
+ dots(1,'tag',1)+'<div class="psal num" style="color:var(--text-3)">$24</div><div class="state">TO FA</div></div>';
+document.getElementById('o3').innerHTML=
+ '<div class="grid row">'+av("Wan'Dale Robinson","WR")+'<div><div class="pn">Wan\'Dale Robinson</div><div class="pm">NYG</div></div>'+dots(1)+'<div class="psal num">$5</div><div class="state keep">SIGNED</div></div>'+
+ '<div class="grid row">'+av("Isaiah Likely","TE")+'<div><div class="pn">Isaiah Likely</div><div class="pm">BAL</div></div>'+dots(1)+'<div class="psal num">$5</div><div class="state keep">SIGNED</div></div>'+
+ '<div class="grid row released">'+av("Rico Dowdle","RB")+'<div><div class="pn">Rico Dowdle</div><div class="pm">CAR</div></div>'+dots(0)+'<div class="psal num" style="color:var(--text-3)">—</div><div class="state">RELEASED</div></div>';
+
+/* ---------- AUCTION ---------- */
+var MY=[["J. Jefferson","WR",59,0],["Jalen Hurts","QB",41,0],["Breece Hall","RB",33,0],
+ ["DK Metcalf","WR",24,0],["Sam LaPorta","TE",18,0],["Rome Odunze","WR",8,1]];
+document.getElementById('myros').innerHTML=MY.map(function(p){
+ return '<div class="frow">'+av(p[0],p[1],'sm')+'<span>'+p[0]+(p[3]?'<span class="rk">R</span>':'')+'</span><span class="amt num">$'+p[2]+'</span></div>';}).join('');
+
+var OWN=[["Marcus","MC",47,"21/24"],["Kayla","KL",96,"19/24"],["Devon","DV",212,"14/24"],
+ ["Tim","TW",144,"17/24"],["Priya","PR",138,"16/24"],["Johnny","JR",41,"21/24"],["Nate","NT",98,"20/24"]];
+document.getElementById('owners').innerHTML=OWN.map(function(o){
+ return '<div class="orow '+(o[2]<60?'low':'')+'"><div class="mark" style="width:26px;height:26px;font-size:10px">'+o[1]+'</div>'+
+ '<div>'+o[0]+'<div class="oc">'+o[3]+' filled</div></div><div class="oa num">$'+o[2]+'</div></div>';}).join('');
+
+var SOLD=[["Derrick Henry","RB",44,"Kayla",0],["Travis Kelce","TE",31,"Devon",0],["Cooper Kupp","WR",28,"Marcus",0],
+ ["J. Jefferson","WR",59,"You",0,1],["Ashton Jeanty","RB",51,"Tim",1],["Josh Allen","QB",58,"Marcus",0],
+ ["Nico Collins","WR",39,"Priya",0],["Travis Hunter","WR",36,"Devon",1],["Jalen Hurts","QB",41,"You",0,1],
+ ["Kyren Williams","RB",27,"Nate",0],["Cam Ward","QB",22,"Erin",1],["Breece Hall","RB",33,"You",0,1],
+ ["Colston Loveland","TE",16,"Greg",1],["Tucker Kraft","TE",12,"Johnny",0]];
+document.getElementById('sold').innerHTML=SOLD.map(function(s){
+ return '<div class="frow '+(s[5]?'mine':'')+'">'+av(s[0],s[1],'sm')+
+ '<span>'+s[0]+(s[4]?'<span class="rk">R</span>':'')+'<div class="sm">→ '+s[3]+'</div></span>'+
+ '<span class="amt num">$'+s[2]+'</span></div>';}).join('');
+document.getElementById('scount').textContent=SOLD.length+' sold';
+
+var PL=[["C. McCaffrey","RB","SF",62,0],["Ja'Marr Chase","WR","CIN",58,0],["Bijan Robinson","RB","ATL",49,0],
+ ["A. St. Brown","WR","DET",44,0],["Patrick Mahomes","QB","KC",38,0],["Trey McBride","TE","ARI",26,0],
+ ["Tetairoa McMillan","WR","CAR",19,1],["Rome Odunze","WR","CHI",22,0],["Bo Nix","QB","DEN",14,0],
+ ["Omarion Hampton","RB","LAC",9,1],["Luther Burden","WR","CHI",8,1],["Tyler Warren","TE","IND",17,1],
+ ["Emeka Egbuka","WR","TB",11,1],["Jaxson Dart","QB","NYG",7,1]];
+var posF='ALL',rkOnly=false;
+(function(){var ts=[];PL.forEach(function(p){if(ts.indexOf(p[2])<0)ts.push(p[2]);});ts.sort();
+ var s=document.getElementById('teamF');
+ ts.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;s.appendChild(o);});})();
+function setPos(p,b){posF=p;document.querySelectorAll('.seg button').forEach(function(x){x.classList.remove('on');});b.classList.add('on');drawPlayers();}
+function tglRk(b){rkOnly=!rkOnly;b.classList.toggle('on',rkOnly);drawPlayers();}
+function drawPlayers(){
+ var q=(document.getElementById('q').value||'').toLowerCase();
+ var tf=document.getElementById('teamF').value;
+ var out=PL.filter(function(p){return (posF==='ALL'||p[1]===posF)&&(tf==='ALL'||p[2]===tf)&&(!rkOnly||p[4])&&p[0].toLowerCase().indexOf(q)>-1;});
+ document.getElementById('pcount').textContent=out.length+' of '+PL.length;
+ document.getElementById('plist').innerHTML=out.length?out.map(function(p){
+  return '<div class="frow">'+av(p[0],p[1],'sm')+'<span>'+p[0]+(p[4]?'<span class="rk">R</span>':'')+
+  '<div class="sm">'+p[2]+'</div></span><span class="amt num">$'+p[3]+'</span></div>';}).join('')
+  :'<div class="empty">No players match those filters.</div>';}
+drawPlayers();
+
+var cur=52,hist=[["Marcus",52],["You",51],["Kayla",48]];
+var OB=[{n:'Marcus'},{n:'Kayla'},{n:'Tim'}];
+function drawLast(){document.getElementById('last3').innerHTML=hist.slice(0,3).map(function(h,i){
+ var t=(h[0]==='You'?'<em>You $'+h[1]+'</em>':h[0]+' $'+h[1]);
+ return i===0?'<b>'+h[0]+' $'+h[1]+'</b>':t;}).join(' ← ');}
+function bidCustom(){var v=parseInt(document.getElementById('cust').value||0);if(v>cur)bid(v-cur);}
+function bid(inc){cur+=inc||Math.floor(Math.random()*7)+2;
+ var b=document.getElementById('bidN');
+ b.textContent='$'+cur;b.classList.remove('bump');void b.offsetWidth;b.classList.add('bump');
+ document.getElementById('nx').textContent='$'+(cur+1);
+ document.getElementById('hold').innerHTML='<b>You lead</b>';
+ hist.unshift(["You",cur]);drawLast();setS('live');
+ setTimeout(function(){var o=OB[Math.floor(Math.random()*3)];cur+=Math.floor(Math.random()*4)+1;
+  b.textContent='$'+cur;b.classList.remove('bump');void b.offsetWidth;b.classList.add('bump');
+  document.getElementById('nx').textContent='$'+(cur+1);
+  document.getElementById('hold').textContent=o.n+' leads';
+  hist.unshift([o.n,cur]);drawLast();setS('once');},1500);}
+function setS(s){var N=document.getElementById('cN'),B=document.getElementById('cB'),F=document.getElementById('cF');
+ [N,B].forEach(function(e){e.classList.remove('warn','crit');});N.style.color='';
+ if(s==='live'){F.style.width='60%';N.textContent='0:12';}
+ if(s==='once'){[N,B].forEach(function(e){e.classList.add('warn');});F.style.width='26%';N.textContent='0:06 ONCE';}
+ if(s==='twice'){[N,B].forEach(function(e){e.classList.add('crit');});F.style.width='8%';N.textContent='0:02 TWICE';}
+ if(s==='sold'){F.style.width='0%';N.textContent='SOLD';N.style.color='var(--gold)';
+  document.getElementById('hold').innerHTML='<b>Sold to you · $'+cur+'</b>';}}
+drawLast();
+</script>
+</body>
+</html>

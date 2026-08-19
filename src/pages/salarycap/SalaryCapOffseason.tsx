@@ -175,16 +175,11 @@ export default function SalaryCapOffseason() {
   const { ownerId: myOwnerId } = useIsSalaryCapOwner()
   const { settings } = useSalaryCapSettings()
 
-  // If offseason is finalized, show the pre-draft view instead
-  if (settings?.offseason_finalized) {
-    return <SalaryCapPreDraft />
-  }
-
   // Determine which owner to show - route param or current user's team
   const targetOwnerId = routeOwnerId || myOwnerId
   const isMyTeam = targetOwnerId === myOwnerId
 
-  // Fetch team data
+  // Fetch team data - ALL hooks must be called before any conditional returns
   const { owner, contracts, deadCap, loading, error, refetch } = useSalaryCapTeam(targetOwnerId)
   const { bonusCapEntries, net2026: bonusCapTotal } = useBonusCap(targetOwnerId)
 
@@ -293,6 +288,12 @@ export default function SalaryCapOffseason() {
     })
     setPickupDecisions(initialPickupDecisions)
   }, [faPickups])
+
+  // If offseason is finalized, show the pre-draft view instead
+  // This must come AFTER all hooks to satisfy React's rules of hooks
+  if (settings?.offseason_finalized) {
+    return <SalaryCapPreDraft />
+  }
 
   // Filter contracts by status
   const activeContracts = contracts.filter(c => c.contract_status === 'active')

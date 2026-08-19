@@ -1,0 +1,58 @@
+HOW TO USE CLAUDE CODE
+======================
+
+Step 1: Open Terminal
+---------------------
+- Press Cmd + Space to open Spotlight
+- Type "Terminal" and press Enter
+
+
+Step 2: Go to the Project Folder
+--------------------------------
+Type this and press Enter:
+
+    cd ~/playoff-gauntlet
+
+What this means:
+- "cd" = change directory (like double-clicking a folder)
+- "~" = your home folder (/Users/scottmoran/)
+- "playoff-gauntlet" = the folder where your app lives
+
+
+Step 3: Launch Claude
+---------------------
+Type this and press Enter:
+
+    claude
+
+
+Step 4: Resume a Previous Conversation
+--------------------------------------
+Once Claude opens, type:
+
+    /resume
+
+This shows your old conversations. Look for the one you want and select it.
+
+
+QUICK REFERENCE
+===============
+Open project folder:     cd ~/playoff-gauntlet
+Start Claude:            claude
+Resume conversation:     /resume
+Start dev server:        npm run dev
+Deploy to production:    npm run build && npx vercel --prod
+
+
+THINK OF IT LIKE THIS
+=====================
+- Terminal = a text version of Finder
+- cd = double-clicking a folder
+- claude = opening an app
+- /resume = opening a recent document
+
+
+IF SOMETHING GOES WRONG
+=======================
+- If "claude" command not found, run: npm install -g @anthropic-ai/claude-code
+- If conversation is too old to resume, just start fresh - the code has all the context
