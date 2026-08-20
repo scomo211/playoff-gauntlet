@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
-import { CapLedgerBar } from '../../components/ui'
+import { CapLedgerBar, PlayerAvatar, RookieBadge } from '../../components/ui'
 import {
   useSalaryCapTeam,
   useBonusCap,
@@ -27,18 +27,6 @@ function getTagCost(position: string, previousSalary: number): number {
   return Math.max(positionAvg, previousSalary)
 }
 
-// Helpers
-
-function initials(name: string): string {
-  return name.split(' ').map(w => w[0]).slice(0, 2).join('')
-}
-
-// Position colors
-const POS_COLOR: Record<string, string> = {
-  QB: 'text-pos-qb', RB: 'text-pos-rb', WR: 'text-pos-wr',
-  TE: 'text-pos-te', K: 'text-pos-k', DEF: 'text-pos-def',
-}
-
 // Position labels for grouping
 const POSITIONS = [
   { key: 'QB', label: 'Quarterbacks' },
@@ -47,26 +35,6 @@ const POSITIONS = [
   { key: 'TE', label: 'Tight Ends' },
 ]
 
-
-// Avatar component
-function Avatar({ name, position, size = 'md' }: { name: string; position: string; size?: 'sm' | 'md' }) {
-  const sizeClasses = {
-    sm: 'w-[30px] h-[30px] rounded-[8px] text-[10.5px]',
-    md: 'w-[42px] h-[42px] rounded-[11px] text-[12.5px]',
-  }
-  const posSize = {
-    sm: 'text-[6px] py-[1px]',
-    md: 'text-[7.5px] py-[2px]',
-  }
-  return (
-    <div className={`${sizeClasses[size]} bg-surface-well border border-hairline-strong flex items-center justify-center font-data font-bold text-[#4d5766] flex-none relative overflow-hidden`}>
-      {initials(name)}
-      <span className={`absolute bottom-0 left-0 right-0 ${posSize[size]} font-bold tracking-[0.1em] bg-[rgba(9,12,17,0.85)] text-center ${POS_COLOR[position] || 'text-fg-subtle'}`}>
-        {position}
-      </span>
-    </div>
-  )
-}
 
 // Contract dots
 function Dots({ years, isTag = false }: { years: number; isTag?: boolean }) {
@@ -85,15 +53,6 @@ function Dots({ years, isTag = false }: { years: number; isTag?: boolean }) {
         />
       ))}
     </div>
-  )
-}
-
-// Rookie badge
-function RookieBadge() {
-  return (
-    <span className="inline-block font-data text-[9px] font-bold text-gold-500 bg-gold-500/15 px-[5px] py-[1px] rounded-[4px] ml-[6px]">
-      R
-    </span>
   )
 }
 
@@ -128,6 +87,14 @@ function EmptySlot() {
   )
 }
 
+// Position colors for section headers
+const POS_COLOR: Record<string, string> = {
+  QB: 'text-pos-qb',
+  RB: 'text-pos-rb',
+  WR: 'text-pos-wr',
+  TE: 'text-pos-te',
+}
+
 interface Contract {
   id: string
   player_id: string
@@ -140,6 +107,7 @@ interface Contract {
     position: string
     nfl_team: string | null
     is_rookie?: boolean
+    sleeper_player_id?: string
   } | null
 }
 
@@ -326,7 +294,12 @@ export default function SalaryCapPreDraft() {
                         key={contract.id}
                         className="grid grid-cols-[42px_1fr_112px_54px] gap-[13px] items-center py-[12px] border-b border-hairline last:border-none max-[700px]:grid-cols-[38px_1fr] max-[700px]:gap-[11px]"
                       >
-                        <Avatar name={contract.player?.name || 'Unknown'} position={contract.player?.position || 'NA'} />
+                        <PlayerAvatar
+                          name={contract.player?.name || 'Unknown'}
+                          position={(contract.player?.position || 'QB') as 'QB' | 'RB' | 'WR' | 'TE'}
+                          sleeperId={contract.player?.sleeper_player_id}
+                          size="md"
+                        />
 
                         <div>
                           <div className="text-[14px] font-semibold text-fg">

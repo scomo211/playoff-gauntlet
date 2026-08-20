@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
 import SalaryCapPreDraft from './SalaryCapPreDraft'
-import { CapLedgerBar } from '../../components/ui'
+import { CapLedgerBar, PlayerAvatar, RookieBadge } from '../../components/ui'
 import {
   useSalaryCapTeam,
   useBonusCap,
@@ -58,16 +58,6 @@ function money(n: number): string {
   return n < 0 ? `−$${Math.abs(n)}` : `$${n}`
 }
 
-function initials(name: string): string {
-  return name.split(' ').map(w => w[0]).slice(0, 2).join('')
-}
-
-// Position colors
-const POS_COLOR: Record<string, string> = {
-  QB: 'text-pos-qb', RB: 'text-pos-rb', WR: 'text-pos-wr',
-  TE: 'text-pos-te', K: 'text-pos-k', DEF: 'text-pos-def',
-}
-
 // Position sort order: QB → RB → WR → TE → others
 const POS_ORDER: Record<string, number> = { QB: 1, RB: 2, WR: 3, TE: 4, K: 5, DEF: 6 }
 
@@ -88,28 +78,6 @@ function sortFaPickupsByPosition<T extends { player?: { position?: string } | nu
     const posB = POS_ORDER[b.player?.position || ''] || 99
     return posA - posB
   })
-}
-
-// Avatar component matching renders.html exactly
-function Avatar({ name, position, size = 'md' }: { name: string; position: string; size?: 'sm' | 'md' | 'lg' }) {
-  const sizeClasses = {
-    sm: 'w-[30px] h-[30px] rounded-[8px] text-[10.5px]',
-    md: 'w-[42px] h-[42px] rounded-[11px] text-[12.5px]',
-    lg: 'w-[84px] h-[84px] rounded-[20px] text-[25px]',
-  }
-  const posSize = {
-    sm: 'text-[6px] py-[1px]',
-    md: 'text-[7.5px] py-[2px]',
-    lg: 'text-[10px] py-[4px] tracking-[0.14em]',
-  }
-  return (
-    <div className={`${sizeClasses[size]} bg-surface-well border border-hairline-strong flex items-center justify-center font-data font-bold text-[#4d5766] flex-none relative overflow-hidden`}>
-      {initials(name)}
-      <span className={`absolute bottom-0 left-0 right-0 ${posSize[size]} font-bold tracking-[0.1em] bg-[rgba(9,12,17,0.85)] text-center ${POS_COLOR[position] || 'text-fg-subtle'}`}>
-        {position}
-      </span>
-    </div>
-  )
 }
 
 // Contract dots matching renders.html
@@ -134,16 +102,6 @@ function Dots({ years, kind = 'on', dimmed = false }: { years: number; kind?: 'o
   )
 }
 
-// Rookie badge
-function RookieBadge() {
-  return (
-    <span className="inline-block font-data text-[9px] font-bold text-gold-500 bg-gold-500/15 px-[5px] py-[1px] rounded-[4px] ml-[6px]">
-      R
-    </span>
-  )
-}
-
-
 // Types for free agent pickups
 interface FaPickup {
   id: string
@@ -152,6 +110,7 @@ interface FaPickup {
     name: string
     position: string
     nfl_team: string | null
+    sleeper_player_id?: string
   }
   offseason_decision: 'sign' | 'release' | null
 }
@@ -584,7 +543,12 @@ export default function SalaryCapOffseason() {
                       key={contract.id}
                       className={`grid grid-cols-[42px_1fr_112px_54px_126px] gap-[13px] items-center py-[12px] border-b border-hairline last:border-none max-[700px]:grid-cols-[38px_1fr_62px] max-[700px]:gap-[11px] ${isCut ? 'cutting' : ''}`}
                     >
-                      <Avatar name={contract.player?.name || 'Unknown'} position={contract.player?.position || 'NA'} />
+                      <PlayerAvatar
+                        name={contract.player?.name || 'Unknown'}
+                        position={(contract.player?.position || 'QB') as 'QB' | 'RB' | 'WR' | 'TE'}
+                        sleeperId={contract.player?.sleeper_player_id}
+                        size="md"
+                      />
 
                       <div>
                         <div className={`text-[14px] font-semibold ${isCut ? 'line-through text-fg-subtle' : 'text-fg'}`}>
@@ -672,7 +636,12 @@ export default function SalaryCapOffseason() {
                         isTagged ? 'bg-gold-500/[0.07] mx-[-12px] px-[12px] rounded-[9px]' : ''
                       } ${isDimmed ? 'opacity-40' : ''}`}
                     >
-                      <Avatar name={candidate.player?.name || 'Unknown'} position={candidate.player?.position || 'NA'} />
+                      <PlayerAvatar
+                        name={candidate.player?.name || 'Unknown'}
+                        position={(candidate.player?.position || 'QB') as 'QB' | 'RB' | 'WR' | 'TE'}
+                        sleeperId={candidate.player?.sleeper_player_id}
+                        size="md"
+                      />
 
                       <div>
                         <div className="text-[14px] font-semibold text-fg">
@@ -740,7 +709,12 @@ export default function SalaryCapOffseason() {
                       key={pickup.id}
                       className={`grid grid-cols-[42px_1fr_112px_54px_126px] gap-[13px] items-center py-[12px] border-b border-hairline last:border-none max-[700px]:grid-cols-[38px_1fr_62px] ${isReleased ? 'opacity-45' : ''}`}
                     >
-                      <Avatar name={pickup.player?.name || 'Unknown'} position={pickup.player?.position || 'NA'} />
+                      <PlayerAvatar
+                        name={pickup.player?.name || 'Unknown'}
+                        position={(pickup.player?.position || 'QB') as 'QB' | 'RB' | 'WR' | 'TE'}
+                        sleeperId={pickup.player?.sleeper_player_id}
+                        size="md"
+                      />
 
                       <div>
                         <div className="text-[14px] font-semibold text-fg">{pickup.player?.name || 'Unknown'}</div>

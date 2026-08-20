@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
+import { PlayerAvatar, RookieBadge } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 
 const NFL_TEAMS = [
@@ -11,12 +12,6 @@ const NFL_TEAMS = [
 
 type PositionFilter = 'ALL' | 'QB' | 'RB' | 'WR' | 'TE'
 
-// Position colors matching design system
-const POS_COLOR: Record<string, string> = {
-  QB: 'text-pos-qb', RB: 'text-pos-rb', WR: 'text-pos-wr',
-  TE: 'text-pos-te', K: 'text-pos-k', DEF: 'text-pos-def',
-}
-
 interface Player {
   id: string
   name: string
@@ -24,33 +19,12 @@ interface Player {
   nfl_team: string | null
   fantasy_rank: number | null
   is_rookie: boolean
+  sleeper_player_id: string | null
 }
 
 interface PlayerWithRoster extends Player {
   isRostered: boolean
   ownerName: string | null
-}
-
-// Avatar component matching SalaryCapOffseason style
-function Avatar({ name, position, dimmed = false }: { name: string; position: string; dimmed?: boolean }) {
-  const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('')
-  return (
-    <div className={`w-[38px] h-[38px] rounded-[10px] bg-surface-well border border-hairline-strong flex items-center justify-center font-data font-bold text-[11px] text-[#4d5766] flex-none relative overflow-hidden ${dimmed ? 'opacity-50' : ''}`}>
-      {initials}
-      <span className={`absolute bottom-0 left-0 right-0 text-[6.5px] py-[1.5px] font-bold tracking-[0.1em] bg-[rgba(9,12,17,0.85)] text-center ${POS_COLOR[position] || 'text-fg-subtle'}`}>
-        {position}
-      </span>
-    </div>
-  )
-}
-
-// Rookie badge
-function RookieBadge() {
-  return (
-    <span className="inline-block font-data text-[9px] font-bold text-gold-500 bg-gold-500/15 px-[5px] py-[1px] rounded-[4px] ml-[6px]">
-      R
-    </span>
-  )
 }
 
 // Custom hook to fetch all players with roster info
@@ -66,7 +40,7 @@ function useAllPlayersWithRoster() {
         // Get all active players
         const { data: allPlayers, error: playerError } = await supabase
           .from('salarycap_players')
-          .select('id, name, position, nfl_team, fantasy_rank, is_rookie')
+          .select('id, name, position, nfl_team, fantasy_rank, is_rookie, sleeper_player_id')
           .eq('is_active', true)
 
         if (playerError) throw playerError
@@ -282,7 +256,14 @@ export default function SalaryCapFreeAgents() {
                   </div>
 
                   {/* Avatar */}
-                  <Avatar name={player.name} position={player.position} dimmed={player.isRostered} />
+                  <div className={player.isRostered ? 'opacity-50' : ''}>
+                    <PlayerAvatar
+                      name={player.name}
+                      position={player.position as 'QB' | 'RB' | 'WR' | 'TE'}
+                      sleeperId={player.sleeper_player_id || undefined}
+                      size="sm"
+                    />
+                  </div>
 
                   {/* Player Info */}
                   <div>

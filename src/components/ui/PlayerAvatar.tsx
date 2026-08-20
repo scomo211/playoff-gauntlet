@@ -55,28 +55,25 @@ export function PlayerAvatar({
       className={`relative flex shrink-0 items-center justify-center overflow-hidden border
         border-hairline-strong bg-surface-well font-data font-bold text-[#4d5766] ${s.box} ${className}`}
     >
-      {imgSrc ? (
+      {/* Always render initials as base layer */}
+      <span className="absolute inset-0 flex items-center justify-center z-0">
+        {initials(name)}
+      </span>
+      {/* Image overlays initials when loaded successfully */}
+      {imgSrc && (
         <img
           src={imgSrc}
           alt=""
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover z-10"
           onError={(e) => {
-            // Hide broken image, show initials instead
+            // Hide broken image, initials show through
             (e.target as HTMLImageElement).style.display = 'none';
           }}
         />
-      ) : (
-        initials(name)
-      )}
-      {/* Show initials as fallback behind the image */}
-      {imgSrc && (
-        <span className="absolute inset-0 flex items-center justify-center -z-10">
-          {initials(name)}
-        </span>
       )}
       <span
         className={`absolute inset-x-0 bottom-0 bg-[rgba(9,12,17,0.85)] text-center font-bold
-          tracking-[0.1em] ${s.strip} ${POS_TEXT[position]}`}
+          tracking-[0.1em] z-20 ${s.strip} ${POS_TEXT[position]}`}
       >
         {position}
       </span>
