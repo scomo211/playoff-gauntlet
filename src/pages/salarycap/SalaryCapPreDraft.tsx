@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
+import PlayerCard from '../../components/salarycap/PlayerCard'
 import { CapLedgerBar, PlayerAvatar, RookieBadge } from '../../components/ui'
 import {
   useSalaryCapTeam,
@@ -129,6 +130,11 @@ export default function SalaryCapPreDraft() {
 
   // Countdown timer state
   const [timeLeft, setTimeLeft] = useState(() => Math.max(0, DRAFT_DATE.getTime() - Date.now()))
+  const [selectedPlayer, setSelectedPlayer] = useState<{
+    sleeperId: string
+    name: string
+    position: string
+  } | null>(null)
 
   // Update countdown every second
   useEffect(() => {
@@ -200,6 +206,7 @@ export default function SalaryCapPreDraft() {
   const capHealth = available < 0 ? 'bad' : available < 50 ? 'warn' : ''
 
   return (
+    <>
     <SalaryCapLayout>
       <div className="space-y-5">
         {/* Header */}
@@ -302,11 +309,20 @@ export default function SalaryCapPreDraft() {
                         />
 
                         <div>
-                          <div className="text-[14px] font-semibold text-fg">
-                            {contract.player?.name || 'Unknown Player'}
+                          <button
+                            onClick={() => contract.player?.sleeper_player_id && setSelectedPlayer({
+                              sleeperId: contract.player.sleeper_player_id,
+                              name: contract.player.name,
+                              position: contract.player.position,
+                            })}
+                            className="text-left hover:text-field-400 transition"
+                          >
+                            <span className="text-[14px] font-semibold">
+                              {contract.player?.name || 'Unknown Player'}
+                            </span>
                             {contract.player?.is_rookie && <RookieBadge />}
                             {contract.is_franchise_tagged && <TagBadge />}
-                          </div>
+                          </button>
                           <div className="font-data text-[10.5px] text-fg-subtle mt-[2px]">
                             {contract.player?.nfl_team || 'FA'}
                             {contract.is_franchise_tagged
@@ -527,5 +543,16 @@ export default function SalaryCapPreDraft() {
         </div>
       </div>
     </SalaryCapLayout>
+
+      {/* Player Card Modal */}
+      {selectedPlayer && (
+        <PlayerCard
+          sleeperId={selectedPlayer.sleeperId}
+          playerName={selectedPlayer.name}
+          position={selectedPlayer.position}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
+    </>
   )
 }

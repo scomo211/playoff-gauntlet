@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
 import PositionBadge from '../../components/salarycap/PositionBadge'
 import PlayerAvatar from '../../components/salarycap/PlayerAvatar'
+import PlayerCard from '../../components/salarycap/PlayerCard'
 import RookieBadge from '../../components/salarycap/RookieBadge'
 import { isDeadlinePassed } from '../../components/salarycap/DeadlineBanner'
 import { useSalaryCapSettings, useIsSalaryCapOwner } from '../../hooks/useSalaryCap'
@@ -274,6 +275,11 @@ export default function SalaryCapTeamDetail() {
   const [bonusCap, setBonusCap] = useState<BonusCap[]>([])
   const [draftAvailability, setDraftAvailability] = useState<string[]>([])
   const [savingAvailability, setSavingAvailability] = useState(false)
+  const [selectedPlayer, setSelectedPlayer] = useState<{
+    sleeperId: string
+    name: string
+    position: string
+  } | null>(null)
 
   // Check if viewing own team and if editing is allowed
   const isOwnTeam = myOwnerId === ownerId
@@ -548,6 +554,7 @@ export default function SalaryCapTeamDetail() {
   const allFreeAgentsDecided = freeAgentPickups.every(fa => fa.offseason_decision !== 'pending')
 
   return (
+    <>
     <SalaryCapLayout>
       <div className="space-y-8">
         {/* Header */}
@@ -761,7 +768,16 @@ export default function SalaryCapTeamDetail() {
                               sleeperId={contract.player?.sleeper_player_id}
                               name={contract.player?.name || ''}
                             />
-                            <span className="text-white font-medium">{contract.player?.name}</span>
+                            <button
+                              onClick={() => contract.player?.sleeper_player_id && setSelectedPlayer({
+                                sleeperId: contract.player.sleeper_player_id,
+                                name: contract.player.name,
+                                position: contract.player.position,
+                              })}
+                              className="text-white font-medium hover:text-emerald-400 transition"
+                            >
+                              {contract.player?.name}
+                            </button>
                             {contract.player?.nfl_team && (
                               <span className="text-xs text-slate-500">{contract.player.nfl_team}</span>
                             )}
@@ -932,7 +948,16 @@ export default function SalaryCapTeamDetail() {
                                 sleeperId={contract.player?.sleeper_player_id}
                                 name={contract.player?.name || ''}
                               />
-                              <span className="text-white font-medium">{contract.player?.name}</span>
+                              <button
+                                onClick={() => contract.player?.sleeper_player_id && setSelectedPlayer({
+                                  sleeperId: contract.player.sleeper_player_id,
+                                  name: contract.player.name,
+                                  position: contract.player.position,
+                                })}
+                                className="text-white font-medium hover:text-emerald-400 transition"
+                              >
+                                {contract.player?.name}
+                              </button>
                               {contract.player?.nfl_team && (
                                 <span className="text-xs text-slate-500">{contract.player.nfl_team}</span>
                               )}
@@ -1169,5 +1194,16 @@ export default function SalaryCapTeamDetail() {
         </div>
       </div>
     </SalaryCapLayout>
+
+      {/* Player Card Modal */}
+      {selectedPlayer && (
+        <PlayerCard
+          sleeperId={selectedPlayer.sleeperId}
+          playerName={selectedPlayer.name}
+          position={selectedPlayer.position}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
+    </>
   )
 }

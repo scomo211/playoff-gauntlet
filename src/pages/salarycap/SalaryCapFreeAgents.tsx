@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
+import PlayerCard from '../../components/salarycap/PlayerCard'
 import { PlayerAvatar, RookieBadge } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 
@@ -98,6 +99,11 @@ export default function SalaryCapFreeAgents() {
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [hideRostered, setHideRostered] = useState(true)
+  const [selectedPlayer, setSelectedPlayer] = useState<{
+    sleeperId: string
+    name: string
+    position: string
+  } | null>(null)
 
   const filteredPlayers = useMemo(() => {
     return players.filter((p) => {
@@ -115,6 +121,7 @@ export default function SalaryCapFreeAgents() {
   const positions: PositionFilter[] = ['ALL', 'QB', 'RB', 'WR', 'TE']
 
   return (
+    <>
     <SalaryCapLayout>
       <div className="space-y-5">
         {/* Header */}
@@ -268,9 +275,16 @@ export default function SalaryCapFreeAgents() {
                   {/* Player Info */}
                   <div>
                     <div className="flex items-center">
-                      <span className={`text-[14px] font-semibold ${player.isRostered ? 'text-fg-subtle' : 'text-fg'}`}>
+                      <button
+                        onClick={() => player.sleeper_player_id && setSelectedPlayer({
+                          sleeperId: player.sleeper_player_id,
+                          name: player.name,
+                          position: player.position,
+                        })}
+                        className={`text-[14px] font-semibold text-left hover:text-field-400 transition ${player.isRostered ? 'text-fg-subtle' : 'text-fg'}`}
+                      >
                         {player.name}
-                      </span>
+                      </button>
                       {player.is_rookie && <RookieBadge />}
                     </div>
                     <div className="font-data text-[10.5px] text-fg-subtle mt-[2px]">
@@ -306,5 +320,16 @@ export default function SalaryCapFreeAgents() {
         )}
       </div>
     </SalaryCapLayout>
+
+      {/* Player Card Modal */}
+      {selectedPlayer && (
+        <PlayerCard
+          sleeperId={selectedPlayer.sleeperId}
+          playerName={selectedPlayer.name}
+          position={selectedPlayer.position}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
+    </>
   )
 }
