@@ -326,123 +326,151 @@ export default function Auction() {
               ? 'bg-field-500/5 border-2 border-field-500/40 shadow-[0_0_20px_rgba(5,150,105,0.15)]'
               : 'bg-surface-panel border border-hairline'
           }`}>
-            {isInCelebration && celebrationData ? (
-              <div className="py-[24px]">
-                <div className="flex flex-col items-center gap-[16px]">
-                  <PlayerAvatar
-                    name={celebrationData.playerName}
-                    position={(celebrationData.position || 'QB') as Position}
-                    sleeperId={celebrationData.sleeperId}
-                    size="lg"
-                  />
-                  <div className="text-center">
-                    <div className="font-data text-[11px] tracking-[0.14em] uppercase text-gold-500 mb-[6px]">SOLD!</div>
-                    <div className="font-display font-bold text-[24px] text-fg mb-[4px]">{celebrationData.playerName}</div>
-                    <div className="text-[14px] text-fg-muted">
-                      to <span className="font-semibold text-fg">{celebrationData.winnerName}</span> for <span className="font-data font-bold text-gold-500">${celebrationData.price}</span>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-fg-subtle text-[12px]">Adding to roster...</div>
-                </div>
-              </div>
-            ) : displayItem ? (
+            {(isInCelebration && celebrationData) || displayItem ? (
               <>
-                <div className="flex items-start gap-[18px] max-[600px]:flex-col">
-                  <PlayerAvatar
-                    name={displayItem.player?.name || ''}
-                    position={(displayItem.player?.position || 'QB') as Position}
-                    sleeperId={(displayItem.player as any)?.sleeper_player_id}
-                    size="lg"
-                  />
+                {/* Use celebration data when celebrating, otherwise use displayItem */}
+                {(() => {
+                  const showingCelebration = isInCelebration && celebrationData
+                  const playerName = showingCelebration ? celebrationData.playerName : displayItem?.player?.name || ''
+                  const playerPosition = showingCelebration ? (celebrationData.position || 'QB') : (displayItem?.player?.position || 'QB')
+                  const playerSleeperId = showingCelebration ? celebrationData.sleeperId : (displayItem?.player as any)?.sleeper_player_id
+                  const playerTeam = showingCelebration ? '' : (displayItem?.player?.nfl_team || 'FA')
+                  const currentPrice = showingCelebration ? celebrationData.price : displayItem?.current_bid || 0
+                  const winnerName = showingCelebration ? celebrationData.winnerName : (displayItem as any)?.high_bidder?.owner_name || 'Unknown'
+                  const isRookie = showingCelebration ? false : displayItem?.player?.is_rookie
 
-                  <div className="flex-1 min-w-0">
-                    <div className="font-display font-semibold text-[22px] tracking-[-0.01em]">
-                      {displayItem.player?.name}
-                      {displayItem.player?.is_rookie && <RookieBadge />}
-                    </div>
-                    <div className="font-data text-[11.5px] text-fg-subtle mt-1">
-                      {displayItem.player?.nfl_team || 'FA'}
-                    </div>
+                  return (
+                    <>
+                      <div className="flex items-start gap-[18px] max-[600px]:flex-col">
+                        <div className="relative">
+                          <PlayerAvatar
+                            name={playerName}
+                            position={playerPosition as Position}
+                            sleeperId={playerSleeperId}
+                            size="lg"
+                          />
+                          {showingCelebration && (
+                            <div className="absolute -bottom-1 -right-1 w-[28px] h-[28px] bg-gold-500 rounded-full flex items-center justify-center shadow-lg">
+                              <svg className="w-[16px] h-[16px] text-[#1a1405]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="font-display font-semibold text-[22px] tracking-[-0.01em]">
+                            {playerName}
+                            {isRookie && <RookieBadge />}
+                          </div>
+                          {!showingCelebration && (
+                            <div className="font-data text-[11.5px] text-fg-subtle mt-1">
+                              {playerTeam}
+                            </div>
+                          )}
+                          {showingCelebration && (
+                            <div className="font-data text-[11px] tracking-[0.14em] uppercase text-gold-500 mt-1 animate-pulse">
+                              SOLD!
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-right max-[600px]:text-left max-[600px]:w-full">
+                          <div ref={bidRef} className={`font-data font-bold text-[52px] tracking-[-0.04em] leading-[0.95] tabular-nums transition-colors duration-300 ${
+                            showingCelebration ? 'text-gold-500' : isSold ? 'text-gold-500' : isHighBidder ? 'text-field-500' : 'text-fg'
+                          }`}>
+                            ${currentPrice}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Winner/High bidder indicator */}
+                      <div className={`mt-[14px] py-[10px] px-[14px] rounded-[10px] text-center ${
+                        showingCelebration || isSold
+                          ? 'bg-gold-500/15 border border-gold-500/30'
+                          : isHighBidder
+                          ? 'bg-field-500/15 border border-field-500/30'
+                          : 'bg-surface-well border border-hairline'
+                      }`}>
+                        {showingCelebration ? (
+                          <span className="font-semibold text-[14px] text-gold-500">
+                            Won by {winnerName} for ${currentPrice}
+                          </span>
+                        ) : isSold ? (
+                          <span className="font-semibold text-[14px] text-gold-500">
+                            Sold to {winnerName} for ${currentPrice}
+                          </span>
+                        ) : isHighBidder ? (
+                          <span className="font-semibold text-[14px] text-field-500">
+                            You are the high bidder
+                          </span>
+                        ) : (
+                          <span className="font-semibold text-[14px] text-fg">
+                            High bidder: <span className="text-gold-500">{winnerName}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Clock row */}
+                      <div className="grid grid-cols-[1fr_auto] gap-[14px] items-center mt-[18px]">
+                        <div className={`h-[7px] rounded-full bg-hairline overflow-hidden ${!showingCelebration && clockCrit ? 'crit' : !showingCelebration && clockWarn ? 'warn' : ''}`}>
+                          <i
+                            className={`block h-full rounded-full transition-[width] duration-[900ms] ease-linear ${
+                              showingCelebration ? 'bg-gold-500' : clockCrit ? 'bg-flag' : clockWarn ? 'bg-amber' : 'bg-field-500'
+                            }`}
+                            style={{ width: showingCelebration ? '100%' : isSold ? '0%' : `${pct}%` }}
+                          />
+                        </div>
+                        <div className={`min-w-[118px] text-right font-data font-bold text-[19px] tabular-nums ${
+                          showingCelebration || isSold ? 'text-gold-500' : clockCrit ? 'text-flag animate-pulse' : clockWarn ? 'text-amber' : 'text-field-500'
+                        }`}>
+                          {showingCelebration || isSold ? 'SOLD' : `0:${String(displaySecondsLeft).padStart(2, '0')}${clockWarn ? ' ONCE' : ''}${clockCrit ? ' TWICE' : ''}`}
+                        </div>
+                      </div>
+
+                      {/* Action row - hide during celebration */}
+                      {!showingCelebration && (
+                        <div className="flex gap-[9px] items-center mt-[16px] flex-wrap">
+                          <button
+                            onClick={() => !showDemo && displayItem && handleBid(customBid ? parseInt(customBid, 10) : displayItem.current_bid + 1)}
+                            disabled={!canBid || bidding || showDemo}
+                            className="flex-1 min-w-[180px] bg-field-500 text-[#04150c] font-data font-bold text-[17px] py-[17px] rounded-[13px] hover:bg-field-600 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                          >
+                            Bid ${customBid || (displayItem?.current_bid || 0) + 1}
+                          </button>
+                          <input
+                            type="number"
+                            value={customBid}
+                            onChange={(e) => setCustomBid(e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder={String((displayItem?.current_bid || 0) + 1)}
+                            disabled={showDemo}
+                            className="w-[76px] bg-surface-well border border-hairline-strong text-fg font-data font-bold text-[16px] text-center rounded-[13px] py-[16px] px-[4px] disabled:opacity-40"
+                          />
+                        </div>
+                      )}
+
+                      {/* Show "adding to roster" message during celebration */}
+                      {showingCelebration && (
+                        <div className="mt-[16px] text-center">
+                          <span className="font-data text-[12px] text-fg-subtle">Adding to roster...</span>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+
+                {/* Under bid stats - hide during celebration */}
+                {!isInCelebration && (
+                  <div className="flex gap-[16px] flex-wrap mt-[12px] font-data text-[11px] text-fg-subtle">
+                    <span>Max bid <b className="font-bold text-gold-500 tabular-nums">${myOwnerState?.maxBid || 377}</b></span>
+                    <span>Cap left <b className="font-bold text-fg-muted tabular-nums">${myOwnerState?.remainingCap || BASE_CAP}</b></span>
+                    <span>Roster <b className="font-bold text-fg-muted tabular-nums">{myOwnerState?.rosterSlotsFilled || 0}/{ROSTER_MAX}</b></span>
+                    <span>Slots open <b className="font-bold text-fg-muted tabular-nums">{ROSTER_MAX - (myOwnerState?.rosterSlotsFilled || 0)}</b></span>
                   </div>
+                )}
 
-                  <div className="text-right max-[600px]:text-left max-[600px]:w-full">
-                    <div ref={bidRef} className={`font-data font-bold text-[52px] tracking-[-0.04em] leading-[0.95] tabular-nums transition-colors duration-300 ${
-                      isSold ? 'text-gold-500' : isHighBidder ? 'text-field-500' : 'text-fg'
-                    }`}>
-                      ${displayItem.current_bid}
-                    </div>
-                  </div>
-                </div>
-
-                {/* High bidder indicator - prominent */}
-                <div className={`mt-[14px] py-[10px] px-[14px] rounded-[10px] text-center ${
-                  isSold
-                    ? 'bg-gold-500/15 border border-gold-500/30'
-                    : isHighBidder
-                    ? 'bg-field-500/15 border border-field-500/30'
-                    : 'bg-surface-well border border-hairline'
-                }`}>
-                  {isSold ? (
-                    <span className="font-semibold text-[14px] text-gold-500">
-                      Sold to {(displayItem as any).high_bidder?.owner_name} for ${displayItem.current_bid}
-                    </span>
-                  ) : isHighBidder ? (
-                    <span className="font-semibold text-[14px] text-field-500">
-                      You are the high bidder
-                    </span>
-                  ) : (
-                    <span className="font-semibold text-[14px] text-fg">
-                      High bidder: <span className="text-gold-500">{(displayItem as any).high_bidder?.owner_name || 'Unknown'}</span>
-                    </span>
-                  )}
-                </div>
-
-                {/* Clock row */}
-                <div className="grid grid-cols-[1fr_auto] gap-[14px] items-center mt-[18px]">
-                  <div className={`h-[7px] rounded-full bg-hairline overflow-hidden ${clockCrit ? 'crit' : clockWarn ? 'warn' : ''}`}>
-                    <i
-                      className={`block h-full rounded-full transition-[width] duration-[900ms] ease-linear ${
-                        clockCrit ? 'bg-flag' : clockWarn ? 'bg-amber' : 'bg-field-500'
-                      }`}
-                      style={{ width: isSold ? '0%' : `${pct}%` }}
-                    />
-                  </div>
-                  <div className={`min-w-[118px] text-right font-data font-bold text-[19px] tabular-nums ${
-                    isSold ? 'text-gold-500' : clockCrit ? 'text-flag animate-pulse' : clockWarn ? 'text-amber' : 'text-field-500'
-                  }`}>
-                    {isSold ? 'SOLD' : `0:${String(displaySecondsLeft).padStart(2, '0')}${clockWarn ? ' ONCE' : ''}${clockCrit ? ' TWICE' : ''}`}
-                  </div>
-                </div>
-
-                {/* Action row */}
-                <div className="flex gap-[9px] items-center mt-[16px] flex-wrap">
-                  <button
-                    onClick={() => !showDemo && handleBid(customBid ? parseInt(customBid, 10) : displayItem.current_bid + 1)}
-                    disabled={!canBid || bidding || showDemo}
-                    className="flex-1 min-w-[180px] bg-field-500 text-[#04150c] font-data font-bold text-[17px] py-[17px] rounded-[13px] hover:bg-field-600 disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                  >
-                    Bid ${customBid || displayItem.current_bid + 1}
-                  </button>
-                  <input
-                    type="number"
-                    value={customBid}
-                    onChange={(e) => setCustomBid(e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    placeholder={String(displayItem.current_bid + 1)}
-                    disabled={showDemo}
-                    className="w-[76px] bg-surface-well border border-hairline-strong text-fg font-data font-bold text-[16px] text-center rounded-[13px] py-[16px] px-[4px] disabled:opacity-40"
-                  />
-                </div>
-
-                {/* Under bid stats */}
-                <div className="flex gap-[16px] flex-wrap mt-[12px] font-data text-[11px] text-fg-subtle">
-                  <span>Max bid <b className="font-bold text-gold-500 tabular-nums">${myOwnerState?.maxBid || 377}</b></span>
-                  <span>Cap left <b className="font-bold text-fg-muted tabular-nums">${myOwnerState?.remainingCap || BASE_CAP}</b></span>
-                  <span>Roster <b className="font-bold text-fg-muted tabular-nums">{myOwnerState?.rosterSlotsFilled || 0}/{ROSTER_MAX}</b></span>
-                  <span>Slots open <b className="font-bold text-fg-muted tabular-nums">{ROSTER_MAX - (myOwnerState?.rosterSlotsFilled || 0)}</b></span>
-                </div>
-
-                {bidError && (
+                {bidError && !isInCelebration && (
                   <div className="mt-3 text-center font-data text-[11px] text-flag">{bidError}</div>
                 )}
               </>
