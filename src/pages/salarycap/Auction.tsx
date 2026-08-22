@@ -210,13 +210,6 @@ export default function Auction() {
     setBidding(false)
   }
 
-  const handleCustomBid = () => {
-    const v = parseInt(customBid, 10)
-    if (v > (currentItem?.current_bid || 0) && v <= (myOwnerState?.maxBid || 0)) {
-      handleBid(v)
-    }
-  }
-
   const handleNominate = async () => {
     if (!selectedPlayer) return
     setBidding(true)
