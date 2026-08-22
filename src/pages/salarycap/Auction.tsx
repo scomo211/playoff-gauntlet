@@ -350,7 +350,7 @@ export default function Auction() {
                             size="lg"
                           />
                           {showingCelebration && (
-                            <div className="absolute -bottom-1 -right-1 w-[28px] h-[28px] bg-gold-500 rounded-full flex items-center justify-center shadow-lg">
+                            <div className="absolute -bottom-1 -right-1 z-10 w-[28px] h-[28px] bg-gold-500 rounded-full flex items-center justify-center shadow-lg">
                               <svg className="w-[16px] h-[16px] text-[#1a1405]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
