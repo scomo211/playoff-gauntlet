@@ -56,7 +56,6 @@ export default function Auction() {
     myOwnerState,
     nominate,
     placeBid,
-    closeAuction,
   } = useAuction()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -134,19 +133,7 @@ export default function Auction() {
     }
   }, [currentItem, currentItem?.current_bid])
 
-  // Capture sold item for celebration display
-  useEffect(() => {
-    if (currentItem?.status === 'sold' && !celebrationData) {
-      setCelebrationData({
-        playerName: currentItem.player?.name || 'Unknown',
-        winnerName: (currentItem as any).high_bidder?.owner_name || 'Unknown',
-        price: currentItem.current_bid,
-        endTime: Date.now() + 5000,
-        sleeperId: (currentItem.player as any)?.sleeper_player_id,
-        position: currentItem.player?.position,
-      })
-    }
-  }, [currentItem?.status, celebrationData])
+  // Note: Celebration is now triggered directly from the close response in checkTimer above
 
   // Clear celebration after 4 seconds
   useEffect(() => {
@@ -181,14 +168,32 @@ export default function Auction() {
     setPlayerPage(0)
   }, [searchQuery, positionFilter, rookiesOnly])
 
-  // Auto-close auction when timer expires
+  // Auto-close auction when timer expires and trigger celebration
   useEffect(() => {
     if (!currentItem || currentItem.status !== 'active') return
 
-    const checkTimer = () => {
+    const checkTimer = async () => {
       const remaining = calculateSecondsRemaining(currentItem.timer_end_at)
       if (remaining <= 0) {
-        closeAuction()
+        // Call close and trigger celebration from the response
+        const response = await fetch('/api/auction-close', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ auction_item_id: currentItem.id }),
+        })
+        const data = await response.json()
+
+        if (data.success && data.result) {
+          // Trigger celebration immediately from close response
+          setCelebrationData({
+            playerName: data.result.player_name,
+            winnerName: data.result.winner_name,
+            price: data.result.winning_bid,
+            endTime: Date.now() + 5000,
+            sleeperId: (currentItem.player as any)?.sleeper_player_id,
+            position: currentItem.player?.position,
+          })
+        }
       }
     }
 
@@ -196,7 +201,7 @@ export default function Auction() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [currentItem, closeAuction])
+  }, [currentItem])
 
   const handleBid = async (amount: number) => {
     if (!currentItem) return
