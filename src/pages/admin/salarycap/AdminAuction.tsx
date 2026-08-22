@@ -275,12 +275,13 @@ export default function AdminAuction() {
   const completeReset = async () => {
     if (!auction) return
 
-    const confirmMsg = auction.is_test
-      ? 'This will completely reset the test auction, removing all drafted players from rosters and contracts. Continue?'
-      : 'WARNING: This is a PRODUCTION auction! This will remove all auction data including rosters and contracts. Are you absolutely sure?'
-
-    if (!confirm(confirmMsg)) return
-    if (!auction.is_test && !confirm('FINAL WARNING: This cannot be undone. Type "RESET" to confirm.')) return
+    // Quick confirmation for test auctions, scary confirmation for production
+    if (auction.is_test) {
+      if (!confirm('Reset test auction? This clears all test data so you can start fresh.')) return
+    } else {
+      if (!confirm('WARNING: This is a PRODUCTION auction! This will remove all auction data including rosters and contracts. Are you absolutely sure?')) return
+      if (!confirm('FINAL WARNING: This cannot be undone. Continue?')) return
+    }
 
     setActionLoading(true)
     try {
@@ -296,11 +297,13 @@ export default function AdminAuction() {
       const result = await response.json()
 
       if (result.success) {
-        showMessage('success', result.message)
+        showMessage('success', 'Test auction reset! Ready to start another.')
         setAuction(null)
         setCurrentItem(null)
         setBotsEnabled(false)
-        setSelectedHumanOwners(new Set())
+        // Keep the same human owners selected for quick restart
+        // setSelectedHumanOwners(new Set())
+        fetchData() // Refresh to show setup UI
       } else {
         showMessage('error', result.error || 'Failed to reset auction')
       }
@@ -601,20 +604,21 @@ export default function AdminAuction() {
                     Resume Auction
                   </button>
                 )}
-                <button
-                  onClick={endAuction}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
-                >
-                  End & Clear Data
-                </button>
-                {auction.is_test && (
+                {auction.is_test ? (
                   <button
                     onClick={completeReset}
                     disabled={actionLoading}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
                   >
-                    Complete Reset
+                    Reset Test Auction
+                  </button>
+                ) : (
+                  <button
+                    onClick={endAuction}
+                    disabled={actionLoading}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
+                  >
+                    End & Clear Data
                   </button>
                 )}
               </div>
