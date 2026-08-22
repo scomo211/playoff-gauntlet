@@ -46,12 +46,14 @@ export function useAuction() {
       setAuction(auctionData || null)
 
       if (auctionData) {
-        // Get current active item
+        // Get current item (active or recently sold for celebration display)
         const { data: itemData } = await supabase
           .from('salarycap_auction_item')
           .select('*, player:salarycap_players(*), nominator:salarycap_owners!nominated_by(*), high_bidder:salarycap_owners!current_high_bidder(*)')
           .eq('auction_id', auctionData.id)
-          .eq('status', 'active')
+          .in('status', ['active', 'sold'])
+          .order('updated_at', { ascending: false })
+          .limit(1)
           .single()
 
         setCurrentItem(itemData || null)
