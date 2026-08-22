@@ -1,12 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const ROSTER_SIZE = 24
 const SALARY_CAP = 400
 
 // Bot configuration
-const BOT_BID_CHANCE = 0.35 // 35% chance to bid each tick
-const BOT_MIN_DELAY_MS = 1000 // Minimum 1 second between bot actions
+const MAX_BOT_BIDS_PER_ITEM = 3 // Bots will only bid 3 times total per nominated player
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -75,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Bot's turn to nominate - pick a random available player
-      const nominationResult = await botNominate(auction, currentNominatorId)
+      const nominationResult = await botNominate(supabase, auction, currentNominatorId)
       return res.status(200).json(nominationResult)
     }
 
@@ -88,6 +87,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         success: true,
         action: 'waiting',
         reason: 'Timer expired, waiting for close'
+      })
+    }
+
+    // Count how many bot bids have been placed on this item
+    const { data: existingBids } = await supabase
+      .from('salarycap_auction_bids')
+      .select('owner_id')
+      .eq('auction_item_id', currentItem.id)
+      .in('owner_id', botOwnerIds)
+
+    const botBidCount = existingBids?.length || 0
+
+    // Check if bots have reached their bid limit for this item
+    if (botBidCount >= MAX_BOT_BIDS_PER_ITEM) {
+      return res.status(200).json({
+        success: true,
+        action: 'none',
+        reason: `Bots already placed ${MAX_BOT_BIDS_PER_ITEM} bids on this player`
       })
     }
 
@@ -130,20 +147,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    // Random chance to bid (creates natural variation)
-    if (Math.random() > BOT_BID_CHANCE) {
-      return res.status(200).json({
-        success: true,
-        action: 'skipped',
-        reason: 'Bot chose not to bid this tick'
-      })
-    }
-
+    // Always bid if we haven't hit the limit (no random chance)
     // Pick a random eligible bot to bid
     const bidder = eligibleBots[Math.floor(Math.random() * eligibleBots.length)]
 
     // Place the bid
-    const bidResult = await placeBotBid(currentItem, bidder.botId, bidder.nextBid, auction)
+    const bidResult = await placeBotBid(supabase, currentItem, bidder.botId, bidder.nextBid, auction)
 
     return res.status(200).json(bidResult)
 
@@ -156,7 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function botNominate(auction: any, botOwnerId: string) {
+async function botNominate(supabase: SupabaseClient, auction: any, botOwnerId: string) {
   // Get players already drafted
   const { data: draftedPlayers } = await supabase
     .from('salarycap_auction_results')
@@ -246,7 +255,7 @@ async function botNominate(auction: any, botOwnerId: string) {
   }
 }
 
-async function placeBotBid(currentItem: any, botOwnerId: string, amount: number, auction: any) {
+async function placeBotBid(supabase: SupabaseClient, currentItem: any, botOwnerId: string, amount: number, auction: any) {
   const timerEndAt = new Date(currentItem.timer_end_at).getTime()
   const now = Date.now()
   const secondsRemaining = Math.floor((timerEndAt - now) / 1000)

@@ -315,13 +315,32 @@ export default function Auction() {
         <div className="min-w-0">
           {/* Stage */}
           <div className={`rounded-[18px] px-[22px] py-[20px] transition-all duration-300 ${
-            isSold
+            isInCelebration
               ? 'bg-gold-500/5 border-2 border-gold-500/40 shadow-[0_0_20px_rgba(234,179,8,0.15)]'
               : isHighBidder
               ? 'bg-field-500/5 border-2 border-field-500/40 shadow-[0_0_20px_rgba(5,150,105,0.15)]'
               : 'bg-surface-panel border border-hairline'
           }`}>
-            {displayItem ? (
+            {isInCelebration && celebrationData ? (
+              <div className="py-[24px]">
+                <div className="flex flex-col items-center gap-[16px]">
+                  <PlayerAvatar
+                    name={celebrationData.playerName}
+                    position={(celebrationData.position || 'QB') as Position}
+                    sleeperId={celebrationData.sleeperId}
+                    size="lg"
+                  />
+                  <div className="text-center">
+                    <div className="font-data text-[11px] tracking-[0.14em] uppercase text-gold-500 mb-[6px]">SOLD!</div>
+                    <div className="font-display font-bold text-[24px] text-fg mb-[4px]">{celebrationData.playerName}</div>
+                    <div className="text-[14px] text-fg-muted">
+                      to <span className="font-semibold text-fg">{celebrationData.winnerName}</span> for <span className="font-data font-bold text-gold-500">${celebrationData.price}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-fg-subtle text-[12px]">Adding to roster...</div>
+                </div>
+              </div>
+            ) : displayItem ? (
               <>
                 <div className="flex items-start gap-[18px] max-[600px]:flex-col">
                   <PlayerAvatar
@@ -428,24 +447,6 @@ export default function Auction() {
                   <div className="mt-3 text-center font-data text-[11px] text-flag">{bidError}</div>
                 )}
               </>
-            ) : isInCelebration && celebrationData ? (
-              <div className="py-[24px]">
-                <div className="flex flex-col items-center gap-[16px]">
-                  <PlayerAvatar
-                    name={celebrationData.playerName}
-                    position={(celebrationData.position || 'QB') as Position}
-                    sleeperId={celebrationData.sleeperId}
-                    size="lg"
-                  />
-                  <div className="text-center">
-                    <div className="font-data text-[11px] tracking-[0.14em] uppercase text-gold-500 mb-[6px]">SOLD!</div>
-                    <div className="font-display font-bold text-[24px] text-fg mb-[4px]">{celebrationData.playerName}</div>
-                    <div className="text-[14px] text-fg-muted">
-                      to <span className="font-semibold text-fg">{celebrationData.winnerName}</span> for <span className="font-data font-bold text-gold-500">${celebrationData.price}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             ) : (
               <div className="text-center py-[30px]">
                 {auctionPaused ? (
@@ -553,7 +554,7 @@ export default function Auction() {
                 <h3 className="text-[13px] font-semibold">Recently Sold</h3>
                 <span className="font-data text-[9.5px] tracking-[0.08em] uppercase text-fg-subtle">{displayResults.length} sold</span>
               </div>
-              <div className="flex gap-[10px] overflow-x-auto pb-[8px] -mx-[4px] px-[4px]">
+              <div className="flex gap-[10px] overflow-x-auto py-[4px] -mx-[4px] px-[4px]">
                 {displayResults.slice(0, 12).map(result => {
                   const isMine = !showDemo && (result as any).winner_id === myOwnerId
                   return (
