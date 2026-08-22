@@ -141,7 +141,7 @@ export default function Auction() {
         playerName: currentItem.player?.name || 'Unknown',
         winnerName: (currentItem as any).high_bidder?.owner_name || 'Unknown',
         price: currentItem.current_bid,
-        endTime: Date.now() + 4000,
+        endTime: Date.now() + 5000,
         sleeperId: (currentItem.player as any)?.sleeper_player_id,
         position: currentItem.player?.position,
       })
