@@ -147,7 +147,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    // Always bid if we haven't hit the limit (no random chance)
+    // Calculate bid probability based on time remaining
+    // Spread remaining bids across the remaining time
+    const secondsRemaining = Math.floor((timerEndAt - now) / 1000)
+    const bidsRemaining = MAX_BOT_BIDS_PER_ITEM - botBidCount
+
+    // Probability to bid this tick (spread bids across remaining time)
+    // Tick happens every ~4 seconds during bidding, so multiply accordingly
+    // Also ensure we bid if time is running low and we still have bids to make
+    const bidProbability = secondsRemaining <= 5
+      ? 0.8  // High chance to bid in last 5 seconds
+      : Math.min(0.4, (bidsRemaining / secondsRemaining) * 4)
+
+    if (Math.random() > bidProbability) {
+      return res.status(200).json({
+        success: true,
+        action: 'skipped',
+        reason: `Bot chose not to bid (${Math.round(bidProbability * 100)}% chance, ${secondsRemaining}s left)`
+      })
+    }
+
     // Pick a random eligible bot to bid
     const bidder = eligibleBots[Math.floor(Math.random() * eligibleBots.length)]
 

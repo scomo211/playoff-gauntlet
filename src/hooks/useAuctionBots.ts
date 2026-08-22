@@ -21,7 +21,14 @@ export function useAuctionBots({ auctionId, isTest, isActive, enabled }: UseAuct
   const [lastAction, setLastAction] = useState<BotTickResult | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [tickCount, setTickCount] = useState(0)
+  const [hasActiveItem, setHasActiveItem] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const hasActiveItemRef = useRef(hasActiveItem)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    hasActiveItemRef.current = hasActiveItem
+  }, [hasActiveItem])
 
   const tick = useCallback(async () => {
     if (!auctionId || !isTest || !isActive) return
@@ -37,6 +44,13 @@ export function useAuctionBots({ auctionId, isTest, isActive, enabled }: UseAuct
       setLastAction(result)
       setTickCount(c => c + 1)
 
+      // Track whether there's an active item to adjust tick speed
+      if (result.action === 'nominated' || result.action === 'bid') {
+        setHasActiveItem(true)
+      } else if (result.action === 'waiting' && result.reason?.includes('nominate')) {
+        setHasActiveItem(false)
+      }
+
       // Log significant actions
       if (result.action === 'nominated') {
         console.log(`[Bot] Nominated ${result.player} at $${result.amount || 1}`)
@@ -48,14 +62,17 @@ export function useAuctionBots({ auctionId, isTest, isActive, enabled }: UseAuct
     }
   }, [auctionId, isTest, isActive])
 
-  // Start/stop bot loop
+  // Start/stop bot loop with adaptive timing
   useEffect(() => {
     if (enabled && auctionId && isTest && isActive) {
       setIsRunning(true)
-      // Random interval between 2-4 seconds for natural feel
+
       const runTick = () => {
         tick()
-        const nextDelay = 2000 + Math.random() * 2000 // 2-4 seconds
+        // Fast tick (1s) when waiting for nomination, slower (3-5s) during bidding
+        const nextDelay = hasActiveItemRef.current
+          ? 3000 + Math.random() * 2000  // 3-5 seconds during bidding
+          : 1000                          // 1 second when waiting for nomination
         intervalRef.current = setTimeout(runTick, nextDelay)
       }
       runTick()
@@ -79,6 +96,7 @@ export function useAuctionBots({ auctionId, isTest, isActive, enabled }: UseAuct
     isRunning,
     lastAction,
     tickCount,
+    hasActiveItem,
     manualTick: tick,
   }
 }
