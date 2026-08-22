@@ -8,6 +8,7 @@ import type { Position } from '../../lib/salarycap-types'
 // Constants
 const BASE_CAP = 400
 const ROSTER_MAX = 24
+const PLAYERS_PER_PAGE = 15
 
 // Countdown timer deadline - Sunday, August 16, 2026 at 8:00 PM ET
 const DRAFT_DEADLINE = new Date('2026-08-16T20:00:00-04:00')
@@ -61,6 +62,7 @@ export default function Auction() {
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [rookiesOnly, setRookiesOnly] = useState(false)
+  const [playerPage, setPlayerPage] = useState(0)
   const [customBid, setCustomBid] = useState('')
   const [showNominateModal, setShowNominateModal] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<typeof availablePlayers[0] | null>(null)
@@ -173,6 +175,11 @@ export default function Auction() {
       return rankA - rankB
     })
   }, [availablePlayers, searchQuery, positionFilter, rookiesOnly])
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPlayerPage(0)
+  }, [searchQuery, positionFilter, rookiesOnly])
 
   // Auto-close auction when timer expires
   useEffect(() => {
@@ -310,7 +317,7 @@ export default function Auction() {
       )}
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-[minmax(0,1fr)_280px] gap-[20px] items-start max-[940px]:grid-cols-1">
+      <div className="grid grid-cols-[2fr_1fr] gap-[20px] items-start max-[940px]:grid-cols-1">
         {/* Main area */}
         <div className="min-w-0">
           {/* Stage */}
@@ -412,27 +419,21 @@ export default function Auction() {
                 {/* Action row */}
                 <div className="flex gap-[9px] items-center mt-[16px] flex-wrap">
                   <button
-                    onClick={() => !showDemo && handleBid(displayItem.current_bid + 1)}
+                    onClick={() => !showDemo && handleBid(customBid ? parseInt(customBid, 10) : displayItem.current_bid + 1)}
                     disabled={!canBid || bidding || showDemo}
                     className="flex-1 min-w-[180px] bg-field-500 text-[#04150c] font-data font-bold text-[17px] py-[17px] rounded-[13px] hover:bg-field-600 disabled:opacity-40 disabled:pointer-events-none transition-colors"
                   >
-                    Bid ${displayItem.current_bid + 1}
+                    Bid ${customBid || displayItem.current_bid + 1}
                   </button>
                   <input
                     type="number"
                     value={customBid}
                     onChange={(e) => setCustomBid(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     placeholder={String(displayItem.current_bid + 1)}
                     disabled={showDemo}
                     className="w-[76px] bg-surface-well border border-hairline-strong text-fg font-data font-bold text-[16px] text-center rounded-[13px] py-[16px] px-[4px] disabled:opacity-40"
                   />
-                  <button
-                    onClick={handleCustomBid}
-                    disabled={!canBid || bidding || showDemo}
-                    className="bg-transparent border border-hairline-strong text-fg-muted font-data font-semibold text-[12.5px] px-[15px] py-[16px] rounded-[13px] hover:text-fg hover:border-fg-subtle disabled:opacity-40 transition-colors"
-                  >
-                    Place
-                  </button>
                 </div>
 
                 {/* Under bid stats */}
@@ -505,44 +506,68 @@ export default function Auction() {
             </button>
           </div>
 
-          {/* Available Players - Full Width */}
+          {/* Available Players - Paginated */}
           <div className="mt-[6px]">
             <div className="flex justify-between items-center pb-[9px] border-b border-hairline-strong mb-[4px]">
               <h3 className="text-[13px] font-semibold">Available</h3>
               <span className="font-data text-[9.5px] tracking-[0.08em] uppercase text-fg-subtle">{filteredPlayers.length} of {availablePlayers.length}</span>
             </div>
-            <div className="max-h-[400px] overflow-auto">
+            <div>
               {filteredPlayers.length === 0 ? (
                 <div className="py-[22px] text-center text-fg-subtle text-[12.5px]">No players match those filters.</div>
               ) : (
-                filteredPlayers.slice(0, 75).map(player => (
-                  <div
-                    key={player.id}
-                    onClick={() => canNominate && openNominateModal(player)}
-                    className={`grid grid-cols-[32px_30px_1fr_auto] gap-[8px] items-center py-[9px] border-b border-hairline last:border-none text-[12.5px] ${
-                      canNominate ? 'cursor-pointer hover:bg-surface-well/50' : ''
-                    }`}
-                  >
-                    {/* Rank */}
-                    <span className="font-data text-[11px] font-bold tabular-nums text-fg-subtle">
-                      {player.fantasy_rank ?? '—'}
-                    </span>
-                    <PlayerAvatar
-                      name={player.name}
-                      position={player.position as Position}
-                      sleeperId={player.sleeper_player_id}
-                      size="sm"
-                    />
-                    <div>
-                      <span>{player.name}</span>
-                      {player.is_rookie && <RookieBadge />}
-                      <div className="font-data text-[9.5px] text-fg-subtle mt-[1px]">{player.nfl_team || 'FA'}</div>
+                <>
+                  {filteredPlayers.slice(playerPage * PLAYERS_PER_PAGE, (playerPage + 1) * PLAYERS_PER_PAGE).map(player => (
+                    <div
+                      key={player.id}
+                      onClick={() => canNominate && openNominateModal(player)}
+                      className={`grid grid-cols-[32px_30px_1fr_auto] gap-[8px] items-center py-[9px] border-b border-hairline last:border-none text-[12.5px] ${
+                        canNominate ? 'cursor-pointer hover:bg-surface-well/50' : ''
+                      }`}
+                    >
+                      {/* Rank */}
+                      <span className="font-data text-[11px] font-bold tabular-nums text-fg-subtle">
+                        {player.fantasy_rank ?? '—'}
+                      </span>
+                      <PlayerAvatar
+                        name={player.name}
+                        position={player.position as Position}
+                        sleeperId={player.sleeper_player_id}
+                        size="sm"
+                      />
+                      <div>
+                        <span>{player.name}</span>
+                        {player.is_rookie && <RookieBadge />}
+                        <div className="font-data text-[9.5px] text-fg-subtle mt-[1px]">{player.nfl_team || 'FA'}</div>
+                      </div>
+                      <span className="font-data font-bold text-gold-500 text-[12.5px]">
+                        {/* Market value placeholder */}
+                      </span>
                     </div>
-                    <span className="font-data font-bold text-gold-500 text-[12.5px]">
-                      {/* Market value placeholder */}
-                    </span>
-                  </div>
-                ))
+                  ))}
+                  {/* Pagination controls */}
+                  {filteredPlayers.length > PLAYERS_PER_PAGE && (
+                    <div className="flex justify-between items-center pt-[12px] mt-[8px] border-t border-hairline">
+                      <button
+                        onClick={() => setPlayerPage(p => Math.max(0, p - 1))}
+                        disabled={playerPage === 0}
+                        className="font-data text-[11px] font-semibold text-fg-muted hover:text-fg disabled:opacity-30 disabled:pointer-events-none"
+                      >
+                        ← Previous
+                      </button>
+                      <span className="font-data text-[10px] text-fg-subtle">
+                        Page {playerPage + 1} of {Math.ceil(filteredPlayers.length / PLAYERS_PER_PAGE)}
+                      </span>
+                      <button
+                        onClick={() => setPlayerPage(p => Math.min(Math.ceil(filteredPlayers.length / PLAYERS_PER_PAGE) - 1, p + 1))}
+                        disabled={playerPage >= Math.ceil(filteredPlayers.length / PLAYERS_PER_PAGE) - 1}
+                        className="font-data text-[11px] font-semibold text-fg-muted hover:text-fg disabled:opacity-30 disabled:pointer-events-none"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -617,7 +642,7 @@ export default function Auction() {
               </div>
             </div>
 
-            <div className="max-h-[320px] overflow-auto">
+            <div>
               {(() => {
                 // Combine all players into a unified list
                 const allPlayers: Array<{
@@ -787,6 +812,7 @@ export default function Auction() {
                   min="1"
                   value={nominateBidAmount}
                   onChange={(e) => setNominateBidAmount(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   className="flex-1 px-[16px] py-[14px] bg-surface-well border border-hairline-strong rounded-[13px] text-fg font-data text-[24px] font-bold tabular-nums"
                 />
               </div>
