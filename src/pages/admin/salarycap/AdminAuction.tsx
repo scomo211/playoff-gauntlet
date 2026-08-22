@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
+import { useAuctionBots } from '../../../hooks/useAuctionBots'
 
 interface Auction {
   id: string
@@ -12,6 +13,8 @@ interface Auction {
   timer_reset_threshold: number
   timer_reset_to: number
   created_at: string
+  is_test?: boolean
+  bot_owner_ids?: string[]
 }
 
 interface AuctionItem {
@@ -47,7 +50,6 @@ export default function AdminAuction() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [sandboxMode, setSandboxMode] = useState(false)
   const [nominationOrder, setNominationOrder] = useState<string[]>([])
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
 
@@ -57,7 +59,19 @@ export default function AdminAuction() {
   const [manualSalary, setManualSalary] = useState('')
   const [playerSearch, setPlayerSearch] = useState('')
 
+  // Test auction state
+  const [selectedHumanOwners, setSelectedHumanOwners] = useState<Set<string>>(new Set())
+  const [botsEnabled, setBotsEnabled] = useState(false)
+
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Bot orchestration
+  const { isRunning: botsRunning, lastAction: botLastAction, tickCount } = useAuctionBots({
+    auctionId: auction?.id || null,
+    isTest: auction?.is_test || false,
+    isActive: auction?.status === 'active',
+    enabled: botsEnabled && (auction?.is_test || false),
+  })
 
   const fetchData = async () => {
     // Get current auction
@@ -218,6 +232,102 @@ export default function AdminAuction() {
     setAuction(null)
     setCurrentItem(null)
     setActionLoading(false)
+  }
+
+  const startTestAuction = async () => {
+    setActionLoading(true)
+    try {
+      const humanIds = Array.from(selectedHumanOwners)
+      const allOwnerIds = owners.map(o => o.id)
+
+      if (humanIds.length === 0) {
+        showMessage('error', 'Please select at least one human participant')
+        setActionLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/auction-start-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          human_owner_ids: humanIds,
+          all_owner_ids: allOwnerIds,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        showMessage('success', result.message)
+        setBotsEnabled(true)
+        fetchData()
+      } else {
+        showMessage('error', result.error || 'Failed to start test auction')
+      }
+    } catch (err: any) {
+      const errorMsg = err?.message || err?.error_description || JSON.stringify(err)
+      showMessage('error', `Failed to start test auction: ${errorMsg}`)
+      console.error('Test auction error:', err)
+    }
+    setActionLoading(false)
+  }
+
+  const completeReset = async () => {
+    if (!auction) return
+
+    const confirmMsg = auction.is_test
+      ? 'This will completely reset the test auction, removing all drafted players from rosters and contracts. Continue?'
+      : 'WARNING: This is a PRODUCTION auction! This will remove all auction data including rosters and contracts. Are you absolutely sure?'
+
+    if (!confirm(confirmMsg)) return
+    if (!auction.is_test && !confirm('FINAL WARNING: This cannot be undone. Type "RESET" to confirm.')) return
+
+    setActionLoading(true)
+    try {
+      const response = await fetch('/api/auction-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auction_id: auction.id,
+          force: !auction.is_test,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        showMessage('success', result.message)
+        setAuction(null)
+        setCurrentItem(null)
+        setBotsEnabled(false)
+        setSelectedHumanOwners(new Set())
+      } else {
+        showMessage('error', result.error || 'Failed to reset auction')
+      }
+    } catch (err) {
+      showMessage('error', 'Failed to reset auction')
+    }
+    setActionLoading(false)
+  }
+
+  const toggleHumanOwner = (ownerId: string) => {
+    setSelectedHumanOwners(prev => {
+      const next = new Set(prev)
+      if (next.has(ownerId)) {
+        next.delete(ownerId)
+      } else {
+        next.add(ownerId)
+      }
+      return next
+    })
+  }
+
+  const selectAllHumans = () => {
+    setSelectedHumanOwners(new Set(owners.map(o => o.id)))
+  }
+
+  const selectNoHumans = () => {
+    setSelectedHumanOwners(new Set())
   }
 
   const forceCloseItem = async () => {
@@ -425,8 +535,15 @@ export default function AdminAuction() {
         )}
 
         {/* Current Status */}
-        <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Auction Status</h2>
+        <div className={`bg-slate-900 rounded-xl border p-6 ${auction?.is_test ? 'border-purple-500/50' : 'border-slate-800'}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Auction Status</h2>
+            {auction?.is_test && (
+              <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
+                TEST MODE
+              </span>
+            )}
+          </div>
 
           {auction ? (
             <div className="space-y-4">
@@ -491,7 +608,61 @@ export default function AdminAuction() {
                 >
                   End & Clear Data
                 </button>
+                {auction.is_test && (
+                  <button
+                    onClick={completeReset}
+                    disabled={actionLoading}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    Complete Reset
+                  </button>
+                )}
               </div>
+
+              {/* Bot Controls (Test Mode Only) */}
+              {auction.is_test && (
+                <div className="mt-6 pt-4 border-t border-slate-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-white font-medium">Bot Controls</h3>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm ${botsRunning ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {botsRunning ? '● Bots Active' : '○ Bots Paused'}
+                      </span>
+                      <button
+                        onClick={() => setBotsEnabled(!botsEnabled)}
+                        className={`px-3 py-1 rounded-lg font-medium text-sm ${
+                          botsEnabled
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        {botsEnabled ? 'Disable Bots' : 'Enable Bots'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-500">Bot Owners</p>
+                      <p className="text-white font-medium">{auction.bot_owner_ids?.length || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Bot Ticks</p>
+                      <p className="text-white font-medium">{tickCount}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Last Action</p>
+                      <p className={`font-medium ${
+                        botLastAction?.action === 'bid' || botLastAction?.action === 'nominated'
+                          ? 'text-emerald-400'
+                          : 'text-slate-400'
+                      }`}>
+                        {botLastAction?.action || 'None'}
+                        {botLastAction?.player && ` - ${botLastAction.player}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-slate-400">No active auction</p>
@@ -576,68 +747,124 @@ export default function AdminAuction() {
 
         {/* Start New Auction */}
         {!auction && (
-          <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Start New Auction</h2>
+          <div className="space-y-6">
+            {/* Test Auction Card */}
+            <div className="bg-slate-900 rounded-xl border border-purple-500/50 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-lg font-semibold text-white">Start Test Auction</h2>
+                <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs font-medium">
+                  Recommended for practice
+                </span>
+              </div>
 
-            <div className="mb-6">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={sandboxMode}
-                  onChange={(e) => setSandboxMode(e.target.checked)}
-                  className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
-                />
-                <div>
-                  <span className="text-white font-medium">Sandbox Mode</span>
-                  <p className="text-slate-400 text-sm">Test auction without affecting real data. Data clears when you end the auction.</p>
+              <p className="text-slate-400 text-sm mb-6">
+                Run a test draft with bots. All data can be completely reset afterward, including rosters and contracts.
+              </p>
+
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-white font-medium">Select Human Participants</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={selectAllHumans}
+                      className="px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded hover:bg-slate-600"
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={selectNoHumans}
+                      className="px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded hover:bg-slate-600"
+                    >
+                      None
+                    </button>
+                  </div>
                 </div>
-              </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {owners.map(owner => {
+                    const isHuman = selectedHumanOwners.has(owner.id)
+                    return (
+                      <button
+                        key={owner.id}
+                        onClick={() => toggleHumanOwner(owner.id)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium text-left transition-colors ${
+                          isHuman
+                            ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/50'
+                            : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600'
+                        }`}
+                      >
+                        <span className="mr-2">{isHuman ? '👤' : '🤖'}</span>
+                        {owner.owner_name}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="mt-3 text-sm text-slate-500">
+                  {selectedHumanOwners.size} humans, {owners.length - selectedHumanOwners.size} bots
+                </p>
+              </div>
+
+              <button
+                onClick={startTestAuction}
+                disabled={actionLoading || selectedHumanOwners.size === 0}
+                className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                Start Test Auction
+              </button>
             </div>
 
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white font-medium">Nomination Order</h3>
-                <button
-                  onClick={randomizeOrder}
-                  className="px-3 py-1 text-sm bg-slate-700 text-slate-300 rounded hover:bg-slate-600"
-                >
-                  Randomize
-                </button>
-              </div>
-              <div className="space-y-2">
-                {nominationOrder.map((ownerId, index) => {
-                  const owner = owners.find(o => o.id === ownerId)
-                  return (
-                    <div key={ownerId} className="flex items-center gap-3 bg-slate-800 rounded-lg px-4 py-2">
-                      <span className="text-slate-500 w-6">{index + 1}.</span>
-                      <span className="text-white flex-1">{owner?.owner_name}</span>
-                      <button
-                        onClick={() => moveOwnerUp(index)}
-                        disabled={index === 0}
-                        className="p-1 text-slate-400 hover:text-white disabled:opacity-30"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        onClick={() => moveOwnerDown(index)}
-                        disabled={index === nominationOrder.length - 1}
-                        className="p-1 text-slate-400 hover:text-white disabled:opacity-30"
-                      >
-                        ↓
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+            {/* Production Auction Card */}
+            <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Start Production Auction</h2>
 
-            <button
-              onClick={startAuction}
-              disabled={actionLoading}
-              className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg font-bold text-lg hover:bg-emerald-700 disabled:opacity-50"
-            >
-              {sandboxMode ? 'Start Sandbox Auction' : 'Start Auction'}
-            </button>
+              <p className="text-slate-400 text-sm mb-6">
+                Start the real draft. Use this for the actual live auction.
+              </p>
+
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-white font-medium">Nomination Order</h3>
+                  <button
+                    onClick={randomizeOrder}
+                    className="px-3 py-1 text-sm bg-slate-700 text-slate-300 rounded hover:bg-slate-600"
+                  >
+                    Randomize
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {nominationOrder.map((ownerId, index) => {
+                    const owner = owners.find(o => o.id === ownerId)
+                    return (
+                      <div key={ownerId} className="flex items-center gap-3 bg-slate-800 rounded-lg px-4 py-2">
+                        <span className="text-slate-500 w-6">{index + 1}.</span>
+                        <span className="text-white flex-1">{owner?.owner_name}</span>
+                        <button
+                          onClick={() => moveOwnerUp(index)}
+                          disabled={index === 0}
+                          className="p-1 text-slate-400 hover:text-white disabled:opacity-30"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => moveOwnerDown(index)}
+                          disabled={index === nominationOrder.length - 1}
+                          className="p-1 text-slate-400 hover:text-white disabled:opacity-30"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <button
+                onClick={startAuction}
+                disabled={actionLoading}
+                className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg font-bold text-lg hover:bg-emerald-700 disabled:opacity-50"
+              >
+                Start Production Auction
+              </button>
+            </div>
           </div>
         )}
       </main>

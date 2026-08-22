@@ -20,6 +20,8 @@ export interface Auction {
   timer_duration: number // seconds
   timer_reset_threshold: number // reset if under this
   timer_reset_to: number // reset to this value
+  is_test?: boolean // Test mode flag for practice auctions
+  bot_owner_ids?: string[] // Array of owner_ids that are bots
   created_at: string
   updated_at: string
 }
