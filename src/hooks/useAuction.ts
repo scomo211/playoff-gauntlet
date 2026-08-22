@@ -47,23 +47,38 @@ export function useAuction() {
 
       if (auctionData) {
         // Get current item (active or recently sold for celebration display)
-        const { data: itemData } = await supabase
+        // Prioritize active items, fall back to recently sold
+        const { data: activeItem } = await supabase
           .from('salarycap_auction_item')
           .select('*, player:salarycap_players(*), nominator:salarycap_owners!nominated_by(*), high_bidder:salarycap_owners!current_high_bidder(*)')
           .eq('auction_id', auctionData.id)
-          .in('status', ['active', 'sold'])
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .single()
+          .eq('status', 'active')
+          .maybeSingle()
 
-        setCurrentItem(itemData || null)
+        let currentItemData = activeItem
+
+        if (!activeItem) {
+          // No active item - check for recently sold (for celebration)
+          const { data: soldItem } = await supabase
+            .from('salarycap_auction_item')
+            .select('*, player:salarycap_players(*), nominator:salarycap_owners!nominated_by(*), high_bidder:salarycap_owners!current_high_bidder(*)')
+            .eq('auction_id', auctionData.id)
+            .eq('status', 'sold')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          currentItemData = soldItem
+        }
+
+        setCurrentItem(currentItemData || null)
 
         // Get recent bids for current item
-        if (itemData) {
+        if (currentItemData) {
           const { data: bidsData } = await supabase
             .from('salarycap_auction_bids')
             .select('*, owner:salarycap_owners(*)')
-            .eq('auction_item_id', itemData.id)
+            .eq('auction_item_id', currentItemData.id)
             .order('created_at', { ascending: false })
             .limit(10)
 
