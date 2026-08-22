@@ -82,6 +82,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       player_id: auctionItem.player_id,
     })
 
+    // Create contract record (years to be finalized post-draft)
+    await supabase.from('salarycap_contracts').insert({
+      player_id: auctionItem.player_id,
+      owner_id: auctionItem.current_high_bidder,
+      salary: auctionItem.current_bid,
+      years_total: 1,
+      years_remaining: 1,
+      contract_status: 'active',
+      acquisition_type: 'auction',
+      acquisition_year: new Date().getFullYear(),
+    })
+
     // Calculate next nominator
     // Need to find the next owner who hasn't filled their roster
     let nextNominatorIndex = (auction.current_nominator_index + 1) % auction.nomination_order.length

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
+import { PlayerAvatar, RookieBadge } from '../../components/ui'
 import { useAuction } from '../../hooks/useAuction'
 import { calculateSecondsRemaining } from '../../types/auction'
+import type { Position } from '../../lib/salarycap-types'
 
 // Constants
 const BASE_CAP = 400
@@ -20,12 +22,6 @@ const DEMO_CURRENT_ITEM = {
   high_bidder: { owner_name: 'Tim Meyers' },
 }
 
-const DEMO_BIDS = [
-  { name: 'Tim Meyers', amount: 97, isYou: false },
-  { name: 'Scott Moran', amount: 95, isYou: true },
-  { name: 'Johnny Goodwin', amount: 92, isYou: false },
-]
-
 const DEMO_RESULTS = [
   { id: '1', player: { name: 'Ja\'Marr Chase', position: 'WR', is_rookie: false }, winner: { owner_name: 'Zach Moore' }, winning_bid: 142 },
   { id: '2', player: { name: 'CeeDee Lamb', position: 'WR', is_rookie: false }, winner: { owner_name: 'Ryan Hossick' }, winning_bid: 138 },
@@ -42,48 +38,12 @@ function initials(name: string): string {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('')
 }
 
-// Position colors
-const POS_COLOR: Record<string, string> = {
-  QB: 'text-pos-qb', RB: 'text-pos-rb', WR: 'text-pos-wr',
-  TE: 'text-pos-te', K: 'text-pos-k', DEF: 'text-pos-def',
-}
 
-// Avatar component matching renders.html
-function Avatar({ name, position, size = 'md' }: { name: string; position: string; size?: 'sm' | 'md' | 'lg' }) {
-  const sizeClasses = {
-    sm: 'w-[30px] h-[30px] rounded-[8px] text-[10.5px]',
-    md: 'w-[42px] h-[42px] rounded-[11px] text-[12.5px]',
-    lg: 'w-[84px] h-[84px] rounded-[20px] text-[25px]',
-  }
-  const posSize = {
-    sm: 'text-[6px] py-[1px]',
-    md: 'text-[7.5px] py-[2px]',
-    lg: 'text-[10px] py-[4px] tracking-[0.14em]',
-  }
-  return (
-    <div className={`${sizeClasses[size]} bg-surface-well border border-hairline-strong flex items-center justify-center font-data font-bold text-[#4d5766] flex-none relative overflow-hidden`}>
-      {initials(name)}
-      <span className={`absolute bottom-0 left-0 right-0 ${posSize[size]} font-bold tracking-[0.1em] bg-[rgba(9,12,17,0.85)] text-center ${POS_COLOR[position] || 'text-fg-subtle'}`}>
-        {position}
-      </span>
-    </div>
-  )
-}
-
-// Rookie badge
-function RookieBadge() {
-  return (
-    <span className="inline-block font-data text-[9px] font-bold text-gold-500 bg-gold-500/15 px-[5px] py-[1px] rounded-[4px] ml-[6px]">
-      R
-    </span>
-  )
-}
 
 export default function Auction() {
   const {
     auction,
     currentItem,
-    recentBids,
     recentResults,
     owners,
     ownerStates,
@@ -110,6 +70,16 @@ export default function Auction() {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const bidRef = useRef<HTMLDivElement>(null)
   const prevBid = useRef(0)
+
+  // Celebration state - tracks sold items for 4-second display
+  const [celebrationData, setCelebrationData] = useState<{
+    playerName: string
+    winnerName: string
+    price: number
+    endTime: number
+    sleeperId?: string
+    position?: string
+  } | null>(null)
 
   // Timer state
   const [secondsLeft, setSecondsLeft] = useState(0)
@@ -161,6 +131,32 @@ export default function Auction() {
       prevBid.current = currentItem.current_bid
     }
   }, [currentItem, currentItem?.current_bid])
+
+  // Capture sold item for celebration display
+  useEffect(() => {
+    if (currentItem?.status === 'sold' && !celebrationData) {
+      setCelebrationData({
+        playerName: currentItem.player?.name || 'Unknown',
+        winnerName: (currentItem as any).high_bidder?.owner_name || 'Unknown',
+        price: currentItem.current_bid,
+        endTime: Date.now() + 4000,
+        sleeperId: (currentItem.player as any)?.sleeper_player_id,
+        position: currentItem.player?.position,
+      })
+    }
+  }, [currentItem?.status, celebrationData])
+
+  // Clear celebration after 4 seconds
+  useEffect(() => {
+    if (!celebrationData) return
+    const remaining = celebrationData.endTime - Date.now()
+    if (remaining <= 0) {
+      setCelebrationData(null)
+      return
+    }
+    const timeout = setTimeout(() => setCelebrationData(null), remaining)
+    return () => clearTimeout(timeout)
+  }, [celebrationData])
 
   // Filter and sort players by fantasy rank
   const filteredPlayers = useMemo(() => {
@@ -256,11 +252,6 @@ export default function Auction() {
   // Use demo data when auction hasn't started
   const showDemo = auctionNotStarted
   const displayItem = showDemo ? DEMO_CURRENT_ITEM : currentItem
-  const displayBids = showDemo ? DEMO_BIDS : recentBids.slice(0, 3).map(b => ({
-    name: b.owner?.owner_name || 'Unknown',
-    amount: b.amount,
-    isYou: b.owner_id === myOwnerId,
-  }))
   const displayResults = showDemo ? DEMO_RESULTS : recentResults
 
   const isHighBidder = showDemo ? false : currentItem?.current_high_bidder === myOwnerId
@@ -274,6 +265,7 @@ export default function Auction() {
   const clockWarn = displaySecondsLeft <= 10 && displaySecondsLeft > 3
   const clockCrit = displaySecondsLeft <= 3 && displaySecondsLeft > 0
   const isSold = !showDemo && currentItem?.status === 'sold'
+  const isInCelebration = celebrationData !== null && Date.now() < celebrationData.endTime
 
   // Deadline countdown calculations
   const deadlineTotalSecs = Math.floor(deadlineTimeLeft / 1000)
@@ -318,17 +310,28 @@ export default function Auction() {
       )}
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-[1fr_272px] gap-[22px] items-start max-[940px]:grid-cols-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_280px] gap-[20px] items-start max-[940px]:grid-cols-1">
         {/* Main area */}
-        <div>
+        <div className="min-w-0">
           {/* Stage */}
-          <div className="bg-surface-panel border border-hairline rounded-[18px] px-[22px] py-[20px]">
+          <div className={`rounded-[18px] px-[22px] py-[20px] transition-all duration-300 ${
+            isSold
+              ? 'bg-gold-500/5 border-2 border-gold-500/40 shadow-[0_0_20px_rgba(234,179,8,0.15)]'
+              : isHighBidder
+              ? 'bg-field-500/5 border-2 border-field-500/40 shadow-[0_0_20px_rgba(5,150,105,0.15)]'
+              : 'bg-surface-panel border border-hairline'
+          }`}>
             {displayItem ? (
               <>
-                <div className="grid grid-cols-[84px_1fr_auto] gap-[18px] items-center max-[600px]:grid-cols-[60px_1fr] max-[600px]:gap-y-[12px]">
-                  <Avatar name={displayItem.player?.name || ''} position={displayItem.player?.position || ''} size="lg" />
+                <div className="flex items-start gap-[18px] max-[600px]:flex-col">
+                  <PlayerAvatar
+                    name={displayItem.player?.name || ''}
+                    position={(displayItem.player?.position || 'QB') as Position}
+                    sleeperId={(displayItem.player as any)?.sleeper_player_id}
+                    size="lg"
+                  />
 
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="font-display font-semibold text-[22px] tracking-[-0.01em]">
                       {displayItem.player?.name}
                       {displayItem.player?.is_rookie && <RookieBadge />}
@@ -336,32 +339,38 @@ export default function Auction() {
                     <div className="font-data text-[11.5px] text-fg-subtle mt-1">
                       {displayItem.player?.nfl_team || 'FA'}
                     </div>
-                    <div className="font-data text-[10.5px] text-fg-subtle mt-[9px]">
-                      {displayBids.map((b, i) => (
-                        <span key={i}>
-                          {i > 0 && ' ← '}
-                          <span className={i === 0 ? 'font-bold text-fg-muted' : b.isYou ? 'text-gold-500' : ''}>
-                            {b.name} ${b.amount}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
                   </div>
 
-                  <div className="text-right max-[600px]:col-span-full max-[600px]:text-left">
-                    <div ref={bidRef} className="font-data font-bold text-[58px] tracking-[-0.04em] leading-[0.95] tabular-nums max-[600px]:text-[50px]">
+                  <div className="text-right max-[600px]:text-left max-[600px]:w-full">
+                    <div ref={bidRef} className={`font-data font-bold text-[52px] tracking-[-0.04em] leading-[0.95] tabular-nums transition-colors duration-300 ${
+                      isSold ? 'text-gold-500' : isHighBidder ? 'text-field-500' : 'text-fg'
+                    }`}>
                       ${displayItem.current_bid}
                     </div>
-                    <div className="text-[12px] text-fg-muted mt-[5px]">
-                      {isSold ? (
-                        <b className="text-gold-500">Sold to {(displayItem as any).high_bidder?.owner_name} · ${displayItem.current_bid}</b>
-                      ) : isHighBidder ? (
-                        <b className="text-gold-500">You lead</b>
-                      ) : (
-                        `${(displayItem as any).high_bidder?.owner_name || 'Unknown'} leads`
-                      )}
-                    </div>
                   </div>
+                </div>
+
+                {/* High bidder indicator - prominent */}
+                <div className={`mt-[14px] py-[10px] px-[14px] rounded-[10px] text-center ${
+                  isSold
+                    ? 'bg-gold-500/15 border border-gold-500/30'
+                    : isHighBidder
+                    ? 'bg-field-500/15 border border-field-500/30'
+                    : 'bg-surface-well border border-hairline'
+                }`}>
+                  {isSold ? (
+                    <span className="font-semibold text-[14px] text-gold-500">
+                      Sold to {(displayItem as any).high_bidder?.owner_name} for ${displayItem.current_bid}
+                    </span>
+                  ) : isHighBidder ? (
+                    <span className="font-semibold text-[14px] text-field-500">
+                      You are the high bidder
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-[14px] text-fg">
+                      High bidder: <span className="text-gold-500">{(displayItem as any).high_bidder?.owner_name || 'Unknown'}</span>
+                    </span>
+                  )}
                 </div>
 
                 {/* Clock row */}
@@ -419,6 +428,24 @@ export default function Auction() {
                   <div className="mt-3 text-center font-data text-[11px] text-flag">{bidError}</div>
                 )}
               </>
+            ) : isInCelebration && celebrationData ? (
+              <div className="py-[24px]">
+                <div className="flex flex-col items-center gap-[16px]">
+                  <PlayerAvatar
+                    name={celebrationData.playerName}
+                    position={(celebrationData.position || 'QB') as Position}
+                    sleeperId={celebrationData.sleeperId}
+                    size="lg"
+                  />
+                  <div className="text-center">
+                    <div className="font-data text-[11px] tracking-[0.14em] uppercase text-gold-500 mb-[6px]">SOLD!</div>
+                    <div className="font-display font-bold text-[24px] text-fg mb-[4px]">{celebrationData.playerName}</div>
+                    <div className="text-[14px] text-fg-muted">
+                      to <span className="font-semibold text-fg">{celebrationData.winnerName}</span> for <span className="font-data font-bold text-gold-500">${celebrationData.price}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="text-center py-[30px]">
                 {auctionPaused ? (
@@ -477,80 +504,86 @@ export default function Auction() {
             </button>
           </div>
 
-          {/* Two-column: Available + Sold */}
-          <div className="grid grid-cols-[1.45fr_1fr] gap-[20px] items-start mt-[6px] max-[780px]:grid-cols-1">
-            {/* Available */}
-            <div>
-              <div className="flex justify-between items-center pb-[9px] border-b border-hairline-strong mb-[4px]">
-                <h3 className="text-[13px] font-semibold">Available</h3>
-                <span className="font-data text-[9.5px] tracking-[0.08em] uppercase text-fg-subtle">{filteredPlayers.length} of {availablePlayers.length}</span>
-              </div>
-              <div className="max-h-[320px] overflow-auto">
-                {filteredPlayers.length === 0 ? (
-                  <div className="py-[22px] text-center text-fg-subtle text-[12.5px]">No players match those filters.</div>
-                ) : (
-                  filteredPlayers.slice(0, 50).map(player => (
-                    <div
-                      key={player.id}
-                      onClick={() => canNominate && openNominateModal(player)}
-                      className={`grid grid-cols-[32px_30px_1fr_auto] gap-[8px] items-center py-[9px] border-b border-hairline last:border-none text-[12.5px] ${
-                        canNominate ? 'cursor-pointer hover:bg-surface-well/50' : ''
-                      }`}
-                    >
-                      {/* Rank */}
-                      <span className="font-data text-[11px] font-bold tabular-nums text-fg-subtle">
-                        {player.fantasy_rank ?? '—'}
-                      </span>
-                      <Avatar name={player.name} position={player.position} size="sm" />
-                      <div>
-                        <span>{player.name}</span>
-                        {player.is_rookie && <RookieBadge />}
-                        <div className="font-data text-[9.5px] text-fg-subtle mt-[1px]">{player.nfl_team || 'FA'}</div>
-                      </div>
-                      <span className="font-data font-bold text-gold-500 text-[12.5px]">
-                        {/* Market value placeholder */}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
+          {/* Available Players - Full Width */}
+          <div className="mt-[6px]">
+            <div className="flex justify-between items-center pb-[9px] border-b border-hairline-strong mb-[4px]">
+              <h3 className="text-[13px] font-semibold">Available</h3>
+              <span className="font-data text-[9.5px] tracking-[0.08em] uppercase text-fg-subtle">{filteredPlayers.length} of {availablePlayers.length}</span>
             </div>
-
-            {/* Sold */}
-            <div>
-              <div className="flex justify-between items-center pb-[9px] border-b border-hairline-strong mb-[4px]">
-                <h3 className="text-[13px] font-semibold">Sold</h3>
-                <span className="font-data text-[9.5px] tracking-[0.08em] uppercase text-fg-subtle">{displayResults.length} sold</span>
-              </div>
-              <div className="max-h-[320px] overflow-auto">
-                {displayResults.length === 0 ? (
-                  <div className="py-[22px] text-center text-fg-subtle text-[12.5px]">No sales yet.</div>
-                ) : (
-                  displayResults.slice(0, 30).map(result => {
-                    const isMine = !showDemo && (result as any).winner_id === myOwnerId
-                    return (
-                      <div
-                        key={result.id}
-                        className={`grid grid-cols-[30px_1fr_auto] gap-[10px] items-center py-[9px] border-b border-hairline last:border-none text-[12.5px] ${
-                          isMine ? 'bg-field-500/[0.09] mx-[-8px] px-[8px] rounded-[7px]' : ''
-                        }`}
-                      >
-                        <Avatar name={result.player?.name || ''} position={result.player?.position || ''} size="sm" />
-                        <div>
-                          <span>{result.player?.name}</span>
-                          {result.player?.is_rookie && <RookieBadge />}
-                          <div className={`font-data text-[9.5px] mt-[1px] ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
-                            → {result.winner?.owner_name}
-                          </div>
-                        </div>
-                        <span className="font-data font-bold text-gold-500 text-[12.5px] tabular-nums">${result.winning_bid}</span>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
+            <div className="max-h-[400px] overflow-auto">
+              {filteredPlayers.length === 0 ? (
+                <div className="py-[22px] text-center text-fg-subtle text-[12.5px]">No players match those filters.</div>
+              ) : (
+                filteredPlayers.slice(0, 75).map(player => (
+                  <div
+                    key={player.id}
+                    onClick={() => canNominate && openNominateModal(player)}
+                    className={`grid grid-cols-[32px_30px_1fr_auto] gap-[8px] items-center py-[9px] border-b border-hairline last:border-none text-[12.5px] ${
+                      canNominate ? 'cursor-pointer hover:bg-surface-well/50' : ''
+                    }`}
+                  >
+                    {/* Rank */}
+                    <span className="font-data text-[11px] font-bold tabular-nums text-fg-subtle">
+                      {player.fantasy_rank ?? '—'}
+                    </span>
+                    <PlayerAvatar
+                      name={player.name}
+                      position={player.position as Position}
+                      sleeperId={player.sleeper_player_id}
+                      size="sm"
+                    />
+                    <div>
+                      <span>{player.name}</span>
+                      {player.is_rookie && <RookieBadge />}
+                      <div className="font-data text-[9.5px] text-fg-subtle mt-[1px]">{player.nfl_team || 'FA'}</div>
+                    </div>
+                    <span className="font-data font-bold text-gold-500 text-[12.5px]">
+                      {/* Market value placeholder */}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
+
+          {/* Recently Sold - Horizontal Scroll */}
+          {displayResults.length > 0 && (
+            <div className="mt-[18px]">
+              <div className="flex justify-between items-center pb-[9px] border-b border-hairline-strong mb-[10px]">
+                <h3 className="text-[13px] font-semibold">Recently Sold</h3>
+                <span className="font-data text-[9.5px] tracking-[0.08em] uppercase text-fg-subtle">{displayResults.length} sold</span>
+              </div>
+              <div className="flex gap-[10px] overflow-x-auto pb-[8px] -mx-[4px] px-[4px]">
+                {displayResults.slice(0, 12).map(result => {
+                  const isMine = !showDemo && (result as any).winner_id === myOwnerId
+                  return (
+                    <div
+                      key={result.id}
+                      className={`flex-none w-[140px] bg-surface-well rounded-[10px] p-[10px] ${
+                        isMine ? 'ring-1 ring-field-500/50' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-[8px] mb-[6px]">
+                        <PlayerAvatar
+                          name={result.player?.name || ''}
+                          position={(result.player?.position || 'QB') as Position}
+                          sleeperId={(result.player as any)?.sleeper_player_id}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[11px] font-semibold truncate">{result.player?.name}</div>
+                          <div className={`font-data text-[9px] ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
+                            {result.winner?.owner_name}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="font-data font-bold text-gold-500 text-[14px] tabular-nums">${result.winning_bid}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {canNominate && (
             <div className="mt-4 p-3 bg-field-500/15 border border-field-500/30 rounded-[13px] text-center">
@@ -583,20 +616,103 @@ export default function Auction() {
               </div>
             </div>
 
-            <div className="max-h-[230px] overflow-auto">
-              {(myOwnerState?.draftedPlayers || []).map(result => (
-                <div key={result.id} className="grid grid-cols-[26px_1fr_auto] gap-[9px] items-center py-[8px] border-b border-hairline last:border-none text-[12.5px]">
-                  <Avatar name={result.player?.name || ''} position={result.player?.position || ''} size="sm" />
-                  <span className="truncate">
-                    {result.player?.name}
-                    {result.player?.is_rookie && <RookieBadge />}
-                  </span>
-                  <span className="font-data font-bold tabular-nums text-gold-500">${result.winning_bid}</span>
-                </div>
-              ))}
-              {(myOwnerState?.draftedPlayers || []).length === 0 && (
-                <div className="py-[12px] text-center text-fg-subtle text-[11px]">No players drafted yet</div>
-              )}
+            <div className="max-h-[320px] overflow-auto">
+              {(() => {
+                // Combine all players into a unified list
+                const allPlayers: Array<{
+                  id: string
+                  name: string
+                  position: string
+                  sleeperId?: string
+                  salary: number
+                  badge?: 'TAG' | 'KEPT' | 'FA' | 'DRAFT'
+                  isRookie?: boolean
+                }> = []
+
+                // Add existing contracts
+                ;(myOwnerState?.existingContracts || []).forEach(c => {
+                  allPlayers.push({
+                    id: `contract-${c.id}`,
+                    name: (c.player as any)?.name || '',
+                    position: (c.player as any)?.position || 'QB',
+                    sleeperId: (c.player as any)?.sleeper_player_id,
+                    salary: c.salary,
+                    badge: c.is_franchise_tagged ? 'TAG' : 'KEPT',
+                  })
+                })
+
+                // Add signed free agents
+                ;(myOwnerState?.signedFreeAgents || []).forEach(fa => {
+                  allPlayers.push({
+                    id: `fa-${fa.id}`,
+                    name: (fa.player as any)?.name || '',
+                    position: (fa.player as any)?.position || 'QB',
+                    sleeperId: (fa.player as any)?.sleeper_player_id,
+                    salary: 5,
+                    badge: 'FA',
+                  })
+                })
+
+                // Add drafted players
+                ;(myOwnerState?.draftedPlayers || []).forEach(r => {
+                  allPlayers.push({
+                    id: `draft-${r.id}`,
+                    name: r.player?.name || '',
+                    position: r.player?.position || 'QB',
+                    sleeperId: r.player?.sleeper_player_id,
+                    salary: r.winning_bid,
+                    badge: 'DRAFT',
+                    isRookie: r.player?.is_rookie,
+                  })
+                })
+
+                // Group by position in order: QB, RB, WR, TE
+                const positionOrder = ['QB', 'RB', 'WR', 'TE']
+                const grouped = positionOrder.map(pos => ({
+                  position: pos,
+                  players: allPlayers
+                    .filter(p => p.position === pos)
+                    .sort((a, b) => b.salary - a.salary), // Sort by salary descending
+                })).filter(g => g.players.length > 0)
+
+                if (allPlayers.length === 0) {
+                  return <div className="py-[12px] text-center text-fg-subtle text-[11px]">No players on roster yet</div>
+                }
+
+                return grouped.map(group => (
+                  <div key={group.position} className="mb-[8px] last:mb-0">
+                    <div className="font-data text-[9px] font-bold tracking-[0.1em] uppercase text-fg-subtle mb-[4px] px-[2px]">
+                      {group.position}
+                    </div>
+                    {group.players.map(player => (
+                      <div key={player.id} className="grid grid-cols-[26px_1fr_auto] gap-[9px] items-center py-[6px] text-[12px]">
+                        <PlayerAvatar
+                          name={player.name}
+                          position={player.position as Position}
+                          sleeperId={player.sleeperId}
+                          size="sm"
+                        />
+                        <span className="truncate">
+                          {player.name}
+                          {player.badge === 'TAG' && (
+                            <span className="ml-1 text-[8px] font-bold text-amber-500 bg-amber-500/15 px-[4px] py-[1px] rounded-[3px]">TAG</span>
+                          )}
+                          {player.badge === 'KEPT' && (
+                            <span className="ml-1 text-[8px] font-bold text-fg-subtle bg-surface-well px-[4px] py-[1px] rounded-[3px]">KEPT</span>
+                          )}
+                          {player.badge === 'FA' && (
+                            <span className="ml-1 text-[8px] font-bold text-purple-400 bg-purple-500/15 px-[4px] py-[1px] rounded-[3px]">FA</span>
+                          )}
+                          {player.isRookie && <RookieBadge />}
+                        </span>
+                        <span className={`font-data font-bold tabular-nums ${player.badge === 'DRAFT' ? 'text-gold-500' : 'text-fg-muted'}`}>
+                          ${player.salary}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              })()}
             </div>
           </div>
 
@@ -644,7 +760,12 @@ export default function Auction() {
           <div className="bg-surface-panel border border-hairline rounded-[18px] p-[24px] max-w-[400px] w-full mx-4 shadow-xl">
             <h3 className="font-display font-semibold text-[18px] mb-[20px]">Nominate Player</h3>
             <div className="flex items-center gap-[16px] mb-[24px]">
-              <Avatar name={selectedPlayer.name} position={selectedPlayer.position} size="lg" />
+              <PlayerAvatar
+                name={selectedPlayer.name}
+                position={selectedPlayer.position as Position}
+                sleeperId={selectedPlayer.sleeper_player_id}
+                size="lg"
+              />
               <div>
                 <div className="font-semibold text-[16px]">
                   {selectedPlayer.name}

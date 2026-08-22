@@ -88,58 +88,111 @@ export function useAuction() {
 
       setOwners(ownersData || [])
 
-      // Calculate owner states
-      if (auctionData && ownersData) {
+      // Calculate owner states (including pre-draft roster data)
+      if (ownersData) {
         const newOwnerStates = new Map<string, OwnerAuctionState>()
 
         for (const owner of ownersData) {
-          const { data: ownerResults } = await supabase
-            .from('salarycap_auction_results')
-            .select('*, player:salarycap_players(*)')
-            .eq('auction_id', auctionData.id)
-            .eq('winner_id', owner.id)
+          // Get auction results for this owner
+          const { data: ownerResults } = auctionData
+            ? await supabase
+                .from('salarycap_auction_results')
+                .select('*, player:salarycap_players(*)')
+                .eq('auction_id', auctionData.id)
+                .eq('winner_id', owner.id)
+            : { data: [] }
 
-          const totalSpent = ownerResults?.reduce((sum, r) => sum + r.winning_bid, 0) || 0
+          // Get existing contracts (kept players + franchise tags)
+          const { data: existingContracts } = await supabase
+            .from('salarycap_contracts')
+            .select('id, player_id, salary, years_remaining, is_franchise_tagged, player:salarycap_players(*)')
+            .eq('owner_id', owner.id)
+            .or('contract_status.eq.active,is_franchise_tagged.eq.true')
+
+          // Get signed free agent pickups ($5 each)
+          const { data: signedFAs } = await supabase
+            .from('salarycap_free_agent_pickups')
+            .select('id, player_id, player:salarycap_players(*)')
+            .eq('owner_id', owner.id)
+            .eq('offseason_decision', 'sign_fa')
+
+          // Get dead cap
+          const { data: deadCapEntries } = await supabase
+            .from('salarycap_dead_cap')
+            .select('amount')
+            .eq('owner_id', owner.id)
+            .gt('years_remaining', 0)
+
+          // Get bonus cap
+          const { data: bonusCapEntries } = await supabase
+            .from('salarycap_bonus_cap')
+            .select('amount_2026')
+            .eq('owner_id', owner.id)
+
+          // Calculate pre-draft totals
+          const existingContractSalary = (existingContracts || []).reduce((sum, c) => sum + (c.salary || 0), 0)
+          const signedFASalary = (signedFAs?.length || 0) * 5
+          const deadCapTotal = (deadCapEntries || []).reduce((sum, d) => sum + (d.amount || 0), 0)
+          const bonusCapTotal = (bonusCapEntries || []).reduce((sum, b) => sum + (b.amount_2026 || 0), 0)
+
+          // Auction spending
+          const auctionSpent = (ownerResults || []).reduce((sum, r) => sum + r.winning_bid, 0)
           const playersWon = ownerResults?.length || 0
-          const remainingCap = SALARY_CAP - totalSpent
-          const rosterSlotsRemaining = ROSTER_SIZE - playersWon
+
+          // Combined totals
+          const preDraftPlayers = (existingContracts?.length || 0) + (signedFAs?.length || 0)
+          const totalSpent = existingContractSalary + signedFASalary + auctionSpent + deadCapTotal
+          const effectiveCap = SALARY_CAP + bonusCapTotal
+          const remainingCap = effectiveCap - totalSpent
+          const rosterSlotsFilled = preDraftPlayers + playersWon
+          const rosterSlotsRemaining = ROSTER_SIZE - rosterSlotsFilled
 
           newOwnerStates.set(owner.id, {
             owner,
             totalSpent,
             remainingCap,
             playersWon,
-            rosterSlotsFilled: playersWon,
+            rosterSlotsFilled,
             rosterSlotsRemaining,
             maxBid: calculateMaxBid(remainingCap, rosterSlotsRemaining),
             draftedPlayers: ownerResults || [],
+            existingContracts: (existingContracts || []) as any,
+            signedFreeAgents: (signedFAs || []) as any,
+            deadCap: deadCapTotal,
+            bonusCap: bonusCapTotal,
           })
         }
 
         setOwnerStates(newOwnerStates)
       }
 
-      // Get available players (not drafted yet)
-      const { data: draftedPlayerIds } = await supabase
-        .from('salarycap_auction_results')
-        .select('player_id')
-        .eq('auction_id', auctionData?.id || '')
+      // Get available players (same logic as Free Agents page)
+      // 1. Get players drafted in current auction
+      const { data: draftedPlayerIds } = auctionData
+        ? await supabase
+            .from('salarycap_auction_results')
+            .select('player_id')
+            .eq('auction_id', auctionData.id)
+        : { data: [] }
 
       const draftedIds = new Set(draftedPlayerIds?.map(r => r.player_id) || [])
 
-      // Get players not under contract and not drafted
+      // 2. Get players with active contracts or franchise tags (same as Free Agents page)
       const { data: contractedPlayerIds } = await supabase
         .from('salarycap_contracts')
         .select('player_id')
+        .or('contract_status.eq.active,is_franchise_tagged.eq.true')
 
       const contractedIds = new Set(contractedPlayerIds?.map(c => c.player_id) || [])
 
+      // Get all active players
       const { data: allPlayers } = await supabase
         .from('salarycap_players')
         .select('*')
         .eq('is_active', true)
         .order('name')
 
+      // Filter: not drafted in current auction AND not under contract
       const available = (allPlayers || []).filter(
         p => !draftedIds.has(p.id) && !contractedIds.has(p.id)
       )

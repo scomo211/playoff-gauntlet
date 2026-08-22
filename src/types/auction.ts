@@ -69,6 +69,23 @@ export interface AuctionResult {
 // Computed/View Types
 // ============================================
 
+export interface PreDraftContract {
+  id: string
+  player_id: string
+  salary: number
+  years_remaining: number
+  is_franchise_tagged: boolean
+  // Supabase join returns object, type loosely to avoid issues
+  player?: SalaryCapPlayer | Record<string, unknown>
+}
+
+export interface PreDraftFreeAgent {
+  id: string
+  player_id: string
+  // Supabase join returns object, type loosely to avoid issues
+  player?: SalaryCapPlayer | Record<string, unknown>
+}
+
 export interface OwnerAuctionState {
   owner: SalaryCapOwner
   totalSpent: number
@@ -78,6 +95,11 @@ export interface OwnerAuctionState {
   rosterSlotsRemaining: number
   maxBid: number // remainingCap - (rosterSlotsRemaining - 1)
   draftedPlayers: AuctionResult[]
+  // Pre-draft roster state
+  existingContracts?: PreDraftContract[]
+  signedFreeAgents?: PreDraftFreeAgent[]
+  deadCap?: number
+  bonusCap?: number
 }
 
 export interface AuctionState {
