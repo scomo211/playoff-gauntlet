@@ -170,6 +170,20 @@ export default function Auction() {
     prevSecondsRef.current = secondsLeft
   }, [secondsLeft, playSound])
 
+  // Sound: you won the auction (needs currentItem which comes from useAuction)
+  const isItemSoldToMe = currentItem?.status === 'sold' &&
+    currentItem?.celebration_end_at &&
+    new Date(currentItem.celebration_end_at).getTime() > Date.now() &&
+    currentItem?.current_high_bidder === myOwnerId
+  useEffect(() => {
+    if (isItemSoldToMe && currentItem) {
+      if (wonItemRef.current !== currentItem.id) {
+        playSound('won')
+        wonItemRef.current = currentItem.id
+      }
+    }
+  }, [isItemSoldToMe, currentItem, playSound])
+
   // Filter and sort players by fantasy rank
   const filteredPlayers = useMemo(() => {
     const filtered = availablePlayers.filter(p => {
@@ -285,17 +299,6 @@ export default function Auction() {
   const isInCelebration = !showDemo && currentItem?.status === 'sold' &&
     currentItem.celebration_end_at &&
     new Date(currentItem.celebration_end_at).getTime() > Date.now()
-
-  // Sound: you won the auction
-  useEffect(() => {
-    if (isInCelebration && currentItem && currentItem.current_high_bidder === myOwnerId) {
-      // Only play once per item
-      if (wonItemRef.current !== currentItem.id) {
-        playSound('won')
-        wonItemRef.current = currentItem.id
-      }
-    }
-  }, [isInCelebration, currentItem, myOwnerId, playSound])
 
   // Deadline countdown calculations
   const deadlineTotalSecs = Math.floor(deadlineTimeLeft / 1000)
