@@ -80,6 +80,7 @@ export default function Auction() {
   const wasHighBidderRef = useRef(false)
   const prevBidCountRef = useRef(0)
   const prevSecondsRef = useRef(0)
+  const wonItemRef = useRef<string | null>(null)
 
   // Timer state
   const [secondsLeft, setSecondsLeft] = useState(0)
@@ -286,7 +287,6 @@ export default function Auction() {
     new Date(currentItem.celebration_end_at).getTime() > Date.now()
 
   // Sound: you won the auction
-  const wonItemRef = useRef<string | null>(null)
   useEffect(() => {
     if (isInCelebration && currentItem && currentItem.current_high_bidder === myOwnerId) {
       // Only play once per item
