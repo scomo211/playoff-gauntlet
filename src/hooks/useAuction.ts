@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useIsSalaryCapOwner } from './useSalaryCap'
+import { useAllOwnersRosters } from './useOwnerRoster'
 import type {
   Auction,
   AuctionItem,
@@ -8,11 +9,7 @@ import type {
   AuctionResult,
   OwnerAuctionState,
 } from '../types/auction'
-import { calculateMaxBid } from '../types/auction'
 import type { SalaryCapOwner, SalaryCapPlayer } from '../types/salarycap'
-
-const ROSTER_SIZE = 24
-const SALARY_CAP = 400
 
 export function useAuction() {
   const { ownerId: myOwnerId } = useIsSalaryCapOwner()
@@ -22,10 +19,16 @@ export function useAuction() {
   const [recentBids, setRecentBids] = useState<AuctionBid[]>([])
   const [recentResults, setRecentResults] = useState<AuctionResult[]>([])
   const [owners, setOwners] = useState<SalaryCapOwner[]>([])
-  const [ownerStates, setOwnerStates] = useState<Map<string, OwnerAuctionState>>(new Map())
   const [availablePlayers, setAvailablePlayers] = useState<SalaryCapPlayer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Use shared roster hook for all owners
+  const ownerIds = useMemo(() => owners.map(o => o.id), [owners])
+  const { ownerRosters, refetch: refetchRosters } = useAllOwnersRosters(ownerIds, {
+    includeAuctionResults: true,
+    auctionId: auction?.id,
+  })
 
   // Fetch initial data
   const fetchAuctionData = useCallback(async () => {
@@ -104,91 +107,6 @@ export function useAuction() {
         .order('owner_name')
 
       setOwners(ownersData || [])
-
-      // Calculate owner states (including pre-draft roster data)
-      if (ownersData) {
-        const newOwnerStates = new Map<string, OwnerAuctionState>()
-
-        for (const owner of ownersData) {
-          // Get auction results for this owner
-          const { data: ownerResults } = auctionData
-            ? await supabase
-                .from('salarycap_auction_results')
-                .select('*, player:salarycap_players(*)')
-                .eq('auction_id', auctionData.id)
-                .eq('winner_id', owner.id)
-            : { data: [] }
-
-          // Get existing contracts (kept players + franchise tags)
-          const { data: allContracts } = await supabase
-            .from('salarycap_contracts')
-            .select('id, player_id, salary, years_remaining, is_franchise_tagged, player:salarycap_players(*)')
-            .eq('owner_id', owner.id)
-            .or('contract_status.eq.active,is_franchise_tagged.eq.true')
-
-          // Filter out players who were just drafted in THIS auction (to avoid duplicates)
-          // They're already shown in the draftedPlayers list
-          const currentAuctionPlayerIds = new Set(ownerResults?.map(r => r.player_id) || [])
-          const existingContracts = (allContracts || []).filter(
-            c => !currentAuctionPlayerIds.has(c.player_id)
-          )
-
-          // Get signed free agent pickups ($5 each)
-          const { data: signedFAs } = await supabase
-            .from('salarycap_free_agent_pickups')
-            .select('id, player_id, player:salarycap_players(*)')
-            .eq('owner_id', owner.id)
-            .eq('offseason_decision', 'sign_fa')
-
-          // Get dead cap
-          const { data: deadCapEntries } = await supabase
-            .from('salarycap_dead_cap')
-            .select('amount')
-            .eq('owner_id', owner.id)
-            .gt('years_remaining', 0)
-
-          // Get bonus cap
-          const { data: bonusCapEntries } = await supabase
-            .from('salarycap_bonus_cap')
-            .select('amount_2026')
-            .eq('owner_id', owner.id)
-
-          // Calculate pre-draft totals
-          const existingContractSalary = (existingContracts || []).reduce((sum, c) => sum + (c.salary || 0), 0)
-          const signedFASalary = (signedFAs?.length || 0) * 5
-          const deadCapTotal = (deadCapEntries || []).reduce((sum, d) => sum + (d.amount || 0), 0)
-          const bonusCapTotal = (bonusCapEntries || []).reduce((sum, b) => sum + (b.amount_2026 || 0), 0)
-
-          // Auction spending
-          const auctionSpent = (ownerResults || []).reduce((sum, r) => sum + r.winning_bid, 0)
-          const playersWon = ownerResults?.length || 0
-
-          // Combined totals
-          const preDraftPlayers = (existingContracts?.length || 0) + (signedFAs?.length || 0)
-          const totalSpent = existingContractSalary + signedFASalary + auctionSpent + deadCapTotal
-          const effectiveCap = SALARY_CAP + bonusCapTotal
-          const remainingCap = effectiveCap - totalSpent
-          const rosterSlotsFilled = preDraftPlayers + playersWon
-          const rosterSlotsRemaining = ROSTER_SIZE - rosterSlotsFilled
-
-          newOwnerStates.set(owner.id, {
-            owner,
-            totalSpent,
-            remainingCap,
-            playersWon,
-            rosterSlotsFilled,
-            rosterSlotsRemaining,
-            maxBid: calculateMaxBid(remainingCap, rosterSlotsRemaining),
-            draftedPlayers: ownerResults || [],
-            existingContracts: (existingContracts || []) as any,
-            signedFreeAgents: (signedFAs || []) as any,
-            deadCap: deadCapTotal,
-            bonusCap: bonusCapTotal,
-          })
-        }
-
-        setOwnerStates(newOwnerStates)
-      }
 
       // Get available players (same logic as Free Agents page)
       // 1. Get players drafted in current auction
@@ -280,6 +198,57 @@ export function useAuction() {
     }
   }, [fetchAuctionData])
 
+  // Build ownerStates from shared roster hook + auction results
+  const ownerStates = useMemo(() => {
+    const states = new Map<string, OwnerAuctionState>()
+
+    for (const owner of owners) {
+      const roster = ownerRosters.get(owner.id)
+      if (!roster) continue
+
+      // Get this owner's auction results from recentResults
+      const draftedPlayers = recentResults.filter(r => r.winner_id === owner.id)
+      const playersWon = draftedPlayers.length
+
+      // Split roster players by source for display
+      const existingContracts = roster.players
+        .filter(p => p.source === 'contract')
+        .map(p => ({
+          id: p.id,
+          player_id: p.player_id,
+          salary: p.salary,
+          years_remaining: p.years_remaining || 0,
+          is_franchise_tagged: p.is_franchise_tagged || false,
+          player: p.player,
+        }))
+
+      const signedFreeAgents = roster.players
+        .filter(p => p.source === 'free_agent')
+        .map(p => ({
+          id: p.id,
+          player_id: p.player_id,
+          player: p.player,
+        }))
+
+      states.set(owner.id, {
+        owner,
+        totalSpent: roster.totalSalary + roster.deadCap,
+        remainingCap: roster.capSpace,
+        playersWon,
+        rosterSlotsFilled: roster.rosterCount,
+        rosterSlotsRemaining: roster.rosterSlotsRemaining,
+        maxBid: roster.maxBid,
+        draftedPlayers,
+        existingContracts: existingContracts as any,
+        signedFreeAgents: signedFreeAgents as any,
+        deadCap: roster.deadCap,
+        bonusCap: roster.bonusCap,
+      })
+    }
+
+    return states
+  }, [owners, ownerRosters, recentResults])
+
   // Computed values
   const isMyTurn = auction
     ? auction.nomination_order[auction.current_nominator_index] === myOwnerId
@@ -334,6 +303,12 @@ export function useAuction() {
     return response.json()
   }
 
+  // Combined refetch for auction data and rosters
+  const refetch = useCallback(() => {
+    fetchAuctionData()
+    refetchRosters()
+  }, [fetchAuctionData, refetchRosters])
+
   return {
     // State
     auction,
@@ -356,6 +331,6 @@ export function useAuction() {
     nominate,
     placeBid,
     closeAuction,
-    refetch: fetchAuctionData,
+    refetch,
   }
 }
