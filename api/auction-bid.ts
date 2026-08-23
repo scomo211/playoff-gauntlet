@@ -41,6 +41,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'This auction has already ended' })
     }
 
+    // Check if auction is paused
+    if (auctionItem.auction.status !== 'active') {
+      return res.status(400).json({ error: 'Auction is paused' })
+    }
+
     // Check if timer has expired
     const timerEndAt = new Date(auctionItem.timer_end_at).getTime()
     const now = Date.now()

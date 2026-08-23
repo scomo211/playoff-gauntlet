@@ -64,7 +64,6 @@ export default function Auction() {
   const [rookiesOnly, setRookiesOnly] = useState(false)
   const [playerPage, setPlayerPage] = useState(0)
   const [soldPage, setSoldPage] = useState(0)
-  const [customBid, setCustomBid] = useState('')
   const [showNominateModal, setShowNominateModal] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<typeof availablePlayers[0] | null>(null)
   const [nominateBidAmount, setNominateBidAmount] = useState('1')
@@ -460,11 +459,11 @@ export default function Auction() {
                       {!showingCelebration && (
                         <div className="flex gap-[9px] items-center mt-[16px]">
                           <button
-                            onClick={() => !showDemo && displayItem && handleBid(customBid ? parseInt(customBid, 10) : displayItem.current_bid + 1)}
+                            onClick={() => !showDemo && displayItem && handleBid(displayItem.current_bid + 1)}
                             disabled={!canBid || bidding || showDemo}
                             className="flex-1 bg-field-500 text-[#04150c] font-data font-bold text-[17px] py-[17px] rounded-[13px] hover:bg-field-600 disabled:opacity-40 disabled:pointer-events-none transition-colors"
                           >
-                            Bid ${customBid || (displayItem?.current_bid || 0) + 1}
+                            Bid ${(displayItem?.current_bid || 0) + 1}
                           </button>
                           <button
                             onClick={() => handleBid((displayItem?.current_bid || 0) + 5)}
@@ -473,15 +472,6 @@ export default function Auction() {
                           >
                             +$5
                           </button>
-                          <input
-                            type="number"
-                            value={customBid}
-                            onChange={(e) => setCustomBid(e.target.value)}
-                            onFocus={(e) => e.target.select()}
-                            placeholder={String((displayItem?.current_bid || 0) + 1)}
-                            disabled={showDemo}
-                            className="w-[70px] bg-surface-well border border-hairline-strong text-fg font-data font-bold text-[16px] text-center rounded-[13px] py-[16px] px-[4px] disabled:opacity-40"
-                          />
                         </div>
                       )}
 

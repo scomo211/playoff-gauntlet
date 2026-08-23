@@ -53,6 +53,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const auction = auctionItem.auction
 
+    // Don't auto-close if auction is paused (unless force close from admin)
+    if (!force_close && auction.status !== 'active') {
+      return res.status(400).json({ error: 'Auction is paused' })
+    }
+
     // Calculate celebration end time (10 seconds from now)
     const celebrationEndAt = new Date(Date.now() + 10000).toISOString()
 
