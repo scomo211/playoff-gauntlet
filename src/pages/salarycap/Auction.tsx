@@ -566,35 +566,33 @@ export default function Auction() {
                   </div>
                 )}
               </div>
-              <div className="flex gap-[8px]">
+              <div className="space-y-[6px]">
                 {displayResults.slice(soldPage * 5, (soldPage + 1) * 5).map(result => {
                   const isMine = !showDemo && (result as any).winner_id === myOwnerId
                   return (
                     <div
                       key={result.id}
-                      className={`flex-1 min-w-0 bg-surface-well rounded-[6px] p-[6px] ${
+                      className={`flex items-center gap-[12px] bg-surface-well rounded-[10px] px-[12px] py-[10px] ${
                         isMine ? 'ring-1 ring-field-500/50' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-[6px]">
-                        {/* Avatar with price badge */}
-                        <div className="relative flex-shrink-0">
-                          <PlayerAvatar
-                            name={result.player?.name || ''}
-                            position={(result.player?.position || 'QB') as Position}
-                            sleeperId={(result.player as any)?.sleeper_player_id}
-                            size="sm"
-                          />
-                          <div className="absolute -bottom-[2px] -right-[2px] bg-gold-500 text-surface font-data font-bold text-[8px] px-[3px] py-[1px] rounded-[3px] leading-none">
-                            ${result.winning_bid}
-                          </div>
+                      {/* Avatar */}
+                      <PlayerAvatar
+                        name={result.player?.name || ''}
+                        position={(result.player?.position || 'QB') as Position}
+                        sleeperId={(result.player as any)?.sleeper_player_id}
+                        size="sm"
+                      />
+                      {/* Player name and owner */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-semibold truncate">{result.player?.name}</div>
+                        <div className={`font-data text-[11px] ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
+                          {result.winner?.owner_name}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[10px] font-semibold truncate leading-tight">{result.player?.name}</div>
-                          <div className={`font-data text-[8px] leading-tight ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
-                            {result.winner?.owner_name}
-                          </div>
-                        </div>
+                      </div>
+                      {/* Price on far right */}
+                      <div className="font-data font-bold text-[16px] text-gold-500 tabular-nums">
+                        ${result.winning_bid}
                       </div>
                     </div>
                   )
