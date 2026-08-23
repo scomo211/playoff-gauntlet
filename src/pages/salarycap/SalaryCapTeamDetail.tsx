@@ -8,7 +8,7 @@ import RookieBadge from '../../components/salarycap/RookieBadge'
 import { isDeadlinePassed } from '../../components/salarycap/DeadlineBanner'
 import { useSalaryCapSettings, useIsSalaryCapOwner } from '../../hooks/useSalaryCap'
 import { supabase } from '../../lib/supabase'
-import { calculateDeadCap, getFranchiseTagCost, FRANCHISE_TAG_COSTS } from '../../types/salarycap'
+import { calculateDeadCap, getFranchiseTagCost } from '../../types/salarycap'
 
 // Draft availability calendar structure
 const DRAFT_CALENDAR = [

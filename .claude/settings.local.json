@@ -188,7 +188,8 @@
       "Bash(jq:*)",
       "WebFetch(domain:docs.sleeper.app)",
       "Bash(git config:*)",
-      "Bash(npx dotenv:*)"
+      "Bash(npx dotenv:*)",
+      "Bash(gh run:*)"
     ]
   }
 }

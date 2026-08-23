@@ -100,7 +100,7 @@ export function useOwnerRoster(
             rosterPlayers.push({
               id: result.id,
               player_id: result.player_id,
-              player: result.player as SalaryCapPlayer,
+              player: result.player as unknown as SalaryCapPlayer,
               salary: result.winning_bid,
               source: 'auction',
             })
@@ -120,7 +120,7 @@ export function useOwnerRoster(
       // Add contracts that aren't already in auction results (avoid duplicates)
       for (const contract of contracts || []) {
         if (!auctionPlayerIds.has(contract.player_id) && contract.player) {
-          const player = contract.player as SalaryCapPlayer
+          const player = contract.player as unknown as SalaryCapPlayer
           // Use franchise tag cost if player is franchise tagged
           const salary = contract.is_franchise_tagged
             ? getFranchiseTagCost(player.position, contract.salary || 0)
@@ -154,7 +154,7 @@ export function useOwnerRoster(
           rosterPlayers.push({
             id: fa.id,
             player_id: fa.player_id,
-            player: fa.player as SalaryCapPlayer,
+            player: fa.player as unknown as SalaryCapPlayer,
             salary: 5, // FA pickups are $5
             source: 'free_agent',
           })
