@@ -62,6 +62,7 @@ export default function Auction() {
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [rookiesOnly, setRookiesOnly] = useState(false)
   const [playerPage, setPlayerPage] = useState(0)
+  const [soldPage, setSoldPage] = useState(0)
   const [customBid, setCustomBid] = useState('')
   const [showNominateModal, setShowNominateModal] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<typeof availablePlayers[0] | null>(null)
@@ -470,8 +471,75 @@ export default function Auction() {
             )}
           </div>
 
+          {/* Recently Sold - Paginated, 5 per page */}
+          {displayResults.length > 0 && (
+            <div className="mt-[14px]">
+              <div className="flex justify-between items-center mb-[10px]">
+                <h3 className="text-[12px] font-semibold text-fg-muted">Recently Sold</h3>
+                {displayResults.length > 5 && (
+                  <div className="flex items-center gap-[8px]">
+                    <button
+                      onClick={() => setSoldPage(p => Math.max(0, p - 1))}
+                      disabled={soldPage === 0}
+                      className="font-data text-[10px] text-fg-subtle hover:text-fg disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      ←
+                    </button>
+                    <div className="flex gap-[4px]">
+                      {Array.from({ length: Math.ceil(displayResults.length / 5) }).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setSoldPage(i)}
+                          className={`w-[6px] h-[6px] rounded-full transition-colors ${
+                            soldPage === i ? 'bg-gold-500' : 'bg-hairline-strong hover:bg-fg-subtle'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setSoldPage(p => Math.min(Math.ceil(displayResults.length / 5) - 1, p + 1))}
+                      disabled={soldPage >= Math.ceil(displayResults.length / 5) - 1}
+                      className="font-data text-[10px] text-fg-subtle hover:text-fg disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-[8px]">
+                {displayResults.slice(soldPage * 5, (soldPage + 1) * 5).map(result => {
+                  const isMine = !showDemo && (result as any).winner_id === myOwnerId
+                  return (
+                    <div
+                      key={result.id}
+                      className={`flex-1 min-w-0 bg-surface-well rounded-[8px] p-[8px] ${
+                        isMine ? 'ring-1 ring-field-500/50' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-[6px] mb-[4px]">
+                        <PlayerAvatar
+                          name={result.player?.name || ''}
+                          position={(result.player?.position || 'QB') as Position}
+                          sleeperId={(result.player as any)?.sleeper_player_id}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[10px] font-semibold truncate">{result.player?.name}</div>
+                          <div className={`font-data text-[8px] ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
+                            {result.winner?.owner_name}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="font-data font-bold text-gold-500 text-[12px] tabular-nums">${result.winning_bid}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Filters */}
-          <div className="flex gap-[8px] mt-[22px] items-center flex-wrap">
+          <div className="flex gap-[8px] mt-[18px] items-center flex-wrap">
             <input
               type="text"
               placeholder="Search players…"
@@ -571,45 +639,6 @@ export default function Auction() {
               )}
             </div>
           </div>
-
-          {/* Recently Sold - Horizontal Scroll */}
-          {displayResults.length > 0 && (
-            <div className="mt-[18px]">
-              <div className="flex justify-between items-center pb-[9px] border-b border-hairline-strong mb-[10px]">
-                <h3 className="text-[13px] font-semibold">Recently Sold</h3>
-                <span className="font-data text-[9.5px] tracking-[0.08em] uppercase text-fg-subtle">{displayResults.length} sold</span>
-              </div>
-              <div className="flex gap-[10px] overflow-x-auto py-[4px] -mx-[4px] px-[4px]">
-                {displayResults.slice(0, 12).map(result => {
-                  const isMine = !showDemo && (result as any).winner_id === myOwnerId
-                  return (
-                    <div
-                      key={result.id}
-                      className={`flex-none w-[140px] bg-surface-well rounded-[10px] p-[10px] ${
-                        isMine ? 'ring-1 ring-field-500/50' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-[8px] mb-[6px]">
-                        <PlayerAvatar
-                          name={result.player?.name || ''}
-                          position={(result.player?.position || 'QB') as Position}
-                          sleeperId={(result.player as any)?.sleeper_player_id}
-                          size="sm"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[11px] font-semibold truncate">{result.player?.name}</div>
-                          <div className={`font-data text-[9px] ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
-                            {result.winner?.owner_name}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="font-data font-bold text-gold-500 text-[14px] tabular-nums">${result.winning_bid}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
 
           {canNominate && (
             <div className="mt-4 p-3 bg-field-500/15 border border-field-500/30 rounded-[13px] text-center">
