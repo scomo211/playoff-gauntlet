@@ -474,24 +474,32 @@ export default function Auction() {
                       </div>
 
                       {/* Action row - hide during celebration */}
-                      {!showingCelebration && (
-                        <div className="flex gap-[9px] items-center mt-[16px]">
-                          <button
-                            onClick={() => !showDemo && displayItem && handleBid(displayItem.current_bid + 1)}
-                            disabled={!canBid || bidding || showDemo}
-                            className="flex-1 bg-field-500 text-[#04150c] font-data font-bold text-[17px] py-[17px] rounded-[13px] hover:bg-field-600 disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                          >
-                            Bid ${(displayItem?.current_bid || 0) + 1}
-                          </button>
-                          <button
-                            onClick={() => handleBid((displayItem?.current_bid || 0) + 5)}
-                            disabled={!canBid || bidding || showDemo || ((displayItem?.current_bid || 0) + 5) > (myOwnerState?.maxBid || 0)}
-                            className="w-[70px] bg-field-500/20 text-field-500 font-data font-bold text-[15px] py-[17px] rounded-[13px] hover:bg-field-500/30 disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                          >
-                            +$5
-                          </button>
-                        </div>
-                      )}
+                      {!showingCelebration && (() => {
+                        const nextBid = (displayItem?.current_bid || 0) + 1
+                        const plus5Bid = (displayItem?.current_bid || 0) + 5
+                        const maxBid = myOwnerState?.maxBid || 0
+                        const canBidPlus1 = canBid && nextBid <= maxBid
+                        const canBidPlus5 = canBid && plus5Bid <= maxBid
+
+                        return (
+                          <div className="flex gap-[9px] items-center mt-[16px]">
+                            <button
+                              onClick={() => !showDemo && displayItem && handleBid(nextBid)}
+                              disabled={!canBidPlus1 || bidding || showDemo}
+                              className="flex-1 bg-field-500 text-[#04150c] font-data font-bold text-[17px] py-[17px] rounded-[13px] hover:bg-field-600 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                            >
+                              Bid ${nextBid}
+                            </button>
+                            <button
+                              onClick={() => handleBid(plus5Bid)}
+                              disabled={!canBidPlus5 || bidding || showDemo}
+                              className="w-[70px] bg-field-500/20 text-field-500 font-data font-bold text-[15px] py-[17px] rounded-[13px] hover:bg-field-500/30 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                            >
+                              +$5
+                            </button>
+                          </div>
+                        )
+                      })()}
 
                       {/* Celebration overlay with winner info */}
                       {showingCelebration && (
