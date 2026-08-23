@@ -72,16 +72,6 @@ export default function Auction() {
   const bidRef = useRef<HTMLDivElement>(null)
   const prevBid = useRef(0)
 
-  // Celebration state - tracks sold items for 4-second display
-  const [celebrationData, setCelebrationData] = useState<{
-    playerName: string
-    winnerName: string
-    price: number
-    endTime: number
-    sleeperId?: string
-    position?: string
-  } | null>(null)
-
   // Timer state
   const [secondsLeft, setSecondsLeft] = useState(0)
 
@@ -133,19 +123,7 @@ export default function Auction() {
     }
   }, [currentItem, currentItem?.current_bid])
 
-  // Note: Celebration is now triggered directly from the close response in checkTimer above
-
-  // Clear celebration after 4 seconds
-  useEffect(() => {
-    if (!celebrationData) return
-    const remaining = celebrationData.endTime - Date.now()
-    if (remaining <= 0) {
-      setCelebrationData(null)
-      return
-    }
-    const timeout = setTimeout(() => setCelebrationData(null), remaining)
-    return () => clearTimeout(timeout)
-  }, [celebrationData])
+  // Celebration is now server-side (based on currentItem.celebration_end_at)
 
   // Filter and sort players by fantasy rank
   const filteredPlayers = useMemo(() => {
@@ -168,32 +146,20 @@ export default function Auction() {
     setPlayerPage(0)
   }, [searchQuery, positionFilter, rookiesOnly])
 
-  // Auto-close auction when timer expires and trigger celebration
+  // Auto-close auction when timer expires
+  // The API sets celebration_end_at which all clients can see via real-time
   useEffect(() => {
     if (!currentItem || currentItem.status !== 'active') return
 
     const checkTimer = async () => {
       const remaining = calculateSecondsRemaining(currentItem.timer_end_at)
       if (remaining <= 0) {
-        // Call close and trigger celebration from the response
-        const response = await fetch('/api/auction-close', {
+        // Call close - celebration is handled server-side via celebration_end_at
+        await fetch('/api/auction-close', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ auction_item_id: currentItem.id }),
         })
-        const data = await response.json()
-
-        if (data.success && data.result) {
-          // Trigger celebration immediately from close response
-          setCelebrationData({
-            playerName: data.result.player_name,
-            winnerName: data.result.winner_name,
-            price: data.result.winning_bid,
-            endTime: Date.now() + 5000,
-            sleeperId: (currentItem.player as any)?.sleeper_player_id,
-            position: currentItem.player?.position,
-          })
-        }
       }
     }
 
@@ -270,7 +236,10 @@ export default function Auction() {
   const clockWarn = displaySecondsLeft <= 10 && displaySecondsLeft > 3
   const clockCrit = displaySecondsLeft <= 3 && displaySecondsLeft > 0
   const isSold = !showDemo && currentItem?.status === 'sold'
-  const isInCelebration = celebrationData !== null && Date.now() < celebrationData.endTime
+  // Server-side celebration: check if sold item has celebration_end_at in the future
+  const isInCelebration = !showDemo && currentItem?.status === 'sold' &&
+    currentItem.celebration_end_at &&
+    new Date(currentItem.celebration_end_at).getTime() > Date.now()
 
   // Deadline countdown calculations
   const deadlineTotalSecs = Math.floor(deadlineTimeLeft / 1000)
@@ -326,18 +295,18 @@ export default function Auction() {
               ? 'bg-field-500/5 border-2 border-field-500/40 shadow-[0_0_20px_rgba(5,150,105,0.15)]'
               : 'bg-surface-panel border border-hairline'
           }`}>
-            {(isInCelebration && celebrationData) || displayItem ? (
+            {isInCelebration || displayItem ? (
               <>
-                {/* Use celebration data when celebrating, otherwise use displayItem */}
+                {/* Display data from currentItem (works for both active bidding and celebration) */}
                 {(() => {
-                  const showingCelebration = isInCelebration && celebrationData
-                  const playerName = showingCelebration ? celebrationData.playerName : displayItem?.player?.name || ''
-                  const playerPosition = showingCelebration ? (celebrationData.position || 'QB') : (displayItem?.player?.position || 'QB')
-                  const playerSleeperId = showingCelebration ? celebrationData.sleeperId : (displayItem?.player as any)?.sleeper_player_id
-                  const playerTeam = showingCelebration ? '' : (displayItem?.player?.nfl_team || 'FA')
-                  const currentPrice = showingCelebration ? celebrationData.price : displayItem?.current_bid || 0
-                  const winnerName = showingCelebration ? celebrationData.winnerName : (displayItem as any)?.high_bidder?.owner_name || 'Unknown'
-                  const isRookie = showingCelebration ? false : displayItem?.player?.is_rookie
+                  const showingCelebration = isInCelebration
+                  const playerName = displayItem?.player?.name || ''
+                  const playerPosition = displayItem?.player?.position || 'QB'
+                  const playerSleeperId = (displayItem?.player as any)?.sleeper_player_id
+                  const playerTeam = displayItem?.player?.nfl_team || 'FA'
+                  const currentPrice = displayItem?.current_bid || 0
+                  const winnerName = (displayItem as any)?.high_bidder?.owner_name || 'Unknown'
+                  const isRookie = displayItem?.player?.is_rookie
 
                   return (
                     <>
@@ -450,10 +419,15 @@ export default function Auction() {
                         </div>
                       )}
 
-                      {/* Show "adding to roster" message during celebration */}
+                      {/* Show "adding to roster" and next nominator during celebration */}
                       {showingCelebration && (
-                        <div className="mt-[16px] text-center">
+                        <div className="mt-[16px] text-center space-y-2">
                           <span className="font-data text-[12px] text-fg-subtle">Adding to roster...</span>
+                          {currentNominator && (
+                            <div className="font-data text-[11px] text-fg-muted">
+                              Up next: <span className="font-semibold text-fg">{currentNominator.owner_name}</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </>

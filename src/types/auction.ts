@@ -35,6 +35,7 @@ export interface AuctionItem {
   current_bid: number
   current_high_bidder: string | null
   timer_end_at: string // ISO timestamp
+  celebration_end_at?: string | null // ISO timestamp - when celebration period ends after sale
   status: AuctionItemStatus
   created_at: string
   // Joined

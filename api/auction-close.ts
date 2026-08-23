@@ -1,87 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 
 const ROSTER_SIZE = 24
 const SPEED_UP_THRESHOLD = 50 // After 50 nominations, speed up
-
-// Bot nomination helper (same logic as auction-bot-tick.ts)
-async function botNominate(supabase: SupabaseClient, auction: any, botOwnerId: string) {
-  // Get players already drafted
-  const { data: draftedPlayers } = await supabase
-    .from('salarycap_auction_results')
-    .select('player_id')
-    .eq('auction_id', auction.id)
-
-  const draftedIds = new Set(draftedPlayers?.map(p => p.player_id) || [])
-
-  // Get players with active contracts
-  const { data: contractedPlayers } = await supabase
-    .from('salarycap_contracts')
-    .select('player_id')
-    .or('contract_status.eq.active,is_franchise_tagged.eq.true')
-
-  const contractedIds = new Set(contractedPlayers?.map(c => c.player_id) || [])
-
-  // Get available players (sorted by fantasy rank)
-  const { data: availablePlayers } = await supabase
-    .from('salarycap_players')
-    .select('id, name, position, fantasy_rank')
-    .eq('is_active', true)
-    .order('fantasy_rank', { ascending: true, nullsFirst: false })
-    .limit(100)
-
-  // Filter to truly available
-  const candidates = (availablePlayers || []).filter(
-    p => !draftedIds.has(p.id) && !contractedIds.has(p.id)
-  )
-
-  if (candidates.length === 0) {
-    return null
-  }
-
-  // Pick from top 30 available
-  const topCandidates = candidates.slice(0, 30)
-  const selectedPlayer = topCandidates[Math.floor(Math.random() * topCandidates.length)]
-
-  const openingBid = 1
-  const timerEndAt = new Date(Date.now() + auction.timer_duration * 1000).toISOString()
-
-  // Create auction item
-  const { data: auctionItem, error: itemError } = await supabase
-    .from('salarycap_auction_item')
-    .insert({
-      auction_id: auction.id,
-      player_id: selectedPlayer.id,
-      nominated_by: botOwnerId,
-      opening_bid: openingBid,
-      current_bid: openingBid,
-      current_high_bidder: botOwnerId,
-      timer_end_at: timerEndAt,
-      status: 'active',
-    })
-    .select()
-    .single()
-
-  if (itemError) return null
-
-  // Record opening bid
-  await supabase.from('salarycap_auction_bids').insert({
-    auction_item_id: auctionItem.id,
-    owner_id: botOwnerId,
-    amount: openingBid,
-  })
-
-  // Update nomination count
-  await supabase
-    .from('salarycap_auction')
-    .update({
-      total_nominations: auction.total_nominations + 1,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', auction.id)
-
-  return { player: selectedPlayer, auctionItem }
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -132,10 +53,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const auction = auctionItem.auction
 
+    // Calculate celebration end time (10 seconds from now)
+    const celebrationEndAt = new Date(Date.now() + 10000).toISOString()
+
     // Atomic update to mark item as sold (prevent double-close)
     const { data: closedItem, error: closeError } = await supabase
       .from('salarycap_auction_item')
-      .update({ status: 'sold' })
+      .update({
+        status: 'sold',
+        celebration_end_at: celebrationEndAt,
+      })
       .eq('id', auction_item_id)
       .eq('status', 'active') // Only update if still active
       .select()
@@ -253,27 +180,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       nextNominator = nominatorData
     }
 
-    // For test auctions: if next nominator is a bot, immediately nominate
-    let botNominated = null
-    if (!draftComplete && auction.is_test && auction.bot_owner_ids?.includes(nextNominatorId)) {
-      // Get fresh auction data with updated nomination count
-      const { data: freshAuction } = await supabase
-        .from('salarycap_auction')
-        .select('*')
-        .eq('id', auction.id)
-        .single()
-
-      if (freshAuction) {
-        const nomination = await botNominate(supabase, freshAuction, nextNominatorId)
-        if (nomination) {
-          botNominated = {
-            player_name: nomination.player.name,
-            position: nomination.player.position,
-            bot_name: nextNominator?.owner_name,
-          }
-        }
-      }
-    }
+    // Note: Bot nomination is now handled by auction-bot-tick.ts after celebration ends
+    // This ensures all clients see the celebration screen before the next item appears
 
     return res.status(200).json({
       success: true,
@@ -286,7 +194,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       next_nominator: nextNominator,
       draft_complete: draftComplete,
       timer_sped_up: newTotalNominations === SPEED_UP_THRESHOLD,
-      bot_nominated: botNominated,
+      celebration_end_at: celebrationEndAt,
       message: draftComplete
         ? 'Draft complete! All rosters are full.'
         : `${auctionItem.player?.name} sold to ${result.winner?.owner_name} for $${auctionItem.current_bid}. ${nextNominator?.owner_name} is up next.`

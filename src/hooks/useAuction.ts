@@ -119,12 +119,14 @@ export function useAuction() {
                 .eq('winner_id', owner.id)
             : { data: [] }
 
-          // Get existing contracts (kept players + franchise tags)
+          // Get existing contracts (kept players + franchise tags, but NOT auction-acquired)
+          // Auction-acquired players are shown in draftedPlayers list instead
           const { data: existingContracts } = await supabase
             .from('salarycap_contracts')
-            .select('id, player_id, salary, years_remaining, is_franchise_tagged, player:salarycap_players(*)')
+            .select('id, player_id, salary, years_remaining, is_franchise_tagged, acquisition_type, player:salarycap_players(*)')
             .eq('owner_id', owner.id)
             .or('contract_status.eq.active,is_franchise_tagged.eq.true')
+            .neq('acquisition_type', 'auction')
 
           // Get signed free agent pickups ($5 each)
           const { data: signedFAs } = await supabase

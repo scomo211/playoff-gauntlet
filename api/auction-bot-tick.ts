@@ -63,6 +63,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // CASE 1: No active item - check if it's a bot's turn to nominate
     if (!currentItem) {
+      // First check if we're in a celebration period (recently sold item)
+      const { data: recentlySold } = await supabase
+        .from('salarycap_auction_item')
+        .select('celebration_end_at')
+        .eq('auction_id', auction_id)
+        .eq('status', 'sold')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (recentlySold?.celebration_end_at) {
+        const celebrationEndAt = new Date(recentlySold.celebration_end_at).getTime()
+        if (Date.now() < celebrationEndAt) {
+          return res.status(200).json({
+            success: true,
+            action: 'waiting',
+            reason: 'Celebration period active'
+          })
+        }
+      }
+
       const currentNominatorId = auction.nomination_order[auction.current_nominator_index]
 
       if (!botOwnerIds.includes(currentNominatorId)) {
