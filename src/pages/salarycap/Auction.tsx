@@ -566,13 +566,13 @@ export default function Auction() {
                   </div>
                 )}
               </div>
-              <div className="space-y-[6px]">
+              <div className="flex gap-[8px]">
                 {displayResults.slice(soldPage * 5, (soldPage + 1) * 5).map(result => {
                   const isMine = !showDemo && (result as any).winner_id === myOwnerId
                   return (
                     <div
                       key={result.id}
-                      className={`flex items-center gap-[12px] bg-surface-well rounded-[10px] px-[12px] py-[10px] ${
+                      className={`flex-1 min-w-0 flex items-center gap-[8px] bg-surface-well rounded-[10px] px-[10px] py-[8px] ${
                         isMine ? 'ring-1 ring-field-500/50' : ''
                       }`}
                     >
@@ -585,13 +585,13 @@ export default function Auction() {
                       />
                       {/* Player name and owner */}
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold truncate">{result.player?.name}</div>
-                        <div className={`font-data text-[11px] ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
+                        <div className="text-[11px] font-semibold truncate">{result.player?.name}</div>
+                        <div className={`font-data text-[9px] ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
                           {result.winner?.owner_name}
                         </div>
                       </div>
                       {/* Price on far right */}
-                      <div className="font-data font-bold text-[16px] text-gold-500 tabular-nums">
+                      <div className="font-data font-bold text-[13px] text-gold-500 tabular-nums">
                         ${result.winning_bid}
                       </div>
                     </div>
