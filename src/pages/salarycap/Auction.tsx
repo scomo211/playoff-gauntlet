@@ -512,25 +512,30 @@ export default function Auction() {
                   return (
                     <div
                       key={result.id}
-                      className={`flex-1 min-w-0 bg-surface-well rounded-[8px] p-[8px] ${
+                      className={`flex-1 min-w-0 bg-surface-well rounded-[6px] p-[6px] ${
                         isMine ? 'ring-1 ring-field-500/50' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-[6px] mb-[4px]">
-                        <PlayerAvatar
-                          name={result.player?.name || ''}
-                          position={(result.player?.position || 'QB') as Position}
-                          sleeperId={(result.player as any)?.sleeper_player_id}
-                          size="sm"
-                        />
+                      <div className="flex items-center gap-[6px]">
+                        {/* Avatar with price badge */}
+                        <div className="relative flex-shrink-0">
+                          <PlayerAvatar
+                            name={result.player?.name || ''}
+                            position={(result.player?.position || 'QB') as Position}
+                            sleeperId={(result.player as any)?.sleeper_player_id}
+                            size="sm"
+                          />
+                          <div className="absolute -bottom-[2px] -right-[2px] bg-gold-500 text-surface font-data font-bold text-[8px] px-[3px] py-[1px] rounded-[3px] leading-none">
+                            ${result.winning_bid}
+                          </div>
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[10px] font-semibold truncate">{result.player?.name}</div>
-                          <div className={`font-data text-[8px] ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
+                          <div className="text-[10px] font-semibold truncate leading-tight">{result.player?.name}</div>
+                          <div className={`font-data text-[8px] leading-tight ${isMine ? 'text-field-500' : 'text-fg-subtle'}`}>
                             {result.winner?.owner_name}
                           </div>
                         </div>
                       </div>
-                      <div className="font-data font-bold text-gold-500 text-[12px] tabular-nums">${result.winning_bid}</div>
                     </div>
                   )
                 })}
