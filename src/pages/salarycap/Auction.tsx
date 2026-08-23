@@ -366,8 +366,8 @@ export default function Auction() {
 
                   return (
                     <>
-                      <div className="flex items-start gap-[18px] max-[600px]:flex-col">
-                        <div className="relative">
+                      <div className="flex items-center gap-[14px] max-[600px]:gap-[10px]">
+                        <div className="relative flex-shrink-0 max-[600px]:scale-[0.6] max-[600px]:origin-left max-[600px]:-mr-[34px]">
                           <PlayerAvatar
                             name={playerName}
                             position={playerPosition as Position}
@@ -384,24 +384,24 @@ export default function Auction() {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="font-display font-semibold text-[22px] tracking-[-0.01em]">
+                          <div className="font-display font-semibold text-[22px] max-[600px]:text-[16px] tracking-[-0.01em] truncate">
                             {playerName}
                             {isRookie && <RookieBadge />}
                           </div>
                           {!showingCelebration && (
-                            <div className="font-data text-[11.5px] text-fg-subtle mt-1">
+                            <div className="font-data text-[11.5px] text-fg-subtle mt-1 max-[600px]:mt-0">
                               {playerTeam}
                             </div>
                           )}
                           {showingCelebration && (
-                            <div className="font-data text-[11px] tracking-[0.14em] uppercase text-gold-500 mt-1 animate-pulse">
+                            <div className="font-data text-[11px] tracking-[0.14em] uppercase text-gold-500 mt-1 max-[600px]:mt-0 animate-pulse">
                               SOLD!
                             </div>
                           )}
                         </div>
 
-                        <div className="text-right max-[600px]:text-left max-[600px]:w-full">
-                          <div ref={bidRef} className={`font-data font-bold text-[52px] tracking-[-0.04em] leading-[0.95] tabular-nums transition-colors duration-300 ${
+                        <div className="text-right flex-shrink-0">
+                          <div ref={bidRef} className={`font-data font-bold text-[52px] max-[600px]:text-[28px] tracking-[-0.04em] leading-[0.95] tabular-nums transition-colors duration-300 ${
                             showingCelebration ? 'text-gold-500' : isSold ? 'text-gold-500' : isHighBidder ? 'text-field-500' : 'text-fg'
                           }`}>
                             ${currentPrice}
