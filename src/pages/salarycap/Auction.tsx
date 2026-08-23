@@ -783,7 +783,7 @@ export default function Auction() {
               <span className="font-data text-[10px] text-fg-subtle tracking-[0.08em]">cap left</span>
             </h3>
 
-            <div className="max-h-[230px] overflow-auto">
+            <div>
               {owners
                 .filter(o => o.id !== myOwnerId)
                 .map(owner => {
