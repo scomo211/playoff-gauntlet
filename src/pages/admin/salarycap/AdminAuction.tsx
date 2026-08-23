@@ -201,17 +201,30 @@ export default function AdminAuction() {
 
   const resumeAuction = async () => {
     setActionLoading(true)
-    const { error } = await supabase
+
+    // Resume the auction status
+    const { error: statusError } = await supabase
       .from('salarycap_auction')
       .update({ status: 'active' })
       .eq('id', auction?.id)
 
-    if (error) {
+    if (statusError) {
       showMessage('error', 'Failed to resume auction')
-    } else {
-      showMessage('success', 'Auction resumed')
-      fetchData()
+      setActionLoading(false)
+      return
     }
+
+    // Reset the timer on the current active item (if any)
+    if (currentItem && auction) {
+      const newTimerEnd = new Date(Date.now() + auction.timer_duration * 1000).toISOString()
+      await supabase
+        .from('salarycap_auction_item')
+        .update({ timer_end_at: newTimerEnd })
+        .eq('id', currentItem.id)
+    }
+
+    showMessage('success', 'Auction resumed - timer reset')
+    fetchData()
     setActionLoading(false)
   }
 

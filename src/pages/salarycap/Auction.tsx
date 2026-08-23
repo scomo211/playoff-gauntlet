@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import SalaryCapLayout from '../../components/salarycap/SalaryCapLayout'
 import { PlayerAvatar, RookieBadge } from '../../components/ui'
 import { useAuction } from '../../hooks/useAuction'
+import { useAuctionSounds } from '../../hooks/useAuctionSounds'
 import { calculateSecondsRemaining } from '../../types/auction'
 import type { Position } from '../../lib/salarycap-types'
 
@@ -73,6 +74,13 @@ export default function Auction() {
   const bidRef = useRef<HTMLDivElement>(null)
   const prevBid = useRef(0)
 
+  // Sound effects
+  const { playSound, muted, toggleMute } = useAuctionSounds()
+  const wasMyTurnRef = useRef(false)
+  const wasHighBidderRef = useRef(false)
+  const prevBidCountRef = useRef(0)
+  const prevSecondsRef = useRef(0)
+
   // Timer state
   const [secondsLeft, setSecondsLeft] = useState(0)
 
@@ -125,6 +133,41 @@ export default function Auction() {
   }, [currentItem, currentItem?.current_bid])
 
   // Celebration is now server-side (based on currentItem.celebration_end_at)
+
+  // Sound: new bid placed
+  useEffect(() => {
+    if (!currentItem) return
+    const bidCount = currentItem.current_bid || 0
+    if (bidCount > prevBidCountRef.current && prevBidCountRef.current > 0) {
+      playSound('bid')
+    }
+    prevBidCountRef.current = bidCount
+  }, [currentItem?.current_bid, playSound])
+
+  // Sound: your turn to nominate
+  useEffect(() => {
+    if (isMyTurn && !wasMyTurnRef.current) {
+      playSound('your-turn')
+    }
+    wasMyTurnRef.current = isMyTurn
+  }, [isMyTurn, playSound])
+
+  // Sound: outbid (you were high bidder, now you're not)
+  const amHighBidder = currentItem?.current_high_bidder === myOwnerId
+  useEffect(() => {
+    if (wasHighBidderRef.current && !amHighBidder && currentItem) {
+      playSound('outbid')
+    }
+    wasHighBidderRef.current = amHighBidder
+  }, [amHighBidder, currentItem, playSound])
+
+  // Sound: timer tick in last 5 seconds
+  useEffect(() => {
+    if (secondsLeft <= 5 && secondsLeft > 0 && secondsLeft < prevSecondsRef.current) {
+      playSound('tick')
+    }
+    prevSecondsRef.current = secondsLeft
+  }, [secondsLeft, playSound])
 
   // Filter and sort players by fantasy rank
   const filteredPlayers = useMemo(() => {
@@ -241,6 +284,18 @@ export default function Auction() {
   const isInCelebration = !showDemo && currentItem?.status === 'sold' &&
     currentItem.celebration_end_at &&
     new Date(currentItem.celebration_end_at).getTime() > Date.now()
+
+  // Sound: you won the auction
+  const wonItemRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (isInCelebration && currentItem && currentItem.current_high_bidder === myOwnerId) {
+      // Only play once per item
+      if (wonItemRef.current !== currentItem.id) {
+        playSound('won')
+        wonItemRef.current = currentItem.id
+      }
+    }
+  }, [isInCelebration, currentItem, myOwnerId, playSound])
 
   // Deadline countdown calculations
   const deadlineTotalSecs = Math.floor(deadlineTimeLeft / 1000)
@@ -383,30 +438,37 @@ export default function Auction() {
 
                       {/* Clock row */}
                       <div className="grid grid-cols-[1fr_auto] gap-[14px] items-center mt-[18px]">
-                        <div className={`h-[7px] rounded-full bg-hairline overflow-hidden ${!showingCelebration && clockCrit ? 'crit' : !showingCelebration && clockWarn ? 'warn' : ''}`}>
+                        <div className={`h-[7px] rounded-full bg-hairline overflow-hidden ${!showingCelebration && !auctionPaused && clockCrit ? 'crit' : !showingCelebration && !auctionPaused && clockWarn ? 'warn' : ''}`}>
                           <i
                             className={`block h-full rounded-full transition-[width] duration-[900ms] ease-linear ${
-                              showingCelebration ? 'bg-gold-500' : clockCrit ? 'bg-flag' : clockWarn ? 'bg-amber' : 'bg-field-500'
+                              showingCelebration ? 'bg-gold-500' : auctionPaused ? 'bg-amber' : clockCrit ? 'bg-flag' : clockWarn ? 'bg-amber' : 'bg-field-500'
                             }`}
-                            style={{ width: showingCelebration ? '100%' : isSold ? '0%' : `${pct}%` }}
+                            style={{ width: showingCelebration ? '100%' : isSold ? '0%' : auctionPaused ? '50%' : `${pct}%` }}
                           />
                         </div>
                         <div className={`min-w-[118px] text-right font-data font-bold text-[19px] tabular-nums ${
-                          showingCelebration || isSold ? 'text-gold-500' : clockCrit ? 'text-flag animate-pulse' : clockWarn ? 'text-amber' : 'text-field-500'
+                          showingCelebration || isSold ? 'text-gold-500' : auctionPaused ? 'text-amber' : clockCrit ? 'text-flag animate-pulse' : clockWarn ? 'text-amber' : 'text-field-500'
                         }`}>
-                          {showingCelebration || isSold ? 'SOLD' : `0:${String(displaySecondsLeft).padStart(2, '0')}${clockWarn ? ' ONCE' : ''}${clockCrit ? ' TWICE' : ''}`}
+                          {showingCelebration || isSold ? 'SOLD' : auctionPaused ? 'PAUSED' : `0:${String(displaySecondsLeft).padStart(2, '0')}${clockWarn ? ' ONCE' : ''}${clockCrit ? ' TWICE' : ''}`}
                         </div>
                       </div>
 
                       {/* Action row - hide during celebration */}
                       {!showingCelebration && (
-                        <div className="flex gap-[9px] items-center mt-[16px] flex-wrap">
+                        <div className="flex gap-[9px] items-center mt-[16px]">
                           <button
                             onClick={() => !showDemo && displayItem && handleBid(customBid ? parseInt(customBid, 10) : displayItem.current_bid + 1)}
                             disabled={!canBid || bidding || showDemo}
-                            className="flex-1 min-w-[180px] bg-field-500 text-[#04150c] font-data font-bold text-[17px] py-[17px] rounded-[13px] hover:bg-field-600 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                            className="flex-1 bg-field-500 text-[#04150c] font-data font-bold text-[17px] py-[17px] rounded-[13px] hover:bg-field-600 disabled:opacity-40 disabled:pointer-events-none transition-colors"
                           >
                             Bid ${customBid || (displayItem?.current_bid || 0) + 1}
+                          </button>
+                          <button
+                            onClick={() => handleBid((displayItem?.current_bid || 0) + 5)}
+                            disabled={!canBid || bidding || showDemo || ((displayItem?.current_bid || 0) + 5) > (myOwnerState?.maxBid || 0)}
+                            className="w-[70px] bg-field-500/20 text-field-500 font-data font-bold text-[15px] py-[17px] rounded-[13px] hover:bg-field-500/30 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                          >
+                            +$5
                           </button>
                           <input
                             type="number"
@@ -415,18 +477,23 @@ export default function Auction() {
                             onFocus={(e) => e.target.select()}
                             placeholder={String((displayItem?.current_bid || 0) + 1)}
                             disabled={showDemo}
-                            className="w-[76px] bg-surface-well border border-hairline-strong text-fg font-data font-bold text-[16px] text-center rounded-[13px] py-[16px] px-[4px] disabled:opacity-40"
+                            className="w-[70px] bg-surface-well border border-hairline-strong text-fg font-data font-bold text-[16px] text-center rounded-[13px] py-[16px] px-[4px] disabled:opacity-40"
                           />
                         </div>
                       )}
 
-                      {/* Show "adding to roster" and next nominator during celebration */}
+                      {/* Celebration overlay with winner info */}
                       {showingCelebration && (
-                        <div className="mt-[16px] text-center space-y-2">
-                          <span className="font-data text-[12px] text-fg-subtle">Adding to roster...</span>
+                        <div className="mt-[20px] py-[16px] px-[20px] bg-gold-500/10 border border-gold-500/30 rounded-[12px] text-center">
+                          <div className="font-display font-bold text-[20px] text-gold-500 mb-[6px]">
+                            {winnerName} wins!
+                          </div>
+                          <div className="font-data text-[13px] text-fg-muted">
+                            {playerName} added to roster for <span className="font-bold text-gold-500">${currentPrice}</span>
+                          </div>
                           {currentNominator && (
-                            <div className="font-data text-[11px] text-fg-muted">
-                              Up next: <span className="font-semibold text-fg">{currentNominator.owner_name}</span>
+                            <div className="font-data text-[11px] text-fg-subtle mt-[10px] pt-[10px] border-t border-gold-500/20">
+                              Up next to nominate: <span className="font-semibold text-fg">{currentNominator.owner_name}</span>
                             </div>
                           )}
                         </div>
@@ -779,7 +846,25 @@ export default function Auction() {
           {/* Owners */}
           <div className="bg-surface-panel border border-hairline rounded-[14px] px-[18px] py-[16px]">
             <h3 className="text-[12.5px] font-semibold mb-[11px] flex justify-between items-center">
-              Owners
+              <span className="flex items-center gap-[8px]">
+                Owners
+                <button
+                  onClick={toggleMute}
+                  className="text-fg-subtle hover:text-fg transition-colors"
+                  title={muted ? 'Unmute sounds' : 'Mute sounds'}
+                >
+                  {muted ? (
+                    <svg className="w-[14px] h-[14px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                  ) : (
+                    <svg className="w-[14px] h-[14px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                  )}
+                </button>
+              </span>
               <span className="font-data text-[10px] text-fg-subtle tracking-[0.08em]">cap left</span>
             </h3>
 
@@ -790,21 +875,25 @@ export default function Auction() {
                   const state = ownerStates.get(owner.id)
                   const isNominating = auction?.nomination_order?.[auction.current_nominator_index] === owner.id
                   const isLow = (state?.remainingCap || 0) < 60
+                  const isFull = (state?.rosterSlotsFilled || 0) >= ROSTER_MAX
 
                   return (
                     <div
                       key={owner.id}
-                      className={`grid grid-cols-[26px_1fr_auto] gap-[9px] items-center py-[8px] border-b border-hairline last:border-none text-[12.5px] ${isNominating ? 'bg-gold-500/10 mx-[-8px] px-[8px] rounded-[7px]' : ''}`}
+                      className={`grid grid-cols-[26px_1fr_auto] gap-[9px] items-center py-[8px] border-b border-hairline last:border-none text-[12.5px] ${isNominating ? 'bg-gold-500/10 mx-[-8px] px-[8px] rounded-[7px]' : ''} ${isFull ? 'opacity-50' : ''}`}
                     >
                       <div className="w-[26px] h-[26px] rounded-[8px] bg-fg-muted flex items-center justify-center font-data text-[10px] font-bold text-[#0d1117]">
                         {initials(owner.owner_name)}
                       </div>
                       <div>
-                        {owner.owner_name}
+                        <span>{owner.owner_name}</span>
+                        {isFull && (
+                          <span className="ml-[6px] text-[8px] font-bold text-red-400 bg-red-500/15 px-[4px] py-[1px] rounded-[3px]">FULL</span>
+                        )}
                         <div className="font-data text-[10px] text-fg-subtle mt-[1px]">{state?.rosterSlotsFilled || 0}/{ROSTER_MAX} filled</div>
                       </div>
-                      <span className={`font-data font-bold text-[12.5px] tabular-nums ${isLow ? 'text-amber' : ''}`}>
-                        ${state?.remainingCap || BASE_CAP}
+                      <span className={`font-data font-bold text-[12.5px] tabular-nums ${isFull ? 'text-fg-subtle' : isLow ? 'text-amber' : ''}`}>
+                        {isFull ? '--' : `$${state?.remainingCap || BASE_CAP}`}
                       </span>
                     </div>
                   )
