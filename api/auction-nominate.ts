@@ -53,6 +53,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'An auction is already in progress. Wait for it to complete.' })
     }
 
+    // Check if there's a celebration in progress (block nominations during celebration)
+    const { data: celebrationItem } = await supabase
+      .from('salarycap_auction_item')
+      .select('id, celebration_end_at')
+      .eq('auction_id', auction.id)
+      .eq('status', 'sold')
+      .gt('celebration_end_at', new Date().toISOString())
+      .limit(1)
+      .single()
+
+    if (celebrationItem) {
+      return res.status(400).json({ error: 'Please wait for the celebration to finish' })
+    }
+
     // Verify it's this owner's turn
     const currentNominatorId = auction.nomination_order[auction.current_nominator_index]
     if (currentNominatorId !== owner_id) {
