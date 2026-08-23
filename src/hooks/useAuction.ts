@@ -50,24 +50,28 @@ export function useAuction() {
 
       if (auctionData) {
         // Get current item - PRIORITIZE celebration over active items
-        // This ensures the celebration screen shows even if a new nomination happens
         let currentItemData = null
 
-        // FIRST: Check for item in active celebration period (takes priority)
-        const { data: celebrationItem } = await supabase
+        // FIRST: Get most recently sold item to check for celebration
+        const { data: recentSoldItem } = await supabase
           .from('salarycap_auction_item')
           .select('*, player:salarycap_players(*), nominator:salarycap_owners!nominated_by(*), high_bidder:salarycap_owners!current_high_bidder(*)')
           .eq('auction_id', auctionData.id)
           .eq('status', 'sold')
-          .gt('celebration_end_at', new Date().toISOString())
           .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle()
 
-        if (celebrationItem) {
-          currentItemData = celebrationItem
+        // Check if this sold item is still in celebration (client-side check)
+        const isInCelebration = recentSoldItem?.celebration_end_at &&
+          new Date(recentSoldItem.celebration_end_at).getTime() > Date.now()
+
+        if (isInCelebration) {
+          // Celebration takes priority - show the sold item
+          currentItemData = recentSoldItem
+          console.log('Celebration active for:', recentSoldItem?.player?.name, 'until', recentSoldItem?.celebration_end_at)
         } else {
-          // No celebration active - check for active bidding item
+          // No celebration - check for active bidding item
           const { data: activeItem } = await supabase
             .from('salarycap_auction_item')
             .select('*, player:salarycap_players(*), nominator:salarycap_owners!nominated_by(*), high_bidder:salarycap_owners!current_high_bidder(*)')
@@ -78,17 +82,8 @@ export function useAuction() {
           if (activeItem) {
             currentItemData = activeItem
           } else {
-            // No active item - show most recently sold (celebration expired)
-            const { data: soldItem } = await supabase
-              .from('salarycap_auction_item')
-              .select('*, player:salarycap_players(*), nominator:salarycap_owners!nominated_by(*), high_bidder:salarycap_owners!current_high_bidder(*)')
-              .eq('auction_id', auctionData.id)
-              .eq('status', 'sold')
-              .order('updated_at', { ascending: false })
-              .limit(1)
-              .maybeSingle()
-
-            currentItemData = soldItem
+            // No active item - show most recently sold (waiting for next nomination)
+            currentItemData = recentSoldItem
           }
         }
 

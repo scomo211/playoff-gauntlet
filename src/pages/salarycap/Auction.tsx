@@ -134,6 +134,24 @@ export default function Auction() {
 
   // Celebration is now server-side (based on currentItem.celebration_end_at)
 
+  // Debug: Log celebration state on every currentItem change
+  useEffect(() => {
+    if (currentItem) {
+      const celebEndAt = currentItem.celebration_end_at
+      const celebEndTime = celebEndAt ? new Date(celebEndAt).getTime() : 0
+      const now = Date.now()
+      console.log('[Auction Debug]', {
+        status: currentItem.status,
+        celebration_end_at: celebEndAt,
+        celebEndTime,
+        now,
+        isCelebrationActive: celebEndAt && celebEndTime > now,
+        timeDiff: celebEndTime - now,
+        playerName: currentItem.player?.name,
+      })
+    }
+  }, [currentItem])
+
   // Sound: new bid placed
   useEffect(() => {
     if (!currentItem) return
