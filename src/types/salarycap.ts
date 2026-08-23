@@ -298,6 +298,22 @@ export const OWNER_MAPPING: Record<string, { sleeper_username: string; owner_nam
 }
 
 // ============================================
+// Franchise Tag Costs
+// ============================================
+
+export const FRANCHISE_TAG_COSTS: Record<string, number> = {
+  QB: 40,
+  RB: 99,
+  WR: 74,
+  TE: 22,
+}
+
+export function getFranchiseTagCost(position: string, previousSalary: number): number {
+  const positionCost = FRANCHISE_TAG_COSTS[position] || 0
+  return Math.max(positionCost, previousSalary)
+}
+
+// ============================================
 // Helper Functions
 // ============================================
 

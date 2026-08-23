@@ -8,7 +8,7 @@ import RookieBadge from '../../components/salarycap/RookieBadge'
 import { isDeadlinePassed } from '../../components/salarycap/DeadlineBanner'
 import { useSalaryCapSettings, useIsSalaryCapOwner } from '../../hooks/useSalaryCap'
 import { supabase } from '../../lib/supabase'
-import { calculateDeadCap } from '../../types/salarycap'
+import { calculateDeadCap, getFranchiseTagCost, FRANCHISE_TAG_COSTS } from '../../types/salarycap'
 
 // Draft availability calendar structure
 const DRAFT_CALENDAR = [
@@ -78,24 +78,11 @@ interface BonusCap {
   amount_2030: number
 }
 
-// Franchise tag costs by position
-const FRANCHISE_TAG_COSTS: Record<string, number> = {
-  QB: 40,
-  RB: 99,
-  WR: 74,
-  TE: 22,
-}
-
 // Format currency with correct negative sign placement: -$5 not $-5
 function formatBonusCap(amount: number, showPlus = true): string {
   if (amount === 0) return '-'
   if (amount > 0) return showPlus ? `+$${amount}` : `$${amount}`
   return `-$${Math.abs(amount)}`
-}
-
-function getFranchiseTagCost(position: string, previousSalary: number): number {
-  const positionCost = FRANCHISE_TAG_COSTS[position] || 0
-  return Math.max(positionCost, previousSalary)
 }
 
 // Donut chart component with math equation layout

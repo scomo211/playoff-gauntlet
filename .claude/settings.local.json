@@ -187,7 +187,8 @@
       "Bash(__NEW_LINE__ echo \"=== Searching for Chase and Bijan in players table ===\")",
       "Bash(jq:*)",
       "WebFetch(domain:docs.sleeper.app)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(npx dotenv:*)"
     ]
   }
 }

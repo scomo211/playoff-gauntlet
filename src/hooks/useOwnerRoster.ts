@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { SalaryCapPlayer } from '../types/salarycap'
+import { getFranchiseTagCost } from '../types/salarycap'
 
 const ROSTER_SIZE = 24
 const SALARY_CAP = 400
@@ -119,13 +120,19 @@ export function useOwnerRoster(
       // Add contracts that aren't already in auction results (avoid duplicates)
       for (const contract of contracts || []) {
         if (!auctionPlayerIds.has(contract.player_id) && contract.player) {
+          const player = contract.player as SalaryCapPlayer
+          // Use franchise tag cost if player is franchise tagged
+          const salary = contract.is_franchise_tagged
+            ? getFranchiseTagCost(player.position, contract.salary || 0)
+            : (contract.salary || 0)
+
           rosterPlayers.push({
             id: contract.id,
             player_id: contract.player_id,
-            player: contract.player as SalaryCapPlayer,
-            salary: contract.salary || 0,
+            player,
+            salary,
             source: 'contract',
-            years_remaining: contract.years_remaining,
+            years_remaining: contract.is_franchise_tagged ? 1 : contract.years_remaining,
             is_franchise_tagged: contract.is_franchise_tagged,
           })
         }
@@ -376,13 +383,19 @@ export function useAllOwnersRosters(
         const ownerContracts = contractsByOwner.get(ownerId) || []
         for (const contract of ownerContracts) {
           if (!auctionPlayerIds.has(contract.player_id) && contract.player) {
+            const player = contract.player as SalaryCapPlayer
+            // Use franchise tag cost if player is franchise tagged
+            const salary = contract.is_franchise_tagged
+              ? getFranchiseTagCost(player.position, contract.salary || 0)
+              : (contract.salary || 0)
+
             rosterPlayers.push({
               id: contract.id,
               player_id: contract.player_id,
-              player: contract.player as SalaryCapPlayer,
-              salary: contract.salary || 0,
+              player,
+              salary,
               source: 'contract',
-              years_remaining: contract.years_remaining,
+              years_remaining: contract.is_franchise_tagged ? 1 : contract.years_remaining,
               is_franchise_tagged: contract.is_franchise_tagged,
             })
           }
