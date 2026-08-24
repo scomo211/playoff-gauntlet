@@ -85,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'This player has already been drafted' })
     }
 
-    // Get owner's current state (spent, roster count)
+    // Get owner's current state (spent, roster count, bonus cap, dead cap)
     // Use active contracts as the source of truth for roster count
     const { data: contracts } = await supabase
       .from('salarycap_contracts')
@@ -101,9 +101,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Your roster is full' })
     }
 
-    // Calculate cap from active contracts
-    const totalSpent = contracts?.reduce((sum, c) => sum + (c.salary || 0), 0) || 0
-    const remainingCap = SALARY_CAP - totalSpent
+    // Get bonus cap for current year (2026)
+    const { data: bonusCapEntries } = await supabase
+      .from('salarycap_bonus_cap')
+      .select('amount_2026')
+      .eq('owner_id', owner_id)
+
+    const bonusCap = bonusCapEntries?.reduce((sum, b) => sum + (b.amount_2026 || 0), 0) || 0
+
+    // Get dead cap
+    const { data: deadCapEntries } = await supabase
+      .from('salarycap_dead_cap')
+      .select('amount')
+      .eq('owner_id', owner_id)
+
+    const deadCap = deadCapEntries?.reduce((sum, d) => sum + (d.amount || 0), 0) || 0
+
+    // Calculate available cap: base + bonus - salaries - dead cap
+    const totalSalaries = contracts?.reduce((sum, c) => sum + (c.salary || 0), 0) || 0
+    const remainingCap = SALARY_CAP + bonusCap - totalSalaries - deadCap
 
     // Calculate max bid
     const maxBid = rosterSlotsRemaining <= 1
