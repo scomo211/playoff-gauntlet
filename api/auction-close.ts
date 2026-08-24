@@ -121,15 +121,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     while (checkedCount < auction.nomination_order.length) {
       const ownerId = auction.nomination_order[nextNominatorIndex]
 
-      // Check if this owner's roster is full
-      const { data: ownerResults } = await supabase
-        .from('salarycap_auction_results')
+      // Check if this owner's roster is full (check actual roster, not just auction results)
+      const { data: rosterEntries } = await supabase
+        .from('salarycap_rosters')
         .select('id')
-        .eq('auction_id', auction.id)
-        .eq('winner_id', ownerId)
+        .eq('owner_id', ownerId)
 
-      const playersWon = ownerResults?.length || 0
-      if (playersWon < ROSTER_SIZE) {
+      const rosterCount = rosterEntries?.length || 0
+      if (rosterCount < ROSTER_SIZE) {
         nextNominatorId = ownerId
         break
       }
