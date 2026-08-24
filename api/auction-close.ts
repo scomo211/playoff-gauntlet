@@ -92,23 +92,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (resultError) throw resultError
 
-    // Add player to winner's roster
-    await supabase.from('salarycap_rosters').insert({
+    // Add player to winner's roster (ignore if already exists)
+    await supabase.from('salarycap_rosters').upsert({
       owner_id: auctionItem.current_high_bidder,
       player_id: auctionItem.player_id,
-    })
+    }, { onConflict: 'player_id' })
 
-    // Create contract record (years to be finalized post-draft)
-    await supabase.from('salarycap_contracts').insert({
-      player_id: auctionItem.player_id,
-      owner_id: auctionItem.current_high_bidder,
-      salary: auctionItem.current_bid,
-      years_total: 1,
-      years_remaining: 1,
-      contract_status: 'active',
-      acquisition_type: 'auction',
-      acquisition_year: new Date().getFullYear(),
-    })
+    // Create or update contract record
+    // Check if player already has a contract (possibly expired from previous owner)
+    const { data: existingContract } = await supabase
+      .from('salarycap_contracts')
+      .select('id')
+      .eq('player_id', auctionItem.player_id)
+      .single()
+
+    if (existingContract) {
+      // Update existing contract with new owner and terms
+      await supabase.from('salarycap_contracts').update({
+        owner_id: auctionItem.current_high_bidder,
+        salary: auctionItem.current_bid,
+        years_total: 1,
+        years_remaining: 1,
+        contract_status: 'active',
+        acquisition_type: 'auction',
+        acquisition_year: new Date().getFullYear(),
+      }).eq('id', existingContract.id)
+    } else {
+      // Create new contract
+      await supabase.from('salarycap_contracts').insert({
+        player_id: auctionItem.player_id,
+        owner_id: auctionItem.current_high_bidder,
+        salary: auctionItem.current_bid,
+        years_total: 1,
+        years_remaining: 1,
+        contract_status: 'active',
+        acquisition_type: 'auction',
+        acquisition_year: new Date().getFullYear(),
+      })
+    }
 
     // Calculate next nominator
     // Need to find the next owner who hasn't filled their roster
