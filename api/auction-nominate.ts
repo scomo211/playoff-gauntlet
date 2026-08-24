@@ -86,13 +86,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Get owner's current state (spent, roster count)
-    // Check actual roster count (not just auction results)
-    const { data: rosterEntries } = await supabase
-      .from('salarycap_rosters')
-      .select('id')
+    // Use active contracts as the source of truth for roster count
+    const { data: contracts } = await supabase
+      .from('salarycap_contracts')
+      .select('salary')
       .eq('owner_id', owner_id)
+      .eq('contract_status', 'active')
 
-    const rosterCount = rosterEntries?.length || 0
+    const rosterCount = contracts?.length || 0
     const rosterSlotsRemaining = ROSTER_SIZE - rosterCount
 
     // Check if roster is full
@@ -100,24 +101,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Your roster is full' })
     }
 
-    // Get auction spending for cap calculation
-    const { data: ownerResults } = await supabase
-      .from('salarycap_auction_results')
-      .select('winning_bid')
-      .eq('auction_id', auction.id)
-      .eq('winner_id', owner_id)
-
-    const auctionSpent = ownerResults?.reduce((sum, r) => sum + r.winning_bid, 0) || 0
-
-    // Get contract salaries for total cap calculation
-    const { data: contracts } = await supabase
-      .from('salarycap_contracts')
-      .select('salary')
-      .eq('owner_id', owner_id)
-      .eq('contract_status', 'active')
-
-    const contractSalaries = contracts?.reduce((sum, c) => sum + (c.salary || 0), 0) || 0
-    const totalSpent = contractSalaries // Contracts include auction wins once they're created
+    // Calculate cap from active contracts
+    const totalSpent = contracts?.reduce((sum, c) => sum + (c.salary || 0), 0) || 0
     const remainingCap = SALARY_CAP - totalSpent
 
     // Calculate max bid
